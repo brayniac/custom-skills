@@ -1,0 +1,60 @@
+# Verified shape (2026-09-09, systemslab CLI/agent 160, anvil-vm-action 0.5.6).
+# Replace NAME, the image/tags row from the skill's table, and the payload body.
+name = "NAME"
+
+[[jobs]]
+name = "vm"
+tags = ["z2.baremetal"]          # subset-of-host semantics; see skill step 1
+
+[[jobs.steps]]
+uses = "anvil-vm"
+[jobs.steps.with]
+shape = "z2.c"
+image = "spool/images/debian-13-ci@golden"
+gpu = false                      # keep the 4090 free unless the payload uses it
+boot_timeout = 300               # create->reachable is ~25-30 s
+payload_timeout = 3600
+artifacts = ["/tmp/job/run.log", "/tmp/job/work.log", "/tmp/job/status"]
+# Only names declared in [params]/[matrix] are templated; ${PIPESTATUS[0]}
+# and $(...) pass through untouched.
+payload = '''
+set -o pipefail
+mkdir -p /tmp/job
+echo 1 > /tmp/job/status         # pessimistic until the work says otherwise
+{
+  echo "== guest =="; uname -r; nproc; id -un
+  cat /proc/sys/kernel/io_uring_disabled 2>/dev/null | sed 's/^/io_uring_disabled=/'
+
+  # ---- the work: full output to work.log (its own artifact), summary here ----
+  git clone -q https://github.com/ORG/REPO /tmp/job/src && cd /tmp/job/src
+  # optional: git checkout <base sha>; base64 -d a patch; git apply (recipes)
+  ulimit -n 65536
+  cargo test --all > /tmp/job/work.log 2>&1; echo $? > /tmp/job/status
+  grep -E '^test result|FAILED|panicked|^error' /tmp/job/work.log | tail -40
+  echo "work exited $(cat /tmp/job/status)"
+  # ---- end work ----
+} 2>&1 | tee /tmp/job/run.log
+exit 0                           # never fail here: a failed step skips the uploads
+'''
+
+[[jobs.steps]]
+uses = "upload-artifact"
+[jobs.steps.with]
+path = "run.log"                 # basename: anvil-vm pulls into the job workdir
+
+[[jobs.steps]]
+uses = "upload-artifact"
+[jobs.steps.with]
+path = "work.log"
+
+[[jobs.steps]]
+uses = "upload-artifact"
+[jobs.steps.with]
+path = "status"
+
+# Re-raise the recorded status so the experiment state reflects the result
+# while the artifacts above have already been uploaded.
+[[jobs.steps]]
+uses = "shell"
+[jobs.steps.with]
+run = "rc=$(cat status); echo \"work exited $rc\"; exit $rc"
