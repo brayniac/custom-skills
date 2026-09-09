@@ -28,8 +28,14 @@ In the payload (base64 sidesteps both TOML escaping and `{VAR}` templating):
 git clone -q https://github.com/ORG/REPO /tmp/job/src && cd /tmp/job/src
 git checkout -q <the $base sha>
 echo "<paste of /tmp/x.b64>" | base64 -d > /tmp/job/x.patch
-git apply --stat /tmp/job/x.patch && git apply /tmp/job/x.patch
+git apply --stat /tmp/job/x.patch
+git apply /tmp/job/x.patch || { echo "PATCH DID NOT APPLY"; exit 1; }
 ```
+
+The `exit 1` runs inside the template's `{ ... } | tee` group, so it aborts
+the work with `status` still at 1 and the outer `exit 0` keeps the uploads
+alive. Without it the tests run on the unpatched base and can report green
+for code that was never applied.
 
 Generate the spec with a small script rather than pasting 30 KB by hand; keep
 the spec file outside the checkout or it becomes part of the next patch.
@@ -59,8 +65,9 @@ vCPU and is not slower.
 | cold `cargo test --all`, 12 crates | ~45 s |
 | whole job incl. teardown | 2 min 40 s - 2 min 50 s |
 
-Sizes: `z2.c` with `slots = 4` is 32 vCPU / 125 GiB; hv01 whole host 56 vCPU
-/ ~224 GiB; hv02 whole host 24 vCPU / ~96 GiB. Guest kernels: `debian-13-ci`
+Sizes: `z2.c` with `slots = 4` is 32 vCPU / 128 GiB allocated (the guest's
+`free` shows 125); hv01 whole host 56 vCPU / ~224 GiB; hv02 whole host 24
+vCPU / ~96 GiB. Guest kernels: `debian-13-ci`
 and `-base` 6.12.63 (Debian), `rocky-10` 6.12.0-211 (el10). `debian-13-ci`
 has `kernel.io_uring_disabled=0`; `rocky-10` has `2`, so anything that needs
 io_uring fails there by design and a mio/epoll fallback is what to test.

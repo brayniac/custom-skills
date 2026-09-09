@@ -21,7 +21,7 @@ about three minutes. Treat "run it on distro X" as routine, not an expedition.
 | build / test Rust | `spool/images/debian-13-ci@golden` | both hosts. rustup, gcc, git, warm crates index; kernel 6.12, `io_uring_disabled=0`. `debian-13-base` has **no** toolchain |
 | RHEL-family behaviour (io_uring refused, SELinux, dnf) | `spool/images/rocky-10@golden` | **hv01 only**; install toolchain in payload (recipes); `io_uring_disabled=2` |
 | measurement tooling only | `spool/images/debian-13-base@golden` | both hosts. rezolus, slipway, stressapptest |
-| GPU | `spool/images/debian-13-gpu@golden` | both hosts; shape `z2.g`; only if the payload uses the card |
+| GPU | `spool/images/debian-13-gpu@golden` | both hosts; shape `z2.g` (hv01) or `z1.g` (hv02), one RTX 4090 each; only if the payload uses the card |
 
 The authoritative per-host image lists are `infra/fleet/hosts/hv01.toml` and
 `hv02.toml`.
@@ -37,9 +37,9 @@ that exists on one host with tags allowing the other fails at instance
 creation. Whole host by default. `slots` (one slot = one CCX, 4 cores / 8
 threads, 4 GiB per thread, on both hosts; hv01 has 7 usable, hv02 3),
 `memory_gib`, and `ports` (0-4 passthrough NIC ports, bonded in the guest)
-only when the size is the experiment. On hv01, which holds the RTX 4090, a
-guest gets the card unless `gpu = false`; set it unless the payload uses the
-card, so GPU jobs are not blocked. Timeouts are seconds.
+only when the size is the experiment. Each host holds one RTX 4090 and a
+guest gets it unless `gpu = false`; set that unless the payload uses the
+card, so a stray or orphaned guest cannot sit on it. Timeouts are seconds.
 
 ## 2. Write the spec
 
@@ -131,8 +131,9 @@ A new image (`zfs create` + `qemu-img convert` + `@golden`) or any other host
 change is done as a `shell` job pinned to that host (`systemslab-agent` has
 `sudo`), never over ssh. It must then be added to the `images = [...]` list in
 `~/workspace/brayniac/infra/fleet/hosts/<host>.toml` (drift tooling only sees
-declared images), and the infra repo owner told; if a session named `infra-*`
-is live (`ListAgents`), it is editing those files and should make the change.
+declared images), and the rack owner (Brian, in the recap) told; if a session
+named `infra-*` is live (`ListAgents`), it is editing those files and should
+make the change.
 Images are per host: building on hv01 does not put it on hv02. Recipes has
 the import job.
 
