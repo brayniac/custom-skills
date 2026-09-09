@@ -1,0 +1,178 @@
+# Canonical reusable tag-release workflow.
+#
+# Lives at <STANDARD_REPO>/.github/workflows/tag-release.yml and is called by
+# each repo's ~10-line tag-release.yml. Every policy that legitimately differs
+# between repos is an input; everything else is fixed here so it cannot drift.
+#
+# Pin callers to a tag (@v1), not a branch, so a change here is adopted
+# deliberately rather than by surprise.
+
+name: Tag Release
+
+on:
+  workflow_call:
+    inputs:
+      version-manifest:
+        description: >-
+          Cargo.toml holding the released version. Use the member manifest when
+          the root is a virtual manifest (e.g. server/Cargo.toml).
+        type: string
+        default: Cargo.toml
+      tag-prefix:
+        description: Prefix for the created tag.
+        type: string
+        default: v
+      dev-bump:
+        description: >-
+          How the next development version lands: "pr" opens a bump PR,
+          "direct" pushes to main, "none" skips it.
+        type: string
+        default: pr
+      only-repository:
+        description: >-
+          owner/name this release may run in. Set it when the repo is forked, so
+          a fork's main does not tag. Empty means run anywhere.
+        type: string
+        default: ''
+    outputs:
+      version:
+        description: The version that was released.
+        value: ${{ jobs.tag-release.outputs.version }}
+      tagged:
+        description: '"true" when this run created a tag.'
+        value: ${{ jobs.tag-release.outputs.tagged }}
+
+# The one place the release commit prefix is defined. Changing it here changes
+# it everywhere; changing it in a caller does nothing.
+env:
+  RELEASE_COMMIT_PREFIX: 'release: v'
+
+jobs:
+  tag-release:
+    name: Tag release and bump dev version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tagged: ${{ steps.tag.outputs.tagged }}
+
+    steps:
+      # Gate in a step, not in `if:`, so a skipped release says why in the log
+      # rather than vanishing from the run list.
+      - name: Decide whether this commit is a release
+        id: gate
+        # Values reach the script through env, never through `${{ }}` inside
+        # run: — a commit message is attacker-controlled text and interpolating
+        # it into the script is a shell injection.
+        env:
+          MSG: ${{ github.event.head_commit.message }}
+          ONLY: ${{ inputs.only-repository }}
+          REPO: ${{ github.repository }}
+        run: |
+          if [ -n "$ONLY" ] && [ "$ONLY" != "$REPO" ]; then
+            echo "not ${ONLY}; this is ${REPO}. Nothing to do."
+            echo "proceed=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          case "$MSG" in
+            "$RELEASE_COMMIT_PREFIX"*) echo "proceed=true" >> "$GITHUB_OUTPUT" ;;
+            *) echo "head commit does not start with '${RELEASE_COMMIT_PREFIX}'. Nothing to do."
+               echo "proceed=false" >> "$GITHUB_OUTPUT" ;;
+          esac
+
+      - uses: actions/checkout@v5
+        if: steps.gate.outputs.proceed == 'true'
+        with:
+          fetch-depth: 0
+          # A PAT, because the default GITHUB_TOKEN cannot trigger other
+          # workflows and cannot push past branch protection.
+          token: ${{ secrets.RELEASE_TOKEN }}
+
+      - name: Configure git
+        if: steps.gate.outputs.proceed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      # Section-aware, so a `version = ` under [dependencies] cannot be mistaken
+      # for the package version. `grep -m1 '^version = '` gets this wrong on any
+      # manifest whose first version key is not the package's.
+      - name: Extract version
+        id: version
+        if: steps.gate.outputs.proceed == 'true'
+        run: |
+          VERSION=$(awk -F' *= *' '
+            /^\[/  { inpkg = ($0 ~ /^\[(package|workspace\.package)\]/); next }
+            inpkg && $1 == "version" { gsub(/"/, "", $2); print $2; exit }
+          ' '${{ inputs.version-manifest }}')
+          if [ -z "$VERSION" ]; then
+            echo "::error::no [package] or [workspace.package] version in ${{ inputs.version-manifest }}"
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Detected version: $VERSION"
+
+      - name: Create and push tag
+        id: tag
+        if: steps.gate.outputs.proceed == 'true'
+        run: |
+          TAG="${{ inputs.tag-prefix }}${{ steps.version.outputs.version }}"
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists; not re-tagging."
+            echo "tagged=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          git tag -a "$TAG" -m "Release $TAG"
+          git push origin "$TAG"
+          echo "tagged=true" >> "$GITHUB_OUTPUT"
+          echo "Created and pushed $TAG"
+
+      - name: Install Rust
+        if: steps.tag.outputs.tagged == 'true' && inputs.dev-bump != 'none'
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Bump to next development version
+        if: steps.tag.outputs.tagged == 'true' && inputs.dev-bump != 'none'
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          cargo install cargo-release --locked
+          VERSION='${{ steps.version.outputs.version }}'
+          BASE=${VERSION%%-*}                       # drop any existing prerelease
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$BASE"
+          NEXT_DEV="${MAJOR}.${MINOR}.$((PATCH + 1))-alpha.0"
+          echo "Next development version: $NEXT_DEV"
+
+          # cargo-release edits every manifest that shares the version and
+          # updates Cargo.lock. A `sed` on one file leaves a workspace
+          # inconsistent and Cargo.lock stale.
+          cargo release version "$NEXT_DEV" --execute --no-confirm
+
+          if [ "${{ inputs.dev-bump }}" = "direct" ]; then
+            git add -A
+            git commit -m "chore: begin next development iteration (${NEXT_DEV})"
+            git push origin main
+          else
+            BRANCH="chore/bump-${NEXT_DEV}"
+            git checkout -b "$BRANCH"
+            git add -A
+            git commit -m "chore: begin next development iteration (${NEXT_DEV})"
+            git push origin "$BRANCH"
+            gh pr create \
+              --title "chore: begin next development iteration (${NEXT_DEV})" \
+              --body "Automated version bump after ${{ inputs.tag-prefix }}${VERSION}." \
+              --head "$BRANCH" --base main
+          fi
+
+      - name: Summary
+        if: always() && steps.gate.outputs.proceed == 'true'
+        run: |
+          {
+            echo "## Tag release"
+            if [ "${{ steps.tag.outputs.tagged }}" = "true" ]; then
+              echo "- Created tag \`${{ inputs.tag-prefix }}${{ steps.version.outputs.version }}\`"
+              echo "- Next dev version landed via \`${{ inputs.dev-bump }}\`"
+            else
+              echo "- No tag created (already existed, or the run stopped earlier)."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
