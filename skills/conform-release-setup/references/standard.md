@@ -46,10 +46,13 @@ Anything else that differs is drift, not policy.
 These caused the drift. They live in the shared workflow now, and a repo that
 overrides them locally is non-conforming even if it works.
 
-- **Release commit prefix: `release: v`.** Previously `release: prepare v`,
-  `release: v`, and `release: ` were all live, each coupled to its own
-  workflow by nothing but copy discipline. A mismatched prefix merges cleanly,
-  reports success, and never tags.
+- **What counts as a release commit.** `release: v1.2.3`,
+  `release: prepare v1.2.3`, and a merge commit naming `release/v1.2.3` are all
+  accepted, so adopting the standard does not require changing a repo's release
+  convention in the same PR. The prefix is only a pre-check: the gate is that
+  **the commit must name the version the manifest holds**. Previously each repo's
+  prefix was coupled to its own workflow copy by nothing but copy discipline,
+  and a mismatch merged cleanly, reported success, and never tagged.
 - **Version extraction is section-aware.** `grep -m1 '^version = '` and
   `sed -i "0,/^version = .../"` both take the *first* version key in the file,
   which is the package's only by convention. Checked against all ten manifests
@@ -114,3 +117,8 @@ pre-release-commit-message = "release: v{{version}}"
 `tag = true, push = true` (crucible, forge) describes a direct tag-and-push flow.
 Where the repo actually releases by PR, those keys are stale and will double-tag
 if anyone runs `cargo release` locally.
+
+`pre-release-commit-message` does **not** need to change during a migration. The
+shared workflow accepts both `release: v{{version}}` and
+`release: prepare v{{version}}`, precisely so that swapping the workflow and
+changing a repo's release convention stay separate changes.
