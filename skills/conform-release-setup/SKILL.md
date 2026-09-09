@@ -60,7 +60,9 @@ If the repo is already conforming, say so and stop. There is nothing to do and a
 "cleanup" commit on a correct repo is churn.
 
 **Get explicit approval before editing.** This edits release automation, where a
-mistake is discovered at the next release and not before.
+mistake is discovered at the next release and not before. Note in the report that
+the repo's PR checks cannot validate the caller — `tag-release.yml` runs on push
+to `main`, so a PR goes green regardless and the first real test is the merge.
 
 ## Step 4 — Migrate
 
@@ -90,6 +92,11 @@ The shared workflow gates in a step rather than a job `if:`, so a non-release
 push still produces a run whose log says why it stopped. **That run appearing is
 the evidence the wiring is live.** If no run appears at all, the caller is not
 being triggered and the migration did not take, whatever the PR says.
+
+Read the run's own log rather than its colour. The line to find is the gate
+step's reason — `Head commit is not a release commit` — and the seven steps after
+it marked skipped. A green run with no gate step never loaded the shared
+workflow.
 
 Then say plainly that the first real release through it is still unproven, and
 that step 4 of the `release` skill is what confirms it.

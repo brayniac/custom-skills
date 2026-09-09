@@ -71,6 +71,40 @@ overrides them locally is non-conforming even if it works.
   trace, so "the release did not tag" and "the workflow was not eligible" look
   identical afterward. As a step it logs the reason.
 
+## Permissions: the caller needs none
+
+A conforming caller has no `permissions:` block, and adding one is a sign
+something is wrong.
+
+Every write in the shared workflow authenticates with `RELEASE_TOKEN`, not
+`GITHUB_TOKEN`: `actions/checkout` takes the PAT, so the tag and bump pushes use
+its credentials, and `gh pr create` runs with `GH_TOKEN` set to it. The job's own
+token therefore needs nothing beyond `contents: read`.
+
+This is not a stylistic choice. **A called workflow may not request more than its
+caller holds.** A repository whose default workflow permissions are `read` grants
+a called job `contents: read, pull-requests: none`, so a reusable workflow that
+requested `contents: write` fails validation there before running a single step:
+
+```
+Error calling workflow '...tag-release.yml@v1'. The nested job 'tag-release' is
+requesting 'contents: write, pull-requests: write', but is only allowed
+'contents: read, pull-requests: none'.
+```
+
+Check the default before assuming a repo will accept a caller:
+
+```sh
+gh api repos/<owner>/<name>/actions/permissions/workflow -q .default_workflow_permissions
+```
+
+**A pull request cannot catch this.** `tag-release.yml` triggers on push to
+`main`, so it never runs on a PR — every check goes green and the error appears at
+merge. `brayniac/rust-workflows` therefore carries a self-test caller whose own
+default permissions are `read`, so the caller contract is exercised on every push
+there. Before migrating a repo, confirm that self-test is green; that is the
+evidence the contract holds, and a PR's green checks are not.
+
 ## Per-repo settings
 
 Derived from each repo's current workflow and tag history. Confirm against the
