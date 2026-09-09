@@ -5,8 +5,8 @@ description: Produce a performance number from the local lab — anvil VMs or ba
 
 # Measuring performance in the local lab
 
-Three systems, one loop: **anvil** decides what hardware the workload actually
-gets, **systemslab** runs it and records, **rezolus** is what you read the
+Three systems, one loop: **SystemsLab** picks the machine and runs the work,
+**anvil** builds the VM the shape asks for, **rezolus** is what you read the
 numbers out of. Most wrong numbers here come from the seams between them, not
 from the workload.
 
@@ -16,6 +16,28 @@ disagree. Spec syntax beyond that is in
 `systemslab/docs/llm/writing-experiments.md`. This skill starts where those leave
 off: choosing an environment whose numbers mean something, and deciding whether a
 difference between two of them is real.
+
+## The two layers, and which one is wrong
+
+**SystemsLab expresses constraints; anvil realizes a shape.** Tags say what kind
+of machine the work needs — generation, capabilities — and SystemsLab schedules
+onto a host that satisfies them. The shape (`z2.c`, `slots`, `ports`, `gpu`) says
+what the VM should look like, and anvil builds one matching it on the host that
+was chosen.
+
+Measurement problems get misdiagnosed at that boundary, because the two sides
+fail differently:
+
+| Symptom | Layer | Look at |
+| --- | --- | --- |
+| job pends forever, or ran on the wrong generation | constraints | tags. They are ANDed, so `["z2.baremetal","z1.baremetal"]` matches nothing |
+| instance creation fails | the two disagree | the shape's generation must match the host the tags select — `z2.c` with `z2.baremetal` |
+| guest topology, pinning, NUMA binding or clocksource wrong | shape realization | the anvil-agent on that host; verify with `virsh dumpxml` |
+| no NIC ports or no GPU inside the guest | shape realization | the spec's `ports` and `gpu`, then that host's port config |
+
+Nothing cross-checks the two. A shape that disagrees with the tags is reported at
+instance creation rather than at scheduling, which is late enough to read like an
+anvil fault when it is a spec fault.
 
 **A number is not a result until you can say what produced it, on what hardware,
 with what else running.**
