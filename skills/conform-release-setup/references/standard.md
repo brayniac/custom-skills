@@ -31,7 +31,7 @@ standard exists to end.
 
 ## The inputs, and only these
 
-Four, because these are the only differences between repos that mean anything.
+Six, because these are the only differences between repos that mean anything.
 Anything else that differs is drift, not policy.
 
 | Input | Default | Set it when |
@@ -40,6 +40,8 @@ Anything else that differs is drift, not policy.
 | `tag-prefix` | `v` | never, so far |
 | `dev-bump` | `pr` | `direct` where a bump PR is noise on a repo you release often; `none` where versions are bumped by hand |
 | `only-repository` | *(empty)* | the repo is forked and the fork's `main` must not tag — e.g. `iopsystems/rezolus` |
+| `dev-bump-package` | *(empty)* | `version-manifest` is one member of a hybrid workspace whose other members version on their own cadence — the bump becomes `cargo release version -p <name>` and touches only that manifest and `Cargo.lock`. Without it, the unscoped bump drags every member to the product's version and refuses where that is a downgrade |
+| `dev-bump-style` | `alpha` | `patch` for a bare `MAJOR.MINOR.(PATCH+1)` where the next release finalizes the version in place, or where a path dependency's caret requirement (`version = "0.6"`) would reject a prerelease and leave the bump PR red |
 
 ## Fixed here, not negotiable per repo
 
@@ -121,7 +123,7 @@ repo before applying — this table is evidence, not authority.
 | ratelimit | `Cargo.toml` | `pr` | *confirm* |
 | cachecannon | `Cargo.toml` | `pr` | `cachecannon/cachecannon` |
 | crucible | `server/Cargo.toml` | `pr` | *(none — no fork)* |
-| ringline | `ringline/Cargo.toml` | `pr` | `ringline-rs/ringline` |
+| ringline | `ringline/Cargo.toml` | `none` today; `pr` + `dev-bump-package: ringline` + `dev-bump-style: patch` once rust-workflows `v1` carries those inputs | `ringline-rs/ringline` |
 
 ## Repos this standard does not cover
 
@@ -129,6 +131,16 @@ repo before applying — this table is evidence, not authority.
   no automation by choice. One shared version is the wrong model for it. Leave
   it manual and say so in its own `release.toml` or CLAUDE.md, so "no workflow"
   reads as a decision rather than an omission.
+- **ringline is hybrid, and only its workspace releases are covered.** The
+  core crate is tagged `vX.Y.Z` while `ringline-redis`/`-memcache` and the
+  `publish = false` tools sit on their own versions, and satellite crates
+  release alone as `release: <crate> vX.Y.Z` → `ringline-<crate>-vX.Y.Z`. The
+  shared gate does not match that commit form, so those are tagged by hand
+  after merge and `release.yml` publishes on the tag. Measured 2026-09-09:
+  the unscoped dev bump fails there with `cannot downgrade ringline-redis from
+  0.6.3-alpha.0 to 0.7.0`, and a `-alpha.0` core fails the workspace's
+  `ringline = "0.6"` path requirement — which is what `dev-bump-package` and
+  `dev-bump-style: patch` exist for.
 - **pelikan**, **forge** — no tag workflow today. Adopting the standard is a
   change in behavior, not a cleanup. Treat as new adoption and confirm first.
   `forge` additionally has `release.toml` with `tag = true, push = true`, so
