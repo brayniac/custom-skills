@@ -13,7 +13,7 @@ on:
 
 jobs:
   tag-release:
-    uses: <STANDARD_REPO>/.github/workflows/tag-release.yml@v1
+    uses: brayniac/rust-workflows/.github/workflows/tag-release.yml@v1
     secrets: inherit
     with:
       dev-bump: pr
@@ -22,6 +22,12 @@ jobs:
 `secrets: inherit` passes `RELEASE_TOKEN`. Pin `@v1`, never a branch: a branch
 ref means every repo adopts a change to the shared workflow the moment it lands,
 which is the drift this replaces, only faster.
+
+The workflow's source lives at
+[`brayniac/rust-workflows`](https://github.com/brayniac/rust-workflows) and is
+deliberately not copied here. Read it there when you need to know what a step
+does; a second copy would drift from the first, which is the failure this whole
+standard exists to end.
 
 ## The inputs, and only these
 

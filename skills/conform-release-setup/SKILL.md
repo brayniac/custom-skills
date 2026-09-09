@@ -11,8 +11,9 @@ are defined once and the parts that legitimately differ are named inputs.
 
 `references/standard.md` is the standard: the caller stub, the four inputs, what
 is fixed and why, and the per-repo settings derived from the current workflows.
-`references/tag-release-reusable.yml` is the shared workflow's source. Read both
-before proposing a migration.
+Read it before proposing a migration. The shared workflow itself lives at
+[`brayniac/rust-workflows`](https://github.com/brayniac/rust-workflows), pinned
+by callers at `@v1`.
 
 **One repo per run.** A sweep is this workflow repeated, not a batch.
 
