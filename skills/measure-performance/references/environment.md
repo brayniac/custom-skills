@@ -82,13 +82,22 @@ also a same-host comparison by necessity. That is the good case; take it.
 against bare metal — bare metal there is the worse environment, because the
 hardware worth measuring is not on the host.
 
-The NIC ports and the GPU are assigned to slots for guest passthrough. On hv01
-the X710's port 0 carries five SR-IOV VFs, one per non-PF slot (1, 2, 3, 6, 7);
-remaining ports go to slots as whole-PF passthrough, and each host's RTX 4090
-goes to a guest unless the spec sets `gpu = false`. A device bound to vfio for
-passthrough is **not present on the host**, so a bare-metal `shell` step cannot
-measure the network or the GPU at all. It is not a less isolated view of the same
-machine; it is a different, poorer one.
+The NIC ports and the GPU go to the guest. A VM asks for 0–4 NIC ports and gets
+**whole physical functions**, bonded inside the guest — all four if it asks for
+four. The host's RTX 4090 likewise goes to a guest unless the spec sets
+`gpu = false`.
+
+A device passed through to a guest is **not present on the host**, so a
+bare-metal `shell` step cannot measure the network or the GPU at all. It is not a
+less isolated view of the same machine; it is a different, poorer one — and the
+more of the hardware a measurement actually cares about, the less a bare-metal
+step can see of it.
+
+Port layout is per host and configured in `infra/fleet/hosts/<host>.toml`, which
+is authoritative. Do not infer it from anvil's `config/agent.toml`, which is a
+commented example, or from `host-setup/anvil-sriov-vfs.sh`, which is about
+providing SR-IOV VFs to slots that were not given a PF — neither describes what a
+given VM can request today.
 
 A plain `shell` step pinned to a hypervisor is technically permitted, and is the
 right tool only when there is a **named performance question that requires it** —

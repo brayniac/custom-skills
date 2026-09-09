@@ -43,12 +43,13 @@ obtained after retrying around a 503 is not a clean number.
 
 ## Step 2 — On the hypervisors, measure in a VM, and verify fidelity
 
-**Every measurement on hv01/hv02 happens inside a VM.** Bare metal there is not
-a cleaner alternative: the NIC ports and the GPU are bound to vfio and handed to
-slots, so they are not present on the host, and a bare-metal `shell` step cannot
-measure network or GPU at all. Reach for bare metal only when a named performance
-question requires it — a suspected virtualization overhead, something in the host
-kernel — and never to avoid verifying fidelity.
+**Every measurement on hv01/hv02 happens inside a VM.** Bare metal there is not a
+cleaner alternative: the NIC ports and the GPU go to the guest — a VM asks for
+0–4 ports and gets whole physical functions, all four if it asks for four — so
+they are not present on the host, and a bare-metal `shell` step cannot measure
+network or GPU at all. Reach for bare metal only when a named performance question
+requires it — a suspected virtualization overhead, something in the host kernel —
+and never to avoid verifying fidelity.
 
 The `pi4b` and Mac hosts run work directly and none of this applies to them; see
 `references/environment.md` for what replaces it.
