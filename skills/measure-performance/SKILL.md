@@ -31,6 +31,7 @@ fail differently:
 | Symptom | Layer | Look at |
 | --- | --- | --- |
 | job pends forever, or ran on the wrong generation | constraints | tags. They are ANDed, so `["z2.baremetal","z1.baremetal"]` matches nothing |
+| `503 No suitable slots available` **while slots are free** | the two disagree | `anvil-server` filters hosts by generation before slots, so a `z2.c` job that landed on hv02 is refused without the message ever saying "generation" |
 | instance creation fails | the two disagree | the shape's generation must match the host the tags select — `z2.c` with `z2.baremetal` |
 | guest topology, pinning, NUMA binding or clocksource wrong | shape realization | the anvil-agent on that host; verify with `virsh dumpxml` |
 | no NIC ports or no GPU inside the guest | shape realization | the spec's `ports` and `gpu`, then that host's port config |
@@ -59,8 +60,11 @@ change results.
 **Exclusivity is already guaranteed: SystemsLab runs one job per host.** If your
 job is running, you have the machine — there is no co-tenant and nothing to
 drain. So `busy` means another job owns the host and you wait for it, and a
-`503 No suitable slots available` is never ordinary contention: it means an
-orphaned guest or a slot-release bug, which `vm-job` step 6 recovers. A number
+`503 No suitable slots available` is never ordinary contention. It has two causes
+the message does not distinguish: a **generation mismatch in your own spec**
+— check this first, since `tags = ["hypervisor"]` with a generation-specific shape
+is a coin flip when both hypervisors carry that tag — or an orphaned guest holding
+slots, which `vm-job`'s "Cancel, timeout, orphan" step (6) recovers. A number
 obtained after retrying around a 503 is not a clean number.
 
 ## Step 2 — On the hypervisors, measure in a VM, and verify fidelity

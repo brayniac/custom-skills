@@ -9,7 +9,7 @@ The rack rule: **hv01 and hv02 are only ever used through SystemsLab jobs.** A
 job on a host is the exclusivity guarantee (one job per host). Never `ssh` to a
 hypervisor to build, test, or demo, never `anvilctl instance create` by hand,
 never `rsync` a tree over. Put the work in a job payload. The one sanctioned
-out-of-band action is terminating an orphaned guest after a cancel (step 6).
+out-of-band action is terminating an orphaned guest after a cancel (step 7).
 
 A whole job — boot, toolchain, clone, cold build, test suite, teardown — is
 about three minutes. Treat "run it on distro X" as routine, not an expedition.
@@ -71,7 +71,47 @@ the skill directory) and start from it. Rules:
   profile sourced; `debian-13-ci` puts cargo on PATH anyway).
 - Uncommitted work: do not push a scratch branch. Ship a patch (recipes).
 
-## 3. Submit
+## 3. Two jobs that must meet
+
+A rendezvous between jobs in one experiment is a `barrier` step or it is a
+bug. The barrier is the **only** construct that propagates one job's failure
+to its peers: when a run reaches a terminal state its runner cancels every
+barrier it has not yet arrived at, and a peer blocked on that barrier returns
+`cancelled` within seconds. The experiment workflow does not cancel siblings
+when a job fails -- it only waits for every run to finish. So a hand-rolled
+rendezvous (socket handshake, marker file, poll loop) holds its peer's entire
+hypervisor until a timeout the moment the other side dies. It cost hv02 34
+minutes on 2026-09-09: a client failed 200 ms in at instance creation (503, no
+slots) and the server sat in its `accept()` until a human cancelled it.
+
+The shape is forced by anvil-vm being create -> payload -> tear down in one
+step: a barrier step runs on the **host** runner, and a payload inside a guest
+can never reach one. A job whose only step is `anvil-vm` has its runner buried
+inside that step for the whole run, so nothing can interrupt it.
+
+- The **long-lived** side (the server) runs its `anvil-vm` step with
+  `background = true`, then a `barrier` step. The runner is now free to wait
+  at the barrier while the guest serves. A cancel ends the run, the runner
+  SIGTERMs the background step, and anvil-vm tears the guest down on SIGTERM.
+- The **short-lived** side (the client) reaches the same barrier as its
+  **last** step, after its uploads, so every way it can fail leaves the
+  barrier unreached.
+- Keep an in-guest handshake **as well**, for the happy path only: it lets the
+  server payload return 0 by itself. A background step still running when the
+  run ends is SIGTERMed and exits 75, which marks the run `cancelled` -- fine
+  for a real failure, wrong for a good one.
+- Give teardown room. `signal_background_tasks` SIGKILLs 10 s after the
+  SIGTERM, and a guest still being reclaimed then is an orphan (step 7). A
+  `shell` step with `sleep 20` after the barrier is enough.
+- The two names must match **exactly**. A barrier is built from the steps that
+  name it, so a typo does not error: it makes two one-job barriers, each
+  satisfied the instant its own job arrives, and the jobs never meet.
+- Readiness is not a barrier's job here. The server guest has no moment at
+  which it can signal the host, so the client retries the connection.
+
+Worked spec: `references/recipes.md`, "Two guests that have to meet".
+
+## 4. Submit
 
 ```sh
 systemslab evaluate spec.toml >/dev/null   # parses the TOML dialect; nothing checks anvil-vm fields before run time
@@ -88,7 +128,7 @@ fails with `unknown variant 'anvil-vm', expected one of shell, barrier, ...`;
 use the CLI then. Either way, a wrong `anvil-vm` field (`deny_unknown_fields`)
 is only reported when the step starts.
 
-## 4. Wait and read
+## 5. Wait and read
 
 - `wait_for_experiment` (MCP) or `systemslab experiment show <id>`.
 - Log: `get_logs` (MCP; use `grep`/`tail`, the payload's stdout is all there)
@@ -98,7 +138,7 @@ is only reported when the step starts.
   **`systemslab artifact download-all` / `list --experiment` ignore the filter
   and return other experiments' files** (CLI 160) — do not use them.
 
-## 5. Before believing a green result
+## 6. Before believing a green result
 
 Ask what red would have looked like. A process that survives a `timeout` did
 not crash; it did not necessarily serve. A run that "passed" under a feature
@@ -106,7 +146,7 @@ flag or backend must have actually compiled with it (check the guest's kernel
 and the build flags in the log). If the check could not have failed, it
 proved nothing.
 
-## 6. Cancel, timeout, orphan
+## 7. Cancel, timeout, orphan
 
 Cancelling is supposed to tear the guest down, but has left orphans that held
 every slot and failed later jobs with `503 No suitable slots available`.
@@ -125,7 +165,7 @@ a 503 is never ordinary contention: it means an orphan or a slot-release bug.
 Terminate the orphan, file the bug in the anvil repo
 (`~/workspace/brayniac/anvil`), then resubmit. Do not add retry loops.
 
-## 7. Persistent state on the rack
+## 8. Persistent state on the rack
 
 A new image (`zfs create` + `qemu-img convert` + `@golden`) or any other host
 change is done as a `shell` job pinned to that host (`systemslab-agent` has
@@ -141,6 +181,8 @@ the import job.
 
 - Never work on hv01/hv02 outside a job, "just to check".
 - Never a payload that ends non-zero when you want the artifacts.
+- Never coordinate two jobs with anything but a barrier; a handshake
+  wedges the peer's host until a timeout when the other side dies.
 - Never leave a cancelled job without checking for its guest.
 - Never cite a guest's own topology report as hardware fact; corroborate on
   the host.

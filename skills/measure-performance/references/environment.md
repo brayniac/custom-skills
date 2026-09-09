@@ -24,13 +24,14 @@ roster.
 | Class | Hardware | Slots |
 | --- | --- | --- |
 | `z2.baremetal` (hv01) | Zen 2, 56 vCPU, ~224 GiB, one RTX 4090 | 7 usable |
-| `z1.baremetal` (hv02) | Zen 1, 24 vCPU, ~96 GiB, one RTX 4090 | 3 usable |
+| `z1.baremetal` (hv02) | Zen 1 Threadripper 1950X, 24 vCPU, ~96 GiB, one RTX 4090 | 3 usable |
 | `pi4b` | Raspberry Pi 4B ×18 | — |
 | `pi4b-thermal` | Raspberry Pi 4B ×2, held apart | — |
 
 One slot is one CCX: 4 cores / 8 threads, 4 GiB per thread, on both hosts.
 
-**Zen 1 and Zen 2 are different microarchitectures.** A z1 number and a z2
+**Zen 1 and Zen 2 are different microarchitectures, and hv02 is a Threadripper
+rather than a server part.** A z1 number and a z2
 number are two facts about two machines, and neither is a baseline for the
 other. The generation also constrains the shape: `z2.c` only runs where
 `z2.baremetal` is, so an instance type already implies a host.
@@ -50,10 +51,29 @@ the failure looks like:
 
 - `state: busy` means **another job owns the host**. You wait for it; you do not
   measure next to it.
-- `503 No suitable slots available` is **never ordinary contention**. With one
-  job per host it means an orphaned guest is holding slots, or a slot-release
-  bug. `vm-job` step 6 has the recovery. Do not retry around it, and do not
-  treat a number obtained after a retry as clean.
+- `503 No suitable slots available` is **never ordinary contention**, but it has
+  two unrelated causes and the message distinguishes neither. Check them in this
+  order:
+
+  1. **A generation mismatch in your own spec.** `anvil-server` filters candidate
+     hosts by generation *before* it looks at slots
+     (`crates/anvil-server/src/main.rs`, `a.generation == instance_type.generation`),
+     so a `z2.c` request that landed on hv02 is refused **while slots are free**,
+     and nothing in the message says "generation". A constraints bug wearing a
+     capacity error's clothes, and the cheap thing to rule out.
+
+     The specific trap: **`tags = ["hypervisor"]` paired with a
+     generation-specific shape is a coin flip.** Both hv01 and hv02 carry
+     `hypervisor`, so the scheduler may place either way while the shape only
+     works on one. Pair a shape with its own generation tag — `z2.c` with
+     `z2.baremetal`.
+
+  2. **An orphaned guest holding slots, or a slot-release bug** — only once the
+     spec is ruled out. `vm-job`'s "Cancel, timeout, orphan" step (6) has the
+     recovery.
+
+  In neither case retry around it, and never treat a number obtained after a
+  retry as clean.
 
 What still applies from measuring anywhere else: if `user` + `sys` come back far
 below `real`, the process was waiting rather than running, and something in the
