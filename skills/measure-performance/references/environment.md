@@ -76,6 +76,48 @@ Two image differences change results outright:
 `rocky-10` exists on hv01 only, which means a Rocky-versus-Debian comparison is
 also a same-host comparison by necessity. That is the good case; take it.
 
+## On the hypervisors, measure in a VM
+
+**Default to a VM on hv01/hv02 for every measurement.** Not as a trade-off
+against bare metal — bare metal there is the worse environment, because the
+hardware worth measuring is not on the host.
+
+The NIC ports and the GPU are assigned to slots for guest passthrough. On hv01
+the X710's port 0 carries five SR-IOV VFs, one per non-PF slot (1, 2, 3, 6, 7);
+remaining ports go to slots as whole-PF passthrough, and each host's RTX 4090
+goes to a guest unless the spec sets `gpu = false`. A device bound to vfio for
+passthrough is **not present on the host**, so a bare-metal `shell` step cannot
+measure the network or the GPU at all. It is not a less isolated view of the same
+machine; it is a different, poorer one.
+
+A plain `shell` step pinned to a hypervisor is technically permitted, and is the
+right tool only when there is a **named performance question that requires it** —
+a suspected virtualization overhead, or something in the host kernel. "To avoid
+verifying fidelity" is not such a question. When you do it, say in the report
+that it was bare metal and which devices were therefore unavailable.
+
+## The non-hypervisor hosts are a different story
+
+`pi4b`, `pi4b-thermal`, and the Mac hosts (`macbook` was the only one registered
+at last look; a `macstudio` may join) run work directly. There is no VM layer, so
+the fidelity section below is irrelevant to them — and different concerns replace
+it:
+
+- **Pis are thermally limited.** That is what the separate `pi4b-thermal` tag is
+  about, and it makes run order matter: back-to-back runs on one Pi are not
+  independent samples, and a long A/B on a single Pi drifts. Interleaving matters
+  more here than anywhere else in the lab.
+- **Eighteen `pi4b` hosts are not eighteen identical hosts.** Per-unit variation
+  and cooling differences are real, so a comparison that changes host between
+  sides has host variance in it. Pin both sides to one Pi, or run enough hosts to
+  measure the spread and report it.
+- **A Mac host is also somebody's workstation.** The one-job-per-host guarantee
+  is weakest where a human is typing; treat a Mac number as indicative and never
+  as the basis for a regression verdict.
+- **Metric coverage differs by platform.** rezolus's samplers are Linux-centric,
+  so confirm with `describe_metrics` what a given host's recording actually
+  contains rather than assuming parity with a Debian guest.
+
 ## VM fidelity: what to verify, and where
 
 anvil makes a VM a usable measurement environment through properties in the

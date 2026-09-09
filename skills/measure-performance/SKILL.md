@@ -41,10 +41,22 @@ drain. So `busy` means another job owns the host and you wait for it, and a
 orphaned guest or a slot-release bug, which `vm-job` step 6 recovers. A number
 obtained after retrying around a 503 is not a clean number.
 
-## Step 2 — If measuring inside an anvil VM, verify fidelity first
+## Step 2 — On the hypervisors, measure in a VM, and verify fidelity
 
-A VM is a valid measurement environment here only because anvil was fixed to
-make it one. Five properties carry that, and all of them are guest-visible:
+**Every measurement on hv01/hv02 happens inside a VM.** Bare metal there is not
+a cleaner alternative: the NIC ports and the GPU are bound to vfio and handed to
+slots, so they are not present on the host, and a bare-metal `shell` step cannot
+measure network or GPU at all. Reach for bare metal only when a named performance
+question requires it — a suspected virtualization overhead, something in the host
+kernel — and never to avoid verifying fidelity.
+
+The `pi4b` and Mac hosts run work directly and none of this applies to them; see
+`references/environment.md` for what replaces it.
+
+### Verify fidelity
+
+A VM is a valid measurement environment only because anvil was fixed to make it
+one. Five properties carry that:
 
 1. **emulator and iothread pinned to reserved host CPUs** — otherwise QEMU's own
    threads land on the vCPUs you are measuring;
@@ -129,6 +141,9 @@ executed.
   facts about two machines.
 - **Never report a VM timing without saying whether fidelity was verified**, and
   never assume it from the anvil version on main.
+- **Never choose bare metal on a hypervisor to sidestep fidelity verification.**
+  The NIC and GPU are not on the host, so it answers less, not more. Bare metal
+  needs a named question that requires it.
 - **Never work on hv01/hv02 outside a job**, and never report a number from a run
   that needed a retry past a 503.
 - **Never cite a guest's own topology report as hardware fact.** Corroborate on
