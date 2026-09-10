@@ -123,8 +123,10 @@ def slope(taus, devs, lo, hi):
     return np.polyfit(np.log10(taus[sel]), np.log10(devs[sel]), 1)[0]
 ```
 
-`allantools` is the maintained library if you can install it; the results should
-agree to floating point. Cross-check against it once and keep whichever you have.
+`allantools` is the maintained library and the results should agree to floating
+point — but it is **LGPL-3.0**, where NumPy and SciPy are BSD-3. Cross-check
+against it once, then keep the implementation above if the licence matters to the
+project you are working in.
 
 ## Self-test before you believe a plot
 
