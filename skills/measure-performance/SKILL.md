@@ -153,6 +153,11 @@ quiet zero.
   not evidence that a change caused an effect.
 - **Predict before you compute.** A delta you did not expect is information; one
   you did expect and got is not confirmation on its own.
+- **When the spread will not settle, ask what color it is.** If more runs are not
+  tightening the interval, the noise is not white and `1/√N` does not apply. The
+  `analyze-noise` skill turns the series into an Allan deviation curve, which
+  says whether averaging helps at all, how long a run has to be, and what
+  timescale the confounder lives on.
 
 ## Step 6 — Report what you actually did
 
