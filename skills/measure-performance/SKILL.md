@@ -122,6 +122,13 @@ For anything with a client and a server, `systemslab/barrier` is what makes the
 measured window the same window on both hosts. Without it you are averaging over
 one side's startup.
 
+**Analysis you attach to a running measurement is part of the measurement.**
+Before computing anything on the measured node, read
+`references/analysis-placement.md`: it splits the analysis techniques in this
+library into what is cheap enough to run in the measurement path, what belongs
+off the measured cores while the run is live, and what has to wait for the
+recording. The cost that matters there is perturbation, not cycles.
+
 ## Step 4 — Read the recording, not the console
 
 `references/reading-recordings.md` has the chain and the traps. The short form:

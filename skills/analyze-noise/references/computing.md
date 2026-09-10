@@ -123,10 +123,19 @@ def slope(taus, devs, lo, hi):
     return np.polyfit(np.log10(taus[sel]), np.log10(devs[sel]), 1)[0]
 ```
 
-`allantools` is the maintained library and the results should agree to floating
-point — but it is **LGPL-3.0**, where NumPy and SciPy are BSD-3. Cross-check
-against it once, then keep the implementation above if the licence matters to the
-project you are working in.
+`allantools` is the maintained Python library and the results should agree to
+floating point — but it is **LGPL-3.0**, where NumPy and SciPy are BSD-3.
+Cross-check against it once, then keep the implementation above if the licence
+matters where you are working.
+
+**In Rust, use the `allan` crate** (MIT/Apache-2.0). It streams: samples go in
+through `record()` and the curve comes out of `get()` at a chosen τ, with
+`deviation()` and `variance()` on the result. It covers overlapping ADEV, MDEV
+and overlapping HDEV — the three estimators this reference describes — over
+configurable τ ranges and spacings, on circular buffers with bounded memory.
+That makes it the right tool for a curve computed as the measurement runs rather
+than after it; see `analysis-placement.md` in `measure-performance` for where
+that is and is not appropriate.
 
 ## Self-test before you believe a plot
 

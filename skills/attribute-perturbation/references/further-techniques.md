@@ -12,13 +12,14 @@ SciPy, statsmodels and `ruptures` are all BSD; `allantools` is LGPL-3.0.
 ## Distribution shape, not location
 
 A mean-based A/B is blind to a change that moves the shape without the centre —
-which for latency is most of the interesting ones.
+which for latency is most of the interesting ones. The Wasserstein row below has
+its own skill now; the rest are still notes.
 
 | Technique | Answers | Cost |
 | --- | --- | --- |
 | ECDF / Q–Q comparison | where in the distribution A and B differ | trivial; the first thing to plot |
 | Anderson–Darling | is the difference real, tail-weighted | prefer over KS when the tail is the product; KS is most sensitive near the median |
-| **Wasserstein distance between consecutive histograms** | did the shape change while the mean held | near-free where recordings are histograms already; a strong candidate for promotion |
+| **Wasserstein distance between histograms** | did the shape change while the mean held | **promoted — this is the `compare-distributions` skill.** O(B) over buckets, no raw samples |
 | Extreme value theory (POT/GPD) | what the worst case looks like | threshold choice is fiddly and it needs a lot of tail data; reach for it last |
 
 ## Variance that moves
