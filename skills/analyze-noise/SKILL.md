@@ -144,7 +144,27 @@ Coefficients worth quoting (random walk coefficient, bias instability, ramp
 rate) are read off fitted slope lines at fixed τ; `references/slopes.md` gives
 the five standard readings.
 
-## Step 6 — Compare two curves, not two numbers
+## Step 6 — Turn the curve into an error bar
+
+The curve says whether a stable error bar exists. Three cheap computations say
+what it is, and **they must agree**:
+
+- **Integrated autocorrelation time.** `Var(x̄) = (σ²/N)·τ_int` with
+  `τ_int = 1 + 2Σρ(k)`, so `N_eff = N/τ_int` is the honest sample count. Never
+  sum the whole ACF — truncate it with automatic windowing.
+- **Blocking.** Average adjacent pairs, re-estimate the standard error, double,
+  repeat; read the plateau. **No plateau means no error bar** — the same finding
+  as a curve that never bottoms out, reached independently.
+- **Off the curve directly:** `SE(x̄) ≈ ADEV(τ)/√(T/τ)` for any τ past the knee.
+  This works because `AVAR(τ) = Var(ȳ_τ) − Cov(adjacent blocks)`, and that
+  covariance vanishes exactly where blocking plateaus.
+
+**Quote `N_eff` beside `N` whenever you report a mean.** "12,000 samples" and
+"12,000 samples, 340 effective" lead to different decisions, and only the second
+is a fact about the system. `references/effective-samples.md` has the estimators,
+the windowing rules, and the numbers all three routes were checked against.
+
+## Step 7 — Compare two curves, not two numbers
 
 Two ADEV curves on one axis answer questions a pair of means cannot:
 
@@ -158,11 +178,17 @@ Two ADEV curves on one axis answer questions a pair of means cannot:
   neighbouring counter), a shared knee at the same τ is worth chasing. It is not
   evidence of a cause; it is a place to look. Same rule as `analyze_correlation`.
 
+Chasing that suspect properly — segmenting first, prewhitening, resolving the
+coupling by timescale — is the `attribute-perturbation` skill. Do not skip to a
+correlation from here: two red-noise series correlate strongly with nothing
+between them, and a curve that told you the noise is red just told you that you
+are in exactly that case.
+
 Match τ₀, run length, and τ range before comparing. Curves computed from
 different-length runs disagree at the long end for reasons that have nothing to
 do with the systems.
 
-## Step 7 — Report the curve, not the adjective
+## Step 8 — Report the curve, not the adjective
 
 State: N, τ₀, total duration, which estimator (overlapping? Hadamard?), the τ
 range you fitted each slope over, the slopes, and the identified color per
@@ -183,6 +209,10 @@ finding. It is a vibe, and it will get quoted later as a fact.
 - **Never report a standard error from `1/√N` when the curve is not falling at
   −1/2 at that τ.** More samples do not fix correlated noise; they just make the
   wrong interval narrower.
+- **Never compute `τ_int` or a blocking error bar on a series whose curve is
+  still rising.** There is no stationary mean to attach one to, and both methods
+  return a confident number anyway. Fix the drift, shorten the window to the
+  knee, or report the trend instead of a mean.
 - **Never fill a gap to make the estimator run.** Split the series.
 - **Never compare ADEV curves computed with different τ₀ or run lengths** as if
   the difference were physical.
