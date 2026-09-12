@@ -48,26 +48,48 @@ mass" is a sentence an engineer can act on, where a KS statistic of 0.32 is not.
 `references/histogram-distance.md` has the implementation, the log-bucket
 handling, and the numbers all of this was checked against.
 
-## Step 3 — Split location from shape
+## Step 3 — Ask whether the CDFs cross
 
-This is the reading that makes W1 worth computing rather than just diffing means.
-Because `|Δmean| = |∫(F−G)| ≤ ∫|F−G| = W1`:
+Because `|Δmean| = |∫(F−G)| ≤ ∫|F−G| = W1`, the ratio `W1/|Δmean|` is bounded
+below by 1, and what it detects is **crossing**:
 
 | Relationship | Reading |
 | --- | --- |
-| `W1 ≈ |Δmean|` | **pure location shift** — the CDFs do not cross, everything moved the same direction. "It got slower." |
-| `W1 ≫ |Δmean|` | **shape change** — mass moved both directions and partly cancelled in the mean. "It got less consistent." |
-| `Δmean ≈ 0`, `W1 > 0` | shape change with the mean pinned — the case a mean-based A/B reports as no change |
+| `W1 ≈ |Δmean|` | the CDFs **do not cross** — every part of the distribution moved the same direction |
+| `W1 > |Δmean|` | the CDFs **cross** — some quantiles improved while others got worse |
+| `Δmean ≈ 0`, `W1 > 0` | crossing with the mean pinned; the case a mean-based A/B reports as no change |
 
-Checked. A 2% slow-tail regression gives W1 = 107,030 ns and |Δmean| = 107,030 ns
-off the same buckets — ratio 1.0000, pure location shift. (Sample-level W1 is
-106,999 ns, so a 200-bucket log grid costs 0.03%.) A unimodal distribution
-replaced by a bimodal one with the means matched gives W1 = 7.249 against
-|Δmean| = 2.9e-5 — a ratio of 2.5e5, and a mean-based A/B reporting nothing.
+**A ratio of 1 is not "just a location shift."** A uniform 20% slowdown and a
+regression that moves 1% of the mass 100× out both give ratio 1.000 — both are
+monotone, so neither crosses. The ratio tells you whether anything got *better*
+while other things got worse. It does not tell you where the change lives, and
+on its own it will not distinguish the two most common latency regressions.
 
-**Report the ratio, not just the distance.** It is the difference between a
-regression you can attribute to a slower path and one you have to attribute to a
-new source of variance.
+Checked: unimodal → bimodal with the means matched gives W1 = 7.249 against
+|Δmean| = 2.9e-5, a ratio of 2.5e5 that a mean-based A/B reports as nothing. A
+body that got faster while the tail got worse gives 1.229. A uniform slowdown and
+a tail-only blowup both give 1.000.
+
+## Step 3b — Localize it: decompose W1 by quantile
+
+This is the reading that names the regression, and it is free — the per-bucket
+transport increments are already computed, so you only have to attribute them.
+Tag each increment by the quantile of A at that bucket and report the share of
+total W1 falling in each band:
+
+| scenario | ratio | <p50 | p50–90 | p90–99 | >p99 |
+| --- | --- | --- | --- | --- | --- |
+| uniform 20% slower | 1.000 | 14.1% | 43.0% | 32.4% | 10.6% |
+| 1% of mass 100× slower | 1.000 | 0.1% | 1.2% | 4.0% | **94.6%** |
+| body faster, tail worse | 1.229 | 2.6% | 5.6% | 2.1% | **89.7%** |
+
+Identical ratios, unmistakably different regressions. **Mass spread across the
+body is a different mechanism from mass concentrated past p99** — a uniformly
+slower code path versus something that occasionally goes very wrong — and the
+decomposition is what separates them. `references/histogram-distance.md` has the
+implementation.
+
+Report the ratio *and* the band shares. Either alone is ambiguous.
 
 ## Step 4 — Choose the statistic for the question
 
