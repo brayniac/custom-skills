@@ -24,6 +24,19 @@ def w1_hist(counts_a, counts_b, x):
     a = a / a.sum(); b = b / b.sum()
     return float(np.sum(np.abs(np.cumsum(a)[:-1] - np.cumsum(b)[:-1]) * np.diff(x)))
 
+def w1_by_band(counts_a, counts_b, x,
+               bands=((0, .5), (.5, .9), (.9, .99), (.99, 1.0))):
+    """(total_W1, [(lo, hi, share_of_W1)]) — where along A's distribution the
+    transport happened. This is what separates a uniform shift from a tail-only
+    blowup; the ratio in location_vs_shape cannot, since both are monotone."""
+    a = np.asarray(counts_a, float); b = np.asarray(counts_b, float)
+    a = a / a.sum(); b = b / b.sum()
+    A = np.cumsum(a)[:-1]; B = np.cumsum(b)[:-1]
+    inc = np.abs(A - B) * np.diff(x)
+    tot = inc.sum()
+    return float(tot), [(lo, hi, float(inc[(A >= lo) & (A < hi)].sum() / tot))
+                        for lo, hi in bands]
+
 def location_vs_shape(counts_a, counts_b, x):
     """(W1, |dmean|, ratio). ratio ~1 is a pure location shift;
     ratio >> 1 means mass moved both ways and cancelled in the mean."""
@@ -65,8 +78,16 @@ Never report it in time units, and say which space you used.
 
 | Case | W1 | \|Δmean\| | ratio | Reading |
 | --- | --- | --- | --- | --- |
-| 2% of mass moved to a slow tail | 107,030 ns | 107,030 ns | 1.0000 | pure location shift |
-| unimodal → bimodal, means matched | 7.249 | 2.9e-5 | 2.5e5 | pure shape change |
+| 2% of mass moved to a slow tail | 107,030 ns | 107,030 ns | 1.0000 | monotone — CDFs do not cross |
+| uniform 20% slowdown | — | — | 1.000 | monotone — **same ratio, different regression** |
+| body faster, tail worse | — | — | 1.229 | CDFs cross |
+| unimodal → bimodal, means matched | 7.249 | 2.9e-5 | 2.5e5 | crossing with the mean pinned |
+
+**The ratio detects crossing, not "shape change".** Two of the rows above are
+monotone and share a ratio of 1.000 while describing completely different
+regressions. Use `w1_by_band` to tell them apart: the uniform slowdown spreads
+its transport 14/43/32/11% across the bands, the tail-only one puts 94.6% of it
+past p99.
 
 Both columns are computed off the same buckets, so the first row's agreement is
 exact rather than approximate. Against sample-level values the same comparison
