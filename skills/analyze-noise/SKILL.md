@@ -144,6 +144,12 @@ Coefficients worth quoting (random walk coefficient, bias instability, ramp
 rate) are read off fitted slope lines at fixed τ; `references/slopes.md` gives
 the five standard readings.
 
+All of this is geometry, and it comes with no standard errors. When a component
+needs an interval, a test, or an estimate of the underlying level — "is that
+really drift" rather than "the slope looks like +1/2" — `fit-structural-model` is
+the parametric counterpart, and the two must agree: a fitted local level model
+predicts this curve's minimum at `τ₀·√(3/q)`.
+
 ## Step 6 — Turn the curve into an error bar
 
 The curve says whether a stable error bar exists. Three cheap computations say
