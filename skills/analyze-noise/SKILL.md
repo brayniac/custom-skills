@@ -165,6 +165,11 @@ what it is, and **they must agree**:
   This works because `AVAR(τ) = Var(ȳ_τ) − Cov(adjacent blocks)`, and that
   covariance vanishes exactly where blocking plateaus.
 
+The slope is portable across sources and needs no calibration; **τ_min, the
+floor, and any threshold derived from them are not** — they are magnitudes, and
+magnitudes are properties of the source. `calibrate-to-source` is how you get
+one without inventing it.
+
 **Quote `N_eff` beside `N` whenever you report a mean.** "12,000 samples" and
 "12,000 samples, 340 effective" lead to different decisions, and only the second
 is a fact about the system. `references/effective-samples.md` has the estimators,

@@ -128,6 +128,11 @@ for `measure-performance` step 5, so the runs exist.
 If A-vs-A W1 is comparable to A-vs-B W1, there is no difference yet — report that,
 rather than a distance with a confident sign.
 
+How many A-vs-A pairs you need, and how to turn them into a threshold without
+over-buying precision, is `calibrate-to-source`. The short form: the null's scale
+is source-specific and spans 560× across sources, while its shape stays inside
+1.66–2.02 — so ten pairs and a median get you most of the way.
+
 ## Step 6 — Report
 
 State: the bucket grid and that both sides shared it, the durations and counts
