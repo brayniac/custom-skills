@@ -160,6 +160,11 @@ quiet zero.
   not evidence that a change caused an effect.
 - **Predict before you compute.** A delta you did not expect is information; one
   you did expect and got is not confirmation on its own.
+- **Keep the same-configuration pairs.** Interleaving produces A-vs-A comparisons
+  as a byproduct — four runs a side gives six — and those pairs are the null
+  distribution for every threshold you will ever set on this source.
+  `calibrate-to-source` turns them into one; most labs compute them and throw
+  them away.
 - **When the spread will not settle, ask what color it is.** If more runs are not
   tightening the interval, the noise is not white and `1/√N` does not apply. The
   `analyze-noise` skill turns the series into an Allan deviation curve, which

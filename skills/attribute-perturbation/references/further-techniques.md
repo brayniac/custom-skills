@@ -9,6 +9,9 @@ numbers first, the way `analyze-noise` and this skill's other references did.
 Licences are noted because they decide whether a tool is usable here. NumPy,
 SciPy, statsmodels and `ruptures` are all BSD; `allantools` is LGPL-3.0.
 
+How far any of this carries to a new metric source, and what a per-source
+threshold costs to derive, is `calibrate-to-source`.
+
 ## Distribution shape, not location
 
 A mean-based A/B is blind to a change that moves the shape without the centre —

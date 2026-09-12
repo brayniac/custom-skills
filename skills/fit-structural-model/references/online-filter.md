@@ -94,6 +94,12 @@ and it false-alarmed at sample 21,246 of a run whose injected step was at 150,00
 **Calibrate `h` against the run length you will actually observe**, on
 model-conforming data, before shipping it.
 
+The table above is usable across sources only because the innovations are
+standardized — a correctly fitted model makes the null universal, which is the
+whole point of monitoring `e` rather than `y`. For any statistic that has *not*
+been studentized that way, the threshold is source-specific and
+`calibrate-to-source` is how to derive it.
+
 Both detectors are in the tier-1 table in `measure-performance`'s
 `analysis-placement.md`.
 
