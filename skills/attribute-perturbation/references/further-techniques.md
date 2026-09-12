@@ -35,12 +35,11 @@ inconsistency rather than slowness.
 - **STL** (seasonal–trend–loess): splits trend / seasonal / remainder, and the
   remainder is the right input to `analyze-noise` when a known cycle dominates.
   Robust STL if outliers are present. Cheap, interpretable, in statsmodels.
-- **Structural time series / Kalman** (local level + slope + seasonal): **the one
-  model worth fitting for interpretation**, because its estimated variances *are*
-  the noise decomposition — observation noise is white FM, level disturbance is
-  random walk, slope disturbance is integrated random walk. You get the Allan-plot
-  content as parameters with confidence intervals, and you can test whether a
-  component's variance is zero. The obvious next skill in this family.
+- **Structural time series / Kalman** (local level + slope + seasonal):
+  **promoted — this is the `fit-structural-model` skill.** Its estimated variances
+  *are* the noise decomposition, so the Allan-plot content comes back as
+  parameters with intervals you can test, and a fitted model deploys as an O(1)
+  streaming detector.
 - **ARFIMA**: the fractional differencing parameter estimates the long-memory
   exponent (β = 2d) — a likelihood-based counterpart to reading an Allan slope,
   with a standard error attached.

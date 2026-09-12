@@ -75,12 +75,24 @@ from here.**
 | PELT segmentation | O(N log N) pruned, O(N²) worst | needs the whole record |
 | PCA / SVD over M metrics | O(N·M²) | all metrics at once |
 | **All-pairs screening** | O(M²) transforms | this is the one that explodes — M=300 is 45k pairs |
-| Structural time series / Kalman (MLE or EM) | dozens of passes | iterative fitting |
+| Structural time series / Kalman **fitting** (MLE or EM) | dozens of passes | iterative; but see below — the *fitted* model runs at tier 1 |
 | ARFIMA | iterative | likelihood optimization |
 | Wavelet coherence with surrogates | surrogates × scales × O(N log N) | hundreds of transforms |
 | DFA across scales | O(N × scales) | multi-scale detrending |
 | Block bootstrap / permutation tests | resamples × statistic | hundreds of statistic evaluations |
 | Foundation-model inference over many metrics | GPU-minutes | not going near a measured node |
+
+## The one technique that spans tiers
+
+**A structural time series model is expensive to fit and free to run.** Fitting is
+iterative and belongs above; but once the parameters are fixed the Kalman filter
+reaches a steady state, and for a local level model that steady state is an EWMA
+with a closed-form gain — two floats of state, one multiply-add per sample.
+
+So the deployment is tier 3 for the fit, tier 1 for the filter, with the
+standardized innovations as the thing you watch. That is `fit-structural-model`,
+and it is the only entry in this reference that legitimately appears in two
+tiers.
 
 ## The rules
 
