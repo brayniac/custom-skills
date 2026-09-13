@@ -1,12 +1,100 @@
-# A macOS distributable from the rack
+# macOS on this rack
+
+Two separate things, and the first gates the second: **studio as a rack-ci
+runner**, and **a macOS artifact to distribute**.
+
+Read from `brayniac/infra` at `576bf7c` and not run. No access from here to
+delta, to either Mac, or to the rack.
+
+## studio as a runner: what actually blocks it
+
+A Mac runner has to be a **bare** target — the script runs on the host itself,
+no guest — and `bare = true` is already a first-class mode (`[targets.pi]` uses
+it). But the bare path as implemented is Linux-only in three places, and only
+one of them is "setup".
+
+### 1. The sandbox is hardcoded, and does not exist on macOS
+
+`crates/rack-ci/src/job.rs:263` emits, unconditionally for every bare target:
+
+```
+bwrap --ro-bind / / --dev /dev --proc /proc --tmpfs /tmp …
+```
+
+**Bubblewrap is Linux user/mount/pid namespaces. There is no macOS build, and
+no port.** A test at `job.rs:633` asserts that string, so the coupling is
+deliberate rather than accidental — which also means changing it is a
+one-file, testable change.
+
+The fix is a per-target sandbox choice, defaulting so nothing about the pis
+moves:
+
+```toml
+[targets.studio]
+host_tags = ["studio"]
+bare = true
+sandbox = "none"        # "bwrap" (default) | "sandbox-exec" | "none"
+```
+
+- `sandbox-exec` is macOS's Seatbelt. It is present on every Mac and takes a
+  `.sb` profile that can make the filesystem read-only except named paths —
+  the closest analogue. Apple has marked it deprecated for years and ships it
+  anyway.
+- `none` leans on what already closes the untrusted-code vector: **rack-ci
+  refuses fork pull requests outright**, and every allowlisted repository is
+  first-party. A dedicated unprivileged user with no sudo, a run directory the
+  trap removes, and a read-only toolchain get most of the isolation.
+
+**What `none` costs is worth stating before choosing it.** No pid namespace, so
+a build that leaves something running leaves it running. No read-only root, so
+a build can read anything that user can. On a pi that does nothing else, that
+is a small surface. **studio is described in the design as a control point —
+"never managed" — so it is the machine where that surface is least acceptable.**
+If studio is going to run CI, `sandbox-exec` is worth the profile.
+
+### 2. The installer is Debian-only
+
+`host-setup/install-rack-ci-host` does `apt-get install … bubblewrap` and
+`useradd --system --shell /usr/sbin/nologin`. macOS has neither. A darwin
+sibling needs:
+
+| what | Debian | macOS |
+| --- | --- | --- |
+| build deps | `apt-get` | Homebrew, or Xcode CLT alone |
+| the sandbox | `bubblewrap` | `sandbox-exec` (built in) or none |
+| the user | `useradd --system` | `dscl` / `sysadminctl`, shell `/usr/bin/false` |
+| toolchain | rustup into `/opt/rust`, `chmod -R a+rX` | **same, works unchanged** |
+| run home | `/var/tmp/rack-ci` mode 1777 | same, works unchanged |
+
+So roughly half of it transfers verbatim.
+
+### 3. studio is not a systemslab host yet
+
+`fleet/hosts/` holds delta, forge, hv01, hv02 and pi00–pi19. There is no
+`studio.toml`, and the design calls macstudio a control point, "never managed".
+Before any of the above matters:
+
+- `systemslab-agent` running on studio, registered, with a host tag the target
+  can name;
+- **`sudo` for the agent's user** — the bare payload runs `sudo rm -rf` and
+  `sudo chown -R rack-ci:rack-ci` before dropping privileges;
+- a decision about whether studio becomes a *managed* fleet host or stays
+  unmanaged with rack-ci as the exception. Declaring it in `fleet/` is what
+  makes drift visible; leaving it out means nothing notices when it changes.
+
+### What transfers unchanged
+
+Source serving, the no-credential rule, the warm `CARGO_TARGET_DIR`, and
+building the tag rather than a checkout — all of it is arch- and OS-agnostic.
+The Mac curls its tarball over the flat network exactly as a pi does.
+
+## The distributable
 
 Status: the Debian half is built and running; this half is **designed and not
 built**. `infra/docs/superpowers/specs/2026-09-12-rack-packaging-pipeline-design.md`
-section 6 is the proposal, and its plan carries one unchecked task. What follows
-resolves the open question that made it a proposal, and names what is genuinely
-new.
+section 6 is the proposal, and its plan carries one unchecked task.
 
-## The open question, and why the pi already answers it
+### The open question, and why the pi already answers it
 
 The design stops here:
 
@@ -36,9 +124,9 @@ on its own — an undocked Mac means the job waits and times out, and rack-ci
 reports a timeout as **`error`, not `failure`**. Nothing about the code is
 wrong, and the status says so.
 
-## What is actually different
+### What is actually different
 
-### The artifact
+#### The artifact
 
 No apt, and a `.pkg` buys nothing for two machines that already share a staging
 directory. A tarball is the right shape:
@@ -51,7 +139,7 @@ Published to `/srv/dist/macos/` on delta, which Caddy already serves, so
 `http://delta/dist/macos/<name>` is the pin and
 `/Volumes/Training/systemslab-stage/bin/` becomes a `curl`.
 
-### Signing: less than you would expect, and the reason matters
+#### Signing: less than you would expect, and the reason matters
 
 **An unsigned arm64 binary fetched with `curl` and unpacked with `tar` runs.**
 Two facts combine:
@@ -81,13 +169,13 @@ it costs a $99/year account and a notarization step in the release job:
 
 Until one of the bottom three is wanted, signing is a cost with no benefit.
 
-### Architecture
+#### Architecture
 
 Both Macs are arm64 darwin. Name the artifact `-macos-arm64` and do not build
 universal — `lipo` and an `x86_64-apple-darwin` target only earn their place if
 an Intel Mac appears.
 
-### The publish job is not new
+#### The publish job is not new
 
 The Debian shape is already built: a build job uploads `dist.tar`, and a shell
 job on delta (`tags = ["validation"]`) waits at a barrier, fetches the artifact
@@ -96,7 +184,7 @@ shape with a different second half — a `publish-dist-macos.sh` sibling of
 `jobs/publish-debs.sh` that unpacks into `/srv/dist/macos/` instead of calling
 `publish-apt-internal`.
 
-## Recommended shape
+### Recommended shape
 
 1. **`.rack-release-macos.sh`** in the repository: `cargo build --release`
    (Metal where relevant), tarball into `dist/`.
@@ -112,10 +200,9 @@ shape with a different second half — a `publish-dist-macos.sh` sibling of
 5. **A Homebrew tap** as the follow-on: a formula with `url` and `sha256`
    pointing at the delta URL. Needs nothing else on the rack.
 
-## What this has not verified
+### What this has not verified
 
-Read from `brayniac/infra` at `576bf7c` and not run. No access here to delta,
-to either Mac, or to the rack. In particular: the Macs are systemslab hosts but
+The Macs are systemslab hosts but
 **not managed fleet hosts** — `fleet/hosts/` has delta, forge, hv01, hv02 and
 pi00–pi19 and no Mac — and the design calls macstudio a "control point only;
 never managed". Whether a `rack-ci` user, a warm target dir, and a

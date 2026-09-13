@@ -120,14 +120,19 @@ repo on delta.
 **A tag pushed while the service was down is never caught up** — release it by
 hand with `rack-ci build --release`, or delete and re-push the tag.
 
-macOS distributables are `references/macos-distributable.md`.
+macOS — studio as a runner, and a macOS artifact to ship — is
+`references/macos.md`. The runner is blocked on more than setup: the bare-target
+sandbox is bubblewrap, hardcoded, and Linux-only.
 
-## Step 6 — Retire the Actions workflow, but not before
+## Step 6 — Retire the Actions workflow
 
-Once the first rack-ci run is green, delete `.github/workflows/*.yml`. Until
-then it is the only signal there is, misleading as it is. Leaving both means
-every pull request carries a permanent red mark that means nothing, which is
-exactly how a real failure gets ignored.
+Delete `.github/workflows/*.yml` once the repository is on rack-ci. Leaving it
+means every pull request carries a permanent red mark that means nothing, which
+is exactly how a real failure gets ignored.
+
+Keeping it "as a fallback" is not a fallback: over budget, Actions cannot run at
+all on a private repository here, so the workflow is not a second opinion — it
+is a guaranteed false one.
 
 ## Never
 
