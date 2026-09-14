@@ -5,10 +5,16 @@ description: Cut a release for a Rust repo — discover the repo's own release m
 
 # Release
 
-Every repo here releases the same way in outline and differently in detail. The
-details are all recorded in the repo — in `release.toml`, in the tag workflow's
-trigger condition, in the tag history. **Read them. Do not carry a procedure in
-from another repo**, and do not carry one in from a previous session.
+Every repo here releases the same way in outline and differently in detail.
+Most of the detail is recorded in the repo — in `release.toml`, in the tag
+workflow's trigger condition, in the tag history. **Read it. Do not carry a
+procedure in from another repo**, and do not carry one in from a previous
+session.
+
+The exception matters: repos releasing through rack-ci are armed by config that
+lives on delta and is in no commit, so the checkout cannot tell you whether a
+tag will publish. Knowing which questions the repo *cannot* answer is part of
+discovery.
 
 The failure this exists to prevent: a release PR that merges cleanly, reports
 success, and never tags, because the commit message did not match what the
@@ -33,9 +39,16 @@ answer implies.
    authority on what the tool will do. These differ between repos: some set
    `tag = false, push = false` and leave both to the workflow, others set both
    true and expect the tool to do it.
-4. **Is there a tag workflow, and what exactly triggers it?** Read the `if:`
-   condition in `.github/workflows/tag-release.yml` and derive the commit message
-   from it. The condition is the specification; the skill is not.
+4. **What triggers a release here — and is it GitHub Actions at all?**
+   Establish the mechanism first. Actions is disabled on some of these repos
+   after a billing lapse, and **`.github/workflows/` still holds files in that
+   state**, so reading them tells you what would run rather than what does.
+   `brayniac/ferallm` and `brayniac/slipway` release through rack-ci on the
+   rack instead; `references/rack-ci.md` covers that path. For the Actions
+   path, read the `if:` condition in `.github/workflows/tag-release.yml` and
+   derive the commit message from it — the condition is the specification, the
+   skill is not. **The absence of `tag-release.yml` does not mean tagging is
+   manual.**
 5. **What does the automation do after tagging?** Publish to crates.io, build a
    GitHub release, bump to a dev version, or nothing. Read the steps — do not
    promise the user an outcome you have not seen in the workflow file.
@@ -55,6 +68,11 @@ release that looks successful. Specifically stop when: no tag workflow and no
 `release.toml`, so the mechanism is unknown; a `release.toml` that disagrees with
 the workflow about who tags; or a workspace where you cannot tell whether
 versions move together.
+
+**On the rack path, whether releases are armed is not in the repository.** It
+needs `[release]` in `.rack-ci.toml` *and* an override on delta, and the second
+half is not at any commit — so a repo carrying the block alone looks armed and
+is not. Report that as unknown rather than inferring it either way.
 
 ## Step 3 — Execute
 
@@ -93,6 +111,13 @@ The tag must exist and the workflow must have *run*, not merely been eligible.
 If the workflow was skipped, the commit message did not match its condition —
 report that, and say so plainly rather than reporting the release as complete.
 
+On the rack path there is no workflow run to check. The verdict is the
+`rack-ci/release` commit status, and `Error` there means the build never
+started — which is not the same as a failing build. **A tag builds from the
+tag's tree, so fixing `main` does not fix a broken tag**; it needs a new tag,
+and re-pointing a published one is never the answer. `references/rack-ci.md`
+has the status mapping and what verifying a publish actually requires.
+
 ## Never
 
 - **Never invent the commit prefix.** It comes from the workflow condition or it
@@ -102,3 +127,7 @@ report that, and say so plainly rather than reporting the release as complete.
   per crate, lowest in the dependency graph first.
 - **Never tell the user a release published to crates.io** unless you read a
   publish step in the workflow. Several of these repos set `publish = false`.
+- **Never conclude that tagging is manual from a missing `tag-release.yml`.**
+  Check whether Actions is enabled and whether the repo releases on the rack.
+- **Never report a publish as verified because the publish job went green.**
+  That is three layers above the claim; `references/rack-ci.md` has the five.

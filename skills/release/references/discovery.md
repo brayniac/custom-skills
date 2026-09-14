@@ -88,9 +88,38 @@ A `release.toml` whose comments describe tagging and pushing directly, while the
 repo actually releases through a PR, is drift: the file was written for an
 earlier flow. Trust the keys, not the comments, and mention the discrepancy.
 
-## 4. What triggers the tag workflow?
+## 4. What triggers a release?
 
-This is the one that silently breaks releases.
+This is the one that silently breaks releases, and it now breaks in two ways:
+by matching the wrong commit message, and by assuming the mechanism is GitHub
+Actions at all.
+
+**Establish the mechanism before reading any workflow file.** Two are in use.
+
+```sh
+gh api repos/OWNER/REPO/actions/permissions --jq '.enabled'  # is Actions on?
+gh run list --limit 3                                        # has it run lately?
+ls .github/workflows/                                        # Actions path
+grep -n -A10 '^\[release\]' .rack-ci.toml                    # rack-ci path
+```
+
+`false` from the first command, or a `gh run list` whose newest run is old and
+failed in seconds, means Actions is off for this repo — which has happened here
+after a billing lapse. **`.github/workflows/` still contains files in that
+state**, so reading them tells you what *would* run, not what does.
+
+| Signal | Mechanism |
+| --- | --- |
+| Actions enabled, `tag-release.yml` present | the Actions path, below |
+| `[release]` in `.rack-ci.toml` | the rack path — `references/rack-ci.md` |
+| both | read both; they are independent and can disagree |
+| neither | tagging is manual — say so, and tag by hand or ask |
+
+**Do not conclude "manual" from the absence of `tag-release.yml` alone.** That
+inference is what would leave someone hand-tagging a repo that already
+automates it.
+
+### The Actions path
 
 ```sh
 grep -n 'if:' .github/workflows/tag-release.yml
@@ -113,8 +142,23 @@ Two further clauses to read out loud before relying on the workflow:
 - `contains(..., 'release/v')` — some workflows also match the merge-commit form,
   which makes them tolerant of a non-squash merge. Most do not.
 
-No `tag-release.yml` at all means tagging is manual. Say so, and either tag by
-hand after merge or ask.
+### The rack path
+
+A v-prefixed tag runs `.rack-release.sh` in a guest on the rack, the built
+`.deb` is published to the internal apt repo, and the verdict arrives as a
+`rack-ci/release` commit status. There is no workflow file and nothing in
+`.github/`.
+
+**Whether it is armed cannot be determined from the checkout.** The trigger
+needs two things: `[release]` in the repo's own `.rack-ci.toml`, *and*
+`release = true` under `[overrides."OWNER/REPO"]` in `/etc/rack-ci/rack-ci.toml`
+on delta. The second half is not in the repo at any commit, so a repo carrying
+the block alone looks armed and is not. Say that out loud rather than inferring
+either way, and ask whoever owns rack-ci to confirm before promising the user
+a tag will publish.
+
+`references/rack-ci.md` has the chain, the commit-status mapping, and what
+verifying a publish actually requires.
 
 ## 5. What happens after the tag?
 

@@ -5,6 +5,14 @@ description: Bring one repo's release automation onto the shared standard, or re
 
 # Conform a repo's release setup
 
+**This standard is the GitHub Actions path, and it does not apply to every
+repo.** `brayniac/ferallm` and `brayniac/slipway` release through rack-ci on
+the rack — a tag builds in a guest and publishes to the internal apt repo, with
+no workflow file involved — and Actions is disabled on both. Conforming such a
+repo to a reusable Actions workflow would be conforming it to a mechanism it
+does not use. Establish which path a repo is on first (`release` skill,
+discovery question 4); `release/references/rack-ci.md` describes the other one.
+
 The release workflow was copied into every repo and drifted. This replaces each
 copy with a ten-line call to one shared workflow, so the parts that must agree
 are defined once and the parts that legitimately differ are named inputs.
