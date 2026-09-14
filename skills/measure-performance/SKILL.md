@@ -32,7 +32,7 @@ fail differently:
 | --- | --- | --- |
 | job pends forever, or ran on the wrong generation | constraints | tags. They are ANDed, so `["z2.baremetal","z1.baremetal"]` matches nothing |
 | `503 No suitable slots available` **while slots are free** | the two disagree | `anvil-server` filters hosts by generation before slots, so a `z2.c` job that landed on hv02 is refused without the message ever saying "generation" |
-| instance creation fails | the two disagree | the shape's generation must match the host the tags select — `z2.c` with `z2.baremetal` |
+| instance creation fails | the two disagree | a pinned shape landed on the other generation. Prefer `auto.c`, which resolves against the host it is built on |
 | guest topology, pinning, NUMA binding or clocksource wrong | shape realization | the anvil-agent on that host; verify with `virsh dumpxml` |
 | no NIC ports or no GPU inside the guest | shape realization | the spec's `ports` and `gpu`, then that host's port config |
 
@@ -62,8 +62,9 @@ job is running, you have the machine — there is no co-tenant and nothing to
 drain. So `busy` means another job owns the host and you wait for it, and a
 `503 No suitable slots available` is never ordinary contention. It has two causes
 the message does not distinguish: a **generation mismatch in your own spec**
-— check this first, since `tags = ["hypervisor"]` with a generation-specific shape
-is a coin flip when both hypervisors carry that tag — or an orphaned guest holding
+— check this first, since a generation-specific shape under `tags =
+["hypervisor"]` is a coin flip, which `shape = "auto.c"` now removes — or an
+orphaned guest holding
 slots, which `vm-job`'s "Cancel, timeout, orphan" step (6) recovers. A number
 obtained after retrying around a 503 is not a clean number.
 

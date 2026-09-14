@@ -72,6 +72,23 @@ and `-base` 6.12.63 (Debian), `rocky-10` 6.12.0-211 (el10). `debian-13-ci`
 has `kernel.io_uring_disabled=0`; `rocky-10` has `2`, so anything that needs
 io_uring fails there by design and a mio/epoll fallback is what to test.
 
+## Install a package on a guest: attempt, do not probe
+
+Do not gate an install behind a probe. Measured on `debian-13-gpu`, same
+moment, same package: `apt-cache policy slipway 2>&1` prints
+`Candidate: 0.2.7-1`, the identical command with stderr discarded matches
+nothing, and `apt-get install -y slipway` then succeeds. A probe written as
+`apt-cache policy X 2>/dev/null | grep -q` had therefore been answering "no" on
+every run since it was written, and the failure surfaced 300 lines later as
+`command not found`.
+
+```sh
+sudo apt-get install -y slipway || { echo "slipway unavailable"; exit 1; }
+```
+
+An action that fails reports itself. A probe that quietly answers no is
+indistinguishable from a box that legitimately lacks the package.
+
 ## Two guests that have to meet
 
 A client/server benchmark across both hypervisors. The barrier is what frees

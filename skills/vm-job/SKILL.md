@@ -19,19 +19,25 @@ about three minutes. Treat "run it on distro X" as routine, not an expedition.
 | Need | image | notes |
 | --- | --- | --- |
 | build / test Rust | `spool/images/debian-13-ci@golden` | both hosts. rustup, gcc, git, warm crates index; kernel 6.12, `io_uring_disabled=0`. `debian-13-base` has **no** toolchain |
-| RHEL-family behaviour (io_uring refused, SELinux, dnf) | `spool/images/rocky-10@golden` | **hv01 only**; install toolchain in payload (recipes); `io_uring_disabled=2` |
+| RHEL-family behaviour (io_uring refused, SELinux, dnf) | `spool/images/rocky-10@golden` | both hosts now (also `rocky-10-base`); install toolchain in payload (recipes); `io_uring_disabled=2` |
 | measurement tooling only | `spool/images/debian-13-base@golden` | both hosts. rezolus, slipway, stressapptest |
 | GPU | `spool/images/debian-13-gpu@golden` | both hosts; shape `z2.g` (hv01) or `z1.g` (hv02), one RTX 4090 each; only if the payload uses the card |
 
 The authoritative per-host image lists are `infra/fleet/hosts/hv01.toml` and
 `hv02.toml`.
 
-Shape is `{generation}.{class}` and **the shape's generation must match the
-host the tags select**: `shape = "z2.c"` with `tags = ["z2.baremetal"]` (hv01,
-Zen2, whole host 56 vCPU / ~224 GiB) or `shape = "z1.c"` with
-`tags = ["z1.baremetal"]` (hv02, Zen1, 24 vCPU / ~96 GiB). Class `c` compute,
-`g` gpu, `n` network. Default to hv01 unless it is busy and the image is on
-hv02. **Tags are ANDed** (a job runs where its tags are a subset of the host's):
+Shape is `{generation}.{class}`, and **the default is `auto`**: since anvil
+0.8.6, `auto.c` and `auto.g` resolve the generation against the host the guest
+is actually built on, so `tags = ["hypervisor"]` with `shape = "auto.c"` lands
+on either hypervisor and works. Pin a generation — `z2.c` with
+`["z2.baremetal"]` (hv01, Zen2, 56 vCPU / ~224 GiB) or `z1.c` with
+`["z1.baremetal"]` (hv02, Zen1, 24 vCPU / ~96 GiB) — only when the silicon is
+part of the question. **A pinned shape whose generation disagrees with the
+tags fails at instance creation**, and pinning by habit is what held every CI
+check on one hypervisor for five days. Class `c` compute, `g` gpu, `n`
+network.
+
+**Tags are ANDed** (a job runs where its tags are a subset of the host's):
 `["z2.baremetal","z1.baremetal"]` matches nothing and pends forever. An image
 that exists on one host with tags allowing the other fails at instance
 creation.
@@ -156,6 +162,10 @@ quiet world** — 45 minutes of silence read as "still queued" when both runs ha
 long finished.
 
 - `wait_for_experiment` (MCP) or `systemslab experiment show <id>`.
+  **`systemslab submit --wait` exits 0 whether the work succeeded or failed** —
+  it reports that the submission worked, not that the job did, and it can
+  return before the state settles. Take the verdict from the experiment state,
+  polled until terminal.
 - Log: `get_logs` (MCP; use `grep`/`tail`, the payload's stdout is all there)
   or `systemslab logs --experiment <id>`.
 - Artifacts: `systemslab api /api/v1/experiment/<id>` lists `.artifacts[]` with
@@ -180,6 +190,12 @@ experiment reads `success` whenever the payload *ran*, whatever it found. A job
 that writes its result to a `status` artifact is telling you to read the
 artifact. A gate whose result was `fail` has been reported as a pass on the
 strength of the experiment state alone.
+
+The template pairs that `exit 0` with a final step that re-raises the recorded
+status, which is what keeps the experiment state honest. **A spec that adopts
+the `exit 0` half and omits the re-raise makes the state lie by construction.**
+So when reading someone else's run: if the payload ends `exit 0`, find the
+re-raise step before believing `success`.
 
 **Assert on evidence that work happened, not on the absence of failure.** A
 tier that skips can skip its way to a green: one gate passed with 41 of its

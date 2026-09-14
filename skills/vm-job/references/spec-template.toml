@@ -1,15 +1,19 @@
-# Verified shape (2026-09-09, systemslab CLI/agent 160, anvil-vm-action 0.5.6).
-# Replace NAME, the image/tags row from the skill's table, and the payload body.
+# Verified shape (2026-09-09, systemslab CLI/agent 160). Deployed anvil-vm is
+# 0.8.6, which since this template was written gained exec, detach, upload,
+# artifact inputs, packages, data_address and console capture — so parts of the
+# upload-then-re-raise dance below may now have shorter equivalents. The shape
+# here still runs; it is not necessarily the briefest one.
+# Replace NAME, the image row from the skill's table, and the payload body.
 name = "NAME"
 
 [[jobs]]
 name = "vm"
-tags = ["z2.baremetal"]          # subset-of-host semantics; see skill step 1
+tags = ["hypervisor"]            # subset-of-host semantics; see skill step 1
 
 [[jobs.steps]]
 uses = "anvil-vm"
 [jobs.steps.with]
-shape = "z2.c"
+shape = "auto.c"                 # resolves to the host's own generation
 image = "spool/images/debian-13-ci@golden"
 gpu = false                      # keep the 4090 free unless the payload uses it
 boot_timeout = 300               # create->reachable is ~25-30 s
@@ -53,8 +57,14 @@ uses = "upload-artifact"
 path = "status"
 
 # Re-raise the recorded status so the experiment state reflects the result
-# while the artifacts above have already been uploaded.
+# while the artifacts above have already been uploaded. DO NOT DROP THIS STEP:
+# without it the payload's `exit 0` makes the experiment report success
+# whatever the work found.
+#
+# `set +e` first: a systemslab shell step already runs under `set -ex`, so any
+# non-zero command kills the step before it can report a verdict. A step that
+# computes its own status has to opt out.
 [[jobs.steps]]
 uses = "shell"
 [jobs.steps.with]
-run = "rc=$(cat status); echo \"work exited $rc\"; exit $rc"
+run = "set +e; rc=$(cat status); echo \"work exited $rc\"; exit $rc"

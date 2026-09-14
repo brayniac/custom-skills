@@ -57,6 +57,15 @@ other. The generation also constrains the shape: `z2.c` only runs where
 scheduling by tag `pi4b` never places onto them. A run that landed on one was
 deliberate, and its numbers belong to that host rather than to the pool.
 
+**A subset-matching scheduler cannot express exclusion.** There is no "not
+thermal": a host stays out of a pool only by lacking a tag, so a tag's
+*absence* can be the load-bearing part — and absence is invisible when you read
+the tag instead of the roster. Before replacing a tag with what looks like an
+equivalent capability, count the hosts matching before and after. Translating
+`pi4b` to `["bare","aarch64"]` reads as a faithful rewrite and silently widens
+the pool from eighteen hosts to twenty, because both are true of the two
+thermal Pis.
+
 ## Exclusivity is already guaranteed — do not manage it
 
 **SystemsLab runs one job per host.** That is the isolation: if your job is
@@ -101,11 +110,20 @@ the failure looks like:
      and nothing in the message says "generation". A constraints bug wearing a
      capacity error's clothes, and the cheap thing to rule out.
 
-     The specific trap: **`tags = ["hypervisor"]` paired with a
-     generation-specific shape is a coin flip.** Both hv01 and hv02 carry
-     `hypervisor`, so the scheduler may place either way while the shape only
-     works on one. Pair a shape with its own generation tag — `z2.c` with
-     `z2.baremetal`.
+     The specific trap *was* `tags = ["hypervisor"]` paired with a
+     generation-specific shape: both hypervisors carry `hypervisor`, so the
+     scheduler may place either way while `z2.c` only works on one.
+
+     **The fix is no longer to pin the tag.** Since anvil 0.8.6, `auto.c` and
+     `auto.g` resolve the generation against the host the guest is actually
+     being built on — the first moment it is knowable (`InstanceType::parse_for`
+     in anvil-types). So say `tags = ["hypervisor"]` with `shape = "auto.c"`
+     and let it land either way. Name a generation only when the silicon is
+     part of the measurement and a comparison needs the same hardware every
+     time. Pinning is what kept every CI check on this rack on one hypervisor
+     for five days, and left one of two RTX 4090s unused for the same reason.
+     As with fidelity, this is a property of the anvil version *deployed* on
+     the hypervisor, not of anvil's `main`.
 
   2. **An orphaned guest holding slots, or a slot-release bug** — only once the
      spec is ruled out. `vm-job`'s "Cancel, timeout, orphan" step (6) has the
@@ -132,8 +150,10 @@ Two image differences change results outright:
 - Kernel version travels with the image (6.12 on `debian-13-ci`). A comparison
   across images is a comparison across kernels.
 
-`rocky-10` exists on hv01 only, which means a Rocky-versus-Debian comparison is
-also a same-host comparison by necessity. That is the good case; take it.
+`rocky-10` and `rocky-10-base` are on **both** hypervisors now. A
+Rocky-versus-Debian comparison used to be same-host by necessity; it no longer
+is, so arrange it deliberately — pin both arms to one `host:` tag — rather than
+relying on scarcity to do it for you.
 
 ## On the hypervisors, measure in a VM
 
