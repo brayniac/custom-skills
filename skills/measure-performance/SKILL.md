@@ -143,11 +143,13 @@ and are not interchangeable.
 The closed-loop trap is that it *looks* like a throughput measurement.
 Throughput there is `N / E[R]` by construction — the same identity Step 5 uses
 to validate the arm — so against any shared ceiling every configuration
-converges on the ceiling and reports it as its own number. Measured: three
-server read paths on one rig landed within 2% of each other in closed loop,
-while the server-side CPU cost of the cheapest and the dearest differed by 1.8x.
-The throughput figures were a property of the link; the CPU figures were a
-property of the servers. **Closing Little's law does not rescue this** — all
+converges on the ceiling and reports it as its own number. Measured on one rig:
+three server read paths landed within 2% of each other in closed loop, while
+the server-side CPU cost of the cheapest and the dearest differed by 1.8x — and
+an SLO search on the same builds separated the two by **1.63x** (21,614 against
+13,278 achieved rps at p99 < 5 ms). The closed-loop throughput figures were a
+property of the link; the CPU cost and the SLO separation were properties of
+the servers. **Closing Little's law does not rescue this** — all
 three arms closed it cleanly, and that is precisely why their throughput
 comparison was worthless. It validates the arm; it does not make the number mean
 what "throughput" implies.
@@ -191,11 +193,13 @@ quiet zero.
   A/B/A/B spreads the depletion evenly instead of removing it, and total sweep
   length becomes a hidden variable. The tell is visible inside a single arm: on
   one such fleet the shaping counter climbed an order of magnitude across a
-  180 s window at constant offered concurrency. A short run is a burst-rate
-  number and a long one is a baseline number; neither is wrong and they are not
-  the same measurement. Interleave anyway — but say which regime the figure came
-  from, and treat run order as a confound whenever arms run serially against
-  shared hardware. `references/environment.md` has the counters.
+  180 s window at constant offered concurrency, and a 300 s arm offered 11,000
+  rps achieved 2,702 — 75.4% of offered load dropped, at 1.24 Gbps. A short run
+  is a burst-rate number and a long one is a baseline number; neither is wrong
+  and they are not the same measurement. Interleave anyway — but say which
+  regime the figure came from, and treat run order as a confound whenever arms
+  run serially against shared hardware. `references/environment.md` has the
+  counters.
 - **Price against the right baseline.** A win against a stale baseline is a
   measurement of the baseline.
 - **Report the distribution, not one number.** If the spread of one side covers

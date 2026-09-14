@@ -47,8 +47,10 @@ matters?** The first plausible mechanism that fits the sign is not necessarily
 the operative one. A read path burning 1.8x the CPU per byte looked like a
 sufficient explanation for its deficit — but the deficit appeared at an
 operating point where neither CPU nor link was saturated, which that figure
-cannot account for, and the real discriminator lay elsewhere in the network
-path. The CPU difference was real, and was not the cause.
+cannot account for. The discriminator was segment formation: measured from the
+packet counters, the same 56 KiB value cost 3.98 packets on one path and 6.96
+on the other, so 1.75x the segments for identical bytes. The CPU difference was
+real, and was not the cause.
 
 **Is the tier you named the tier you exercised?** A cache benchmark whose
 working set fits in page cache measures the network and CPU path and says
