@@ -221,6 +221,58 @@ for `metrics = true` means the payload's own extent. So:
   `<unit>.rez` produced at `stop` for a detached unit, so the artifact list
   says which recording covers what.
 
+### Scoping a recording to the measurement window
+
+When the thing under test must stay up across the window, do not take the
+measurement from the detached unit's own recording. Add a second, non-detached
+`exec` step whose payload just sleeps for the window: guest-side rezolus records
+the whole guest, so that step's `rezolus-exec<n>.rez` captures the detached
+server's CPU and syscalls too — scoped to exactly the sleep, because the
+payload's lifetime *is* the window. Sequenced after the readiness barrier it
+needs no clock alignment.
+
+```toml
+[[jobs.steps]]                    # the thing under test, long-lived
+type = "anvil-vm"
+mode = "exec"
+detach = true
+unit = "burner"
+metrics = true
+payload = '...'
+
+[[jobs.steps]]                    # recording scoped to the measurement window
+type = "anvil-vm"
+mode = "exec"
+metrics = true
+upload = true                     # REQUIRED, or no .rez artifact appears
+payload = 'sleep 20'
+```
+
+`upload = true` is not optional and is easy to miss: the recording is always
+made and always *pulled* into the job workdir, but pulling is not uploading —
+the same distinction that applies to ordinary artifacts. Without it the step
+produces no artifact at all, which reads as "the technique does not work".
+
+Measured on delta (experiment `01a0a0c2-9c2a-714c-63ce-2fe4db8e816a`), 4 cores
+burned for 20 s inside a ~95 s unit life, ground truth 4.0 cores:
+
+| recording | duration | mean cores | max cores |
+| --- | --- | --- | --- |
+| `burner.rez` (the unit) | 90 s | 0.87 | 3.97 |
+| `rezolus-exec2.rez` (the sleep) | 31 s | 2.48 | 3.97 |
+
+The unit's own recording understates by 4.6x. The scoped step lands where it
+should (4.0 × 20/31 = 2.58). `Max` agrees at 3.97 on both, which is why `Max`
+over a short rate window rescues a diluted recording — and why `Mean` on a
+detached unit's recording is the thing never to quote.
+
+Two traps in the probe rather than the technique, both hit while validating
+this: `mode = "stop"` kills a still-running unit, so without a `sleep` step
+before `stop` the unit's recording covers only the measured window too and there
+is no dilution to see — an unarmed experiment reading as a negative result. And
+the index in `rezolus-exec<n>.rez` counts exec steps, so the sleep is #2 when
+the detached step is #1.
+
 Choosing and reading what lands in the recording is `measure-performance`; this
 is only the part that constrains the spec.
 

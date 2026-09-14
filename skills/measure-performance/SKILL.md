@@ -134,6 +134,29 @@ Each `start-metrics`/`stop-metrics` pair is its own recording; a long-lived
 detached server that is never re-bracketed gets one recording for its whole
 life, idle included.
 
+**Choose the loop before you run, and name it in the report.** A closed-loop
+arm holds N requests in flight and lets throughput fall out; an open-loop arm
+offers a fixed rate and lets latency fall out; an SLO search finds the highest
+offered rate that still meets a latency target. They answer different questions
+and are not interchangeable.
+
+The closed-loop trap is that it *looks* like a throughput measurement.
+Throughput there is `N / E[R]` by construction — the same identity Step 5 uses
+to validate the arm — so against any shared ceiling every configuration
+converges on the ceiling and reports it as its own number. Measured: three
+server read paths on one rig landed within 2% of each other in closed loop,
+while the server-side CPU cost of the cheapest and the dearest differed by 1.8x.
+The throughput figures were a property of the link; the CPU figures were a
+property of the servers. **Closing Little's law does not rescue this** — all
+three arms closed it cleanly, and that is precisely why their throughput
+comparison was worthless. It validates the arm; it does not make the number mean
+what "throughput" implies.
+
+So: closed loop for per-request cost at a fixed concurrency; open loop or an SLO
+search for any throughput claim. Make the latency target CO-honest, measured
+against offered time rather than service time, or the search finds the ceiling
+again.
+
 **Analysis you attach to a running measurement is part of the measurement.**
 Before computing anything on the measured node, read
 `references/analysis-placement.md`: it splits the analysis techniques in this
@@ -162,6 +185,17 @@ quiet zero.
 - **Interleave, same session, at least four runs per side.** Not A-then-B in
   separate sessions: thermal state and cache warmth drift between them, and on
   the Pis thermal drift is the dominant term.
+- **Interleaving does not rescue a credit-based resource.** Where the platform
+  meters with a token bucket — "up to X Gbps" network, burst CPU credits, burst
+  IOPS — every run after the first draws on a bucket the earlier runs drained.
+  A/B/A/B spreads the depletion evenly instead of removing it, and total sweep
+  length becomes a hidden variable. The tell is visible inside a single arm: on
+  one such fleet the shaping counter climbed an order of magnitude across a
+  180 s window at constant offered concurrency. A short run is a burst-rate
+  number and a long one is a baseline number; neither is wrong and they are not
+  the same measurement. Interleave anyway — but say which regime the figure came
+  from, and treat run order as a confound whenever arms run serially against
+  shared hardware. `references/environment.md` has the counters.
 - **Price against the right baseline.** A win against a stale baseline is a
   measurement of the baseline.
 - **Report the distribution, not one number.** If the spread of one side covers

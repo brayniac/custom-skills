@@ -42,6 +42,14 @@ in size and opposite in sign, so they landed within 20% of each other for
 unrelated reasons and the agreement was read as a fact about topology. The fix
 is cheap: take one run's own evaluated spec, change the single variable, re-run.
 
+**Does the mechanism explain the magnitude, at the operating point that
+matters?** The first plausible mechanism that fits the sign is not necessarily
+the operative one. A read path burning 1.8x the CPU per byte looked like a
+sufficient explanation for its deficit — but the deficit appeared at an
+operating point where neither CPU nor link was saturated, which that figure
+cannot account for, and the real discriminator lay elsewhere in the network
+path. The CPU difference was real, and was not the cause.
+
 **Is the tier you named the tier you exercised?** A cache benchmark whose
 working set fits in page cache measures the network and CPU path and says
 nothing about flash. `blockio_bytes{op="read"}` flat at zero across every run
@@ -138,8 +146,17 @@ envelope costs the same as a correct one and is much harder to retract.
 
 - **Never report a per-unit figure below the floor the work structurally
   requires.** An echo server cannot read less than once per operation.
-- **Never treat convergence as equivalence** without naming the constraint both
-  sides were against and saying whether either had headroom.
+- **Never treat convergence as equivalence.** Two configurations landing within
+  a few percent is the signature of a shared ceiling at least as often as it is
+  equivalence. Name the constraint both sides were against and say whether
+  either had headroom — and note that a closed-loop arm converges on a shared
+  ceiling *by construction*, so the agreement is not evidence at all.
+- **Never read a load generator's failure reason as the constraint.** When a
+  shaper clips, requests queue and service latency rises *before* achieved
+  throughput falls below target, so an environment cap and a server limit both
+  surface as "latency exceeded". Only the platform's own throttle counters
+  separate them, and a run with them firing is a lower bound rather than a
+  measurement.
 - **Never trust the absence of results** from a query you have not seen return
   a positive. A capped list API reporting 0 rows, a name that matched two
   experiments, and a CLI printing usage text all read as "nothing there".
