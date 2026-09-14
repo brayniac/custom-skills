@@ -1,0 +1,32 @@
+# What rack-ci does with this repository. The rack config on delta defines the
+# targets; this file picks. See the `use-rack-ci` skill, or infra's
+# docs/guides/ci.md.
+#
+# A check holds a host for the length of its script, so related steps share one
+# host, and each step runs even after an earlier one fails -- stopping at the
+# first problem costs another push and another host to find the second.
+#
+# The split is not arbitrary: `scripts/smoke.sh` needs `jq`, which the Debian
+# guest image installs (host-setup/guest-images/base.sh) and the pi baseline
+# does not declare (fleet/hosts/pi00.toml has no [packages]). Everything that
+# is pure cargo stays on a pi, where there are twenty and no contention.
+# Add jq to the pi baseline and the smoke check can move there too.
+
+[checks.lint]
+target = "pi"
+run = """
+bad=0
+cargo fmt --all -- --check || bad=1
+cargo clippy --all-targets --locked -- -D warnings || bad=1
+exit $bad
+"""
+
+[checks.test]
+target = "pi"
+run = "cargo test --locked"
+
+[checks.smoke]
+target = "x86"
+run = """
+cargo build --locked && ./scripts/smoke.sh
+"""
