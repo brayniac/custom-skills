@@ -13,7 +13,8 @@ covers what is not obvious from reading the code.
 
 ## Checks
 
-Run all four before claiming a change is done — CI runs exactly these:
+Run all four before claiming a change is done. **Right now they are the only
+gate** — see below.
 
 ```sh
 cargo fmt --all -- --check
@@ -21,6 +22,19 @@ cargo clippy --all-targets --locked -- -D warnings
 cargo test --locked
 cargo build --locked && ./scripts/smoke.sh   # needs jq
 ```
+
+`.rack-ci.toml` declares these same four for rack-ci, split by what each needs:
+fmt, clippy and test on a pi, and build-plus-smoke on x86 because `smoke.sh`
+needs `jq`, which the Debian guest image installs and the pi baseline does not
+declare. The `use-rack-ci` skill covers the mechanism.
+
+**No CI runs on this repository today.** GitHub Actions cannot execute on this
+account's private repos — every push failed in about four seconds with no
+runner assigned — so the workflow was deleted rather than left posting a red X
+that means nothing. rack-ci does not pick this repo up until it is added to the
+`repos` allowlist in `/etc/rack-ci/rack-ci.toml` on delta, which is in no
+repository and cannot be changed from a checkout. Until that lands, running the
+four commands yourself is the whole of the gate.
 
 `scripts/smoke.sh` drives the real JSON-RPC exchange against
 `target/debug/custom-skills-mcp`, so it needs a build first. It asserts on
