@@ -167,6 +167,46 @@ What each failure does now:
 
 Live example: `~/workspace/brayniac/ringline/experiments/tcp-client-compare.toml`.
 
+## Recording metrics for a measured cell
+
+Two recordings exist and they are not interchangeable
+(`infra/docs/guides/vm-jobs.md`, "Metrics" — the authority on every `anvil-vm`
+parameter, and worth re-reading rather than recalling):
+
+- **Guest side** — `metrics = true` on the `anvil-vm` step wraps the payload in
+  `rezolus record -o /tmp/rezolus.rez -- bash -s`. It records for **exactly the
+  payload's lifetime** and is pulled out automatically, even when the payload
+  fails. This is the measurement view, and the only place GPU telemetry can come
+  from: the GPU is bound to `vfio-pci`, so the hypervisor cannot see it.
+- **Host side** — systemslab's `start-metrics`/`stop-metrics` bracketing steps,
+  landing as `metrics.rez`. This is the contention view: what the job cost the
+  machine. Brackets are host-runner steps, so a guest payload can never reach
+  one (skill step 3).
+
+A recording cannot be sliced by time afterward — `rezolus recording filter`
+trims samplers and metric columns, and the MCP `query` tool has no window
+arguments. The window is decided by where the recording starts and stops, which
+for `metrics = true` means the payload's own extent. So:
+
+- **One measured cell per step.** A payload looping over message sizes or
+  configurations gets one recording covering all of them, and nothing
+  downstream can attribute CPU or syscalls to any single one; only what the
+  client writes per-cell survives. Give each cell its own `anvil-vm` step with
+  its own `metrics = true`. Because the window is the payload's extent by
+  construction, this needs no coordination at all — there is no start/stop to
+  get wrong and no clock to align.
+- **A detached unit records the unit's whole life.** `mode = "exec"` with
+  `detach = true` launches the payload as a transient systemd unit and returns
+  while it runs; `metrics = true` then wraps the *unit* rather than a payload,
+  so the recording spans boot-to-`stop` — warmup, the client's retry loop and
+  teardown included — and every rate read off it is diluted by the idle. The
+  recordings name themselves: `rezolus-exec<n>.rez`, one per step, and
+  `<unit>.rez` produced at `stop` for a detached unit, so the artifact list
+  says which recording covers what.
+
+Choosing and reading what lands in the recording is `measure-performance`; this
+is only the part that constrains the spec.
+
 ## Read results
 
 ```sh

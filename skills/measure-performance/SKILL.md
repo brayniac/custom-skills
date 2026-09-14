@@ -125,6 +125,14 @@ For anything with a client and a server, `systemslab/barrier` is what makes the
 measured window the same window on both hosts. Without it you are averaging over
 one side's startup.
 
+**Bracket one recording per measurement cell.** A recording cannot be sliced by
+time afterward — `recording filter` trims columns, and `query` has no window
+arguments — so an arm that loops over several message sizes or configurations
+inside one recording can never attribute CPU or syscalls to any one of them.
+Each `start-metrics`/`stop-metrics` pair is its own recording; a long-lived
+detached server that is never re-bracketed gets one recording for its whole
+life, idle included.
+
 **Analysis you attach to a running measurement is part of the measurement.**
 Before computing anything on the measured node, read
 `references/analysis-placement.md`: it splits the analysis techniques in this
@@ -168,6 +176,28 @@ quiet zero.
   distribution for every threshold you will ever set on this source.
   `calibrate-to-source` turns them into one; most labs compute them and throw
   them away.
+- **Close Little's law before believing a closed-loop arm.** `N = X · E[R]` is
+  an identity in closed loop, so a violation indicts the *measurement* —
+  coordinated omission, mis-counted operations, a stalled arm — not the system.
+  Real arms on this rig close it to 0.1–0.3%. It needs the **mean**, not p50: on
+  a mildly skewed latency distribution p50 gave 5.6% error where the mean gave
+  1.4%, and a tolerance loose enough to admit that p50 is loose enough to admit
+  genuinely broken arms. In-flight work is `connections × pipeline_depth`;
+  dropping the depth term rejects every pipelined arm.
+- **Validate a gate against real arms, not fabricated fixtures.** A detector
+  built to fixtures encodes what you imagined the failure looks like. A
+  single-core-funnel detector got it wrong twice, each time caught only by real
+  data: *hottest-vs-median* rejected every healthy arm, because a
+  thread-per-core runtime is supposed to saturate its workers and leave the rest
+  idle (8 workers on 24 cores = 8 at 100%, 16 at ~0%) and that is
+  indistinguishable by that rule from one core doing everything;
+  *busy-cores-vs-worker-count* then rejected every lightly loaded arm, and
+  passed the anomalous runtime while failing the correctly-idle ones — exactly
+  backwards. What survived: a funnel is **concentration**, so compare the
+  hottest core's share of total busy CPU, and only where there is enough total
+  load for the question to mean anything. The fixtures had four moderately-busy
+  cores, which is nothing like a pinned thread-per-core server, and that is
+  precisely why they passed a broken gate.
 - **When the spread will not settle, ask what color it is.** If more runs are not
   tightening the interval, the noise is not white and `1/√N` does not apply. The
   `analyze-noise` skill turns the series into an Allan deviation curve, which
@@ -195,6 +225,14 @@ executed.
   that needed a retry past a 503.
 - **Never cite a guest's own topology report as hardware fact.** Corroborate on
   the host.
+- **Never hand-roll a CPU sampler beside a recording that already has CPU
+  data.** `/proc/stat` busy sums count iowait, which is not busy — it read an
+  idle io_uring server as 806% against tokio's 33%, and it biases against
+  io_uring specifically rather than adding noise evenly. Use `cpu_usage` or
+  `task_cpu_usage`; `references/reading-recordings.md` has the breakdown.
+- **Never report a per-operation figure below the floor the protocol requires.**
+  An echo server cannot read less than once per operation. A number under the
+  structural floor means the window is wrong, not that the runtime is clever.
 - **Never pipe a run through `tail` or `head` and reason about what survived** —
   write it to a file and grep the file. The line you want is
   disproportionately the one you cut.

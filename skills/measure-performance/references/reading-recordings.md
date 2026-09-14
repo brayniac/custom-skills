@@ -55,6 +55,57 @@ selector that matches nothing returns an empty result, and an empty result reads
 exactly like a legitimate zero. If a query returns zero or nothing, confirm the
 labels exist before believing it.
 
+## A recording cannot be time-sliced after the fact
+
+`rezolus recording filter` trims **columns**, not time: on a `.rez` it takes
+`--samplers` (which per-sampler tables survive) and `--metrics` (which metric
+columns survive inside them), and refuses to run given neither. The MCP `query`
+tool takes no window arguments either — it runs `query_range` across the
+reader's full `time_range()`.
+
+So the measured window is fixed when the recording is bracketed, and nothing
+downstream narrows it. Two consequences:
+
+- **`Mean` of a `rate(...)` averages in every idle second the recording spans.**
+  A recording bracketing a server unit's whole life rather than the measured
+  region reports the load diluted by the idle around it. On the rack the usual
+  cause is structural rather than accidental: `metrics = true` on a *detached*
+  `anvil-vm` unit wraps the unit, so the recording runs boot-to-`stop` and the
+  measurement is a slice of it. That produced **0.83 read syscalls per
+  operation for an echo server** — below the structural floor, since a server
+  must read every request it echoes. `Max` over a short
+  rate window gave 1.27, the real figure. Sanity-check any per-operation figure
+  against what the protocol requires: one below the floor the work demands
+  means the window is wrong, not that the runtime is clever.
+- **One recording per measurement cell.** An arm looping over several message
+  sizes or configurations inside one recording cannot attribute CPU or syscalls
+  to any single one of them — only client-side output stays per-cell. Each
+  `start-metrics`/`stop-metrics` pair is its own recording and its own artifact,
+  so bracket each cell separately. The case that bites is a long-lived detached
+  server, which otherwise gets one recording for its entire life.
+
+## CPU: read it from the recording, never hand-roll a sampler
+
+A `/proc/stat` sampler run alongside a recording that already carries CPU data
+is not a cross-check, it is a second and worse measurement. The usual
+formulation computes busy as `user+nice+system+iowait+irq+softirq`, and
+**iowait is not busy**: a worker blocked in io_uring's `submit_and_wait` is
+accounted iowait rather than idle, so an idle io_uring server read as **806%
+busy against tokio's 33%**. The per-category breakdown said what was really
+happening — `user=0.2 sys=2.5 iowait=95.6`, about 22% of one core, right
+alongside tokio.
+
+What makes this a rule rather than a footnote: epoll-based runtimes have no
+such accounting, so including iowait does not add noise evenly across arms —
+**it biases the comparison against io_uring specifically**, which is usually the
+thing under test.
+
+Rezolus cannot reproduce the error because it does not measure the category.
+`cpu_usage` on Linux is BPF-derived on-CPU time carrying states `user` and
+`system` only — no `idle`, no `iowait` — labelled by `id` (the CPU). Use that,
+or `task_cpu_usage` (labelled by `comm`), which attributes CPU to the server's
+own threads and needs no idle-baseline subtraction.
+
 ## `detect_anomalies` needs one series
 
 It takes a single time series. Aggregate first:

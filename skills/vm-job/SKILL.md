@@ -34,7 +34,18 @@ Zen2, whole host 56 vCPU / ~224 GiB) or `shape = "z1.c"` with
 hv02. **Tags are ANDed** (a job runs where its tags are a subset of the host's):
 `["z2.baremetal","z1.baremetal"]` matches nothing and pends forever. An image
 that exists on one host with tags allowing the other fails at instance
-creation. Whole host by default. `slots` (one slot = one CCX, 4 cores / 8
+creation.
+
+**Two jobs in one experiment need two distinct hosts.** The scheduler matches
+jobs to hosts 1-to-1 (maximal bipartite matching) and schedules only when
+*every* job is covered, so an experiment with two jobs tagged for a
+single-host class — `macbook`, or `z2.baremetal` — is unsatisfiable. It does
+not fail: it sits `unscheduled` forever, indistinguishable from an ordinary
+queue. It cost another session 40 jobs before anyone noticed. Sequential arms
+belong in **one** job, which also measures better: the arms get the machine to
+themselves instead of racing each other.
+
+Whole host by default. `slots` (one slot = one CCX, 4 cores / 8
 threads, 4 GiB per thread, on both hosts; hv01 has 7 usable, hv02 3),
 `memory_gib`, and `ports` (0-4 passthrough NIC ports, bonded in the guest)
 only when the size is the experiment. Each host holds one RTX 4090 and a
@@ -136,6 +147,14 @@ is only reported when the step starts.
 
 ## 5. Wait and read
 
+**The terminal states are `success` and `failure`.** Not `completed`, not
+`failed` — a watch loop matching on those two runs on past the end (40 minutes,
+twice in one day). If you script a wait: Monitor's shell is zsh, which does not
+word-split unquoted variables, and macOS `bash` is 3.2, which has no
+`declare -A`. **A monitor that has produced no output is a broken monitor, not a
+quiet world** — 45 minutes of silence read as "still queued" when both runs had
+long finished.
+
 - `wait_for_experiment` (MCP) or `systemslab experiment show <id>`.
 - Log: `get_logs` (MCP; use `grep`/`tail`, the payload's stdout is all there)
   or `systemslab logs --experiment <id>`.
@@ -155,7 +174,33 @@ flag or backend must have actually compiled with it (check the guest's kernel
 and the build flags in the log). If the check could not have failed, it
 proved nothing.
 
+**The experiment state is not the verdict.** The template here ends every
+payload with `exit 0` on purpose, so the uploads survive — which means the
+experiment reads `success` whenever the payload *ran*, whatever it found. A job
+that writes its result to a `status` artifact is telling you to read the
+artifact. A gate whose result was `fail` has been reported as a pass on the
+strength of the experiment state alone.
+
+**Assert on evidence that work happened, not on the absence of failure.** A
+tier that skips can skip its way to a green: one gate passed with 41 of its
+checks SKIPPED for missing checkpoints, which the status API renders
+identically to a real pass. What separated them was a line proving work
+occurred — a version banner, 7 pulls, 0 failures, a skip count of 16 rather
+than 41. Decide before the run which line in the log proves the work ran, and
+grep for that.
+
+**A green suite proves no regression, not that the feature works.** A full
+goldens run can pass without anything in it ever setting the new flag, leaving
+the affirmative behaviour unproven on that backend.
+
 ## 7. Cancel, timeout, orphan
+
+**Cancelling a superseded run is not free.** Cancel applies to *queued*
+experiments, so it no-ops on anything already scheduled; and rack-ci maps a
+cancelled experiment to an error status. Where two runs write the same
+commit-status context, cancelling one can overwrite the other's green with
+`cancelled` — the intervention that looks protective is what causes the harm.
+Let a superseded run finish unless it is holding a host you need.
 
 Cancelling is supposed to tear the guest down, but has left orphans that held
 every slot and failed later jobs with `503 No suitable slots available`.
@@ -189,6 +234,10 @@ the import job.
 ## Never
 
 - Never work on hv01/hv02 outside a job, "just to check".
+- Never put two jobs on a single-host tag; the experiment pends forever rather
+  than failing.
+- Never read an experiment's `success` as the work's verdict when the payload
+  ends `exit 0` — read the artifact it wrote.
 - Never a payload that ends non-zero when you want the artifacts.
 - Never coordinate two jobs with anything but a barrier; a handshake
   wedges the peer's host until a timeout when the other side dies.
