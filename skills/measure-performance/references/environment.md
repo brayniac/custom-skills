@@ -57,6 +57,18 @@ other. The generation also constrains the shape: `z2.c` only runs where
 scheduling by tag `pi4b` never places onto them. A run that landed on one was
 deliberate, and its numbers belong to that host rather than to the pool.
 
+**Ask for the capability, not the machine.** `host:<name>` tags exist because
+systemslab's `host` object accepts `tags` and nothing else, so identity is
+otherwise inexpressible — but a `host:` tag in a *measurement* spec is a smell.
+It says where to run rather than what the run needs, and it is always available
+and always works, which is exactly what makes it easy to reach for wrongly. Use
+it to arrange a deliberate same-host comparison; not to get a job placed.
+
+The generation aliases (`z2.baremetal`, `z1.baremetal`, `z4.baremetal`) are
+transitional — they survive because existing specs name them, and they will
+eventually go. `pi4b` and `pi4b-thermal` are not aliases; they are pools, and
+they are staying.
+
 **A subset-matching scheduler cannot express exclusion.** There is no "not
 thermal": a host stays out of a pool only by lacking a tag, so a tag's
 *absence* can be the load-bearing part — and absence is invisible when you read
