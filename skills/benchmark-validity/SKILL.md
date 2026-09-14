@@ -1,0 +1,145 @@
+---
+name: benchmark-validity
+description: Check that a measurement measured its subject before anyone interprets it — that the instrument was not the bottleneck, that the run reached steady state, that the comparison changed one variable, and that a green result did not come from work that never happened. Use when running or reading a benchmark, when two runs disagree, when a result looks clean, and before writing any number into a document or an issue.
+---
+
+# Benchmark validity
+
+A benchmark number is a claim about a system. Most bad claims are not noisy —
+they are precise, plausible, and about something other than the subject. Every
+check below corresponds to a measurement that looked fine and was wrong.
+
+This is the instrument-agnostic layer. `measure-performance` owns getting a
+number out of this lab specifically — hosts, recordings, and whether a
+difference between two numbers is real — and is the authority where the two
+overlap.
+
+## Before interpreting a number
+
+**Is the instrument the bottleneck?** Check saturation on the *load generator*,
+not only on the server, and on the environment as well as the processes. On
+cloud instances that means the platform's own allowance counters on every host
+in the run — `network_ena_bandwidth_allowance_exceeded`,
+`network_ena_pps_allowance_exceeded`. In one run the generators were throttled
+in 97% of the one-second samples of the measured window while the server
+recorded zero throttle events, so every latency figure bounded the generators
+rather than the server. The asymmetry gave it away before the counters did: two
+generators driving identical load reported materially different tails.
+
+**Did the run reach steady state?** A run that starts cold and reports one
+average across its duration reports a value that occurs nowhere in it. After
+dropping caches, one miss rate went 57.9% → 29.9% → 24.7% across an hour, and a
+five-minute run reported the second block as though it were the answer. Read
+the tail of the per-second data and confirm it has flattened; if it is still
+moving at the end, the run was too short. The bias has a direction, which is
+worse than noise — it distorts the *shape* of a sweep rather than its level,
+because it is strongest at one end.
+
+**Does the comparison change exactly one variable?** Before explaining why two
+runs disagree, enumerate every difference between them. Two experiments once
+differed in working set by 16x *and* in topology, with the effects comparable
+in size and opposite in sign, so they landed within 20% of each other for
+unrelated reasons and the agreement was read as a fact about topology. The fix
+is cheap: take one run's own evaluated spec, change the single variable, re-run.
+
+**Is the tier you named the tier you exercised?** A cache benchmark whose
+working set fits in page cache measures the network and CPU path and says
+nothing about flash. `blockio_bytes{op="read"}` flat at zero across every run
+is the tell. One query, before the headline.
+
+## Before trusting a green result
+
+**Ask what would have to be true for this to pass while the subject did
+nothing.** If you can construct that story, the check is not evidence yet. A
+14-experiment A/B of two inference engines reported `Ok: 12 Err: 0` on every
+run, with correct-looking engine names and version strings, and was one engine
+benchmarked against itself: the second never started — `Address already in use`
+— and the readiness probe curled `/health`, which both engines serve. It got a
+200 from the stale server and printed "ready".
+
+**A readiness probe must verify identity, not liveness.** "Something answers the
+port" is not "my process is up". Gate the endpoint probe on the process being
+alive, and distinguish "never started" from "was up, then died".
+
+**Provenance comes from the thing that answered, not the thing you launched.**
+Labels read from `--version` on the binary on disk are perfectly accurate about
+a process that has already exited, and perfectly misleading about the server
+that served the requests.
+
+**A green suite proves no regression, not that the feature works.** A full
+goldens run can pass without anything in it ever setting the new flag.
+
+**Assert on evidence that work happened, not on the absence of failure.** A tier
+that skips can skip its way to green — one gate passed with 41 of its checks
+skipped for missing checkpoints, rendered identically to a real pass. Decide
+before the run which line in the log proves the work ran, and grep for that.
+
+## Before trusting a derived view
+
+**Does the chart agree with the counter?** Dashboards compute. One metrics view
+rendered block IO at 2x because it summed two overlapping recordings of the same
+host, while the cumulative counter in the file was correct throughout. For any
+number that will be quoted, derive it once from the raw counter —
+`delta / elapsed`, no rate window, no aggregation — and check.
+
+**Did you read the whole recording?** Recordings are chunked, and files written
+by background jobs are not finished because they exist. Reading the first of
+five segments produced "0 events" for a counter that a query over the same file
+showed peaking at 179,749/s. **Two of your own analyses disagreeing is a bug to
+find, not a curiosity to note.**
+
+**Does a negative result mean absence?** Analysis tools have parameters that can
+erase what you are looking for. An FFT reported "no significant cyclic patterns"
+because its auto-selected smoothing window, 15 s, was approximately the 17 s
+period it would otherwise have found — it located the period and used it as the
+filter width. When a tool reports nothing, check that its settings could have
+found something.
+
+**Does the answer know how old it is?** Before believing any claim about what
+*currently* exists, check when the thing answering last learned. A package index
+frozen for nine days answered "no arm64 build past 5.19.0" with complete
+confidence; the registry had it all along. A git checkout 111 commits behind
+described a documented parameter as nonexistent. Neither reports its own
+staleness — both fail by succeeding.
+
+**Suspicious agreement is evidence, not reassurance.** Two refs at ratios of
+exactly 1.001 and 1.000, and a whole-matrix spread inside the noise floor, is
+the shape of a rig that measured one thing twice. When a result is suspiciously
+clean, read the logs before reporting it.
+
+## Before quoting a ratio
+
+**Measure the noise floor first.** Repeats of unchanged code have spanned
+0.72–1.15x on one rig, and llama.cpp moved 1.8 points between two clean runs at
+temperature 0 — five times the gap that was about to be called an engine
+difference. A ratio without a repeat measurement is not a number.
+
+**Comparability of the denominator is separate from its size.** Two arms once
+counted tokens on different bases — one estimated, one the exact vocabulary —
+differing by ~5%. The *rate* was unaffected, since the same counts sat in
+numerator and denominator, so the fix mattered for comparability across arms and
+moved the number by 0.3%. Predict which it will be before you fix it.
+
+**Prefer a per-unit figure that does not depend on how much work was produced.**
+One engine silently dropped `ignore_eos` and produced 306 tokens where 512 were
+requested, with zero errors reported; it surfaced only because the latencies
+were arithmetically impossible against each other — higher time-to-first-token
+*and* higher per-token time, yet lower total. Check units-per-request, and
+compare engines on per-token latency.
+
+## Order of operations
+
+Establish the measurement envelope before the measurements: which sizes, rates
+and durations this rig measures honestly. Find the regimes where the instrument
+is not the constraint, then work inside them. A precise answer from outside that
+envelope costs the same as a correct one and is much harder to retract.
+
+## Never
+
+- **Never report a per-unit figure below the floor the work structurally
+  requires.** An echo server cannot read less than once per operation.
+- **Never treat convergence as equivalence** without naming the constraint both
+  sides were against and saying whether either had headroom.
+- **Never trust the absence of results** from a query you have not seen return
+  a positive. A capped list API reporting 0 rows, a name that matched two
+  experiments, and a CLI printing usage text all read as "nothing there".
