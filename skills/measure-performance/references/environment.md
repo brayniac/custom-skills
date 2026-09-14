@@ -18,8 +18,13 @@ re-register; a fresh `registeredAt` does not mean a fresh machine.
 
 At last observation: `hv01` (`z2.baremetal`, `hypervisor`), `hv02`
 (`z1.baremetal`, `hypervisor`), `pi00`–`pi19` (`pi4b`, except `pi01` and `pi06`
-which are `pi4b-thermal`), and `macbook`. Re-verify rather than trusting that
-roster.
+which are `pi4b-thermal`), `delta` (`z4.baremetal`, `validation`), and
+`macbook`. Re-verify rather than trusting that roster.
+
+**`list_hosts` answers for the deployment you are pointed at, and there is more
+than one.** A finding from another SystemsLab instance — a different roster,
+cloud instances, different hardware entirely — is not a fact about this rack.
+Check the roster before carrying a number or a threshold across.
 
 | Class | Hardware | Slots |
 | --- | --- | --- |
@@ -27,8 +32,20 @@ roster.
 | `z1.baremetal` (hv02) | Zen 1 Threadripper 1950X, 24 vCPU, ~96 GiB, one RTX 4090 | 3 usable |
 | `pi4b` | Raspberry Pi 4B ×18 | — |
 | `pi4b-thermal` | Raspberry Pi 4B ×2, held apart | — |
+| `z4.baremetal` (delta) | Zen 4 — **services host, not a measurement host** | 1 |
 
 One slot is one CCX: 4 cores / 8 threads, 4 GiB per thread, on both hosts.
+
+**`delta` is not a comparability class — it is not a measurement environment at
+all.** It is the services host (slipway registry, internal apt repo, Caddy) and
+since 2026-09-11 the validation host, where image builds and rack-ci-style
+checks run without queueing behind a measurement on hv01/hv02. It is
+deliberately *not* tagged `hypervisor`, `z1.baremetal` or `z2.baremetal`,
+because those are what measurement jobs ask for. A guest there shares delta's
+isolated CCX with the resident systemslab, forge and plex VMs and draws on
+about 4 GB of 1G pages, so validation jobs say `slots = 1` and
+`memory_gib <= 4`. Probes and builds belong there; numbers do not. See
+`infra/fleet/hosts/delta.toml`.
 
 **Zen 1 and Zen 2 are different microarchitectures, and hv02 is a Threadripper
 rather than a server part.** A z1 number and a z2
@@ -45,6 +62,28 @@ deliberate, and its numbers belong to that host rather than to the pool.
 **SystemsLab runs one job per host.** That is the isolation: if your job is
 running, you have the machine. There is no co-tenant to measure alongside, and
 there is nothing to drain.
+
+**That guarantee is about scheduling, not about the hardware, and it does not
+carry to a cloud instance.** On an EC2-backed deployment you get the whole
+instance and still not the whole pipe: a hypervisor-level shaper you cannot see
+from inside clips the network, and its allowance is a credit bucket whose state
+depends on what ran recently. Nothing surfaces it as contention — `list_hosts`
+shows the host idle and the job has it to itself. So before treating a cloud
+host as exclusive:
+
+- **Audit the platform's own throttle counters** in the server recording, not
+  just the server's. On EC2 that is `network_ena_bandwidth_allowance_exceeded`
+  and `network_ena_pps_allowance_exceeded`. A run with them firing is a lower
+  bound, not a measurement — and because a shaper makes latency rise before
+  achieved throughput falls, an environment cap and a server limit both surface
+  at the load generator as "latency exceeded". The counters are the only thing
+  that separates them.
+- **Treat any credit-metered resource as a hidden variable**: burst network
+  allowance, CPU credits, burst IOPS. Interleaving does not rescue these —
+  A/B/A/B spreads the depletion across arms instead of removing it, and total
+  sweep length silently becomes part of the experiment. A short run is a
+  burst-rate number and a long one is a baseline number; both are real, and
+  they are not the same measurement. Say which one you are reporting.
 
 This is different from measuring on a shared workstation, and it changes what
 the failure looks like:
