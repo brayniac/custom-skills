@@ -46,8 +46,14 @@ card, so a stray or orphaned guest cannot sit on it. Timeouts are seconds.
 Fetch `references/spec-template.toml` with `skill_resource` (or read it from
 the skill directory) and start from it. Rules:
 
-- TOML, `uses = "anvil-vm"`. Do not put `name =` on any step (the action
-  rejects unknown fields). Payload in a `'''` literal string.
+- TOML, `uses = "anvil-vm"`. Payload in a `'''` literal string.
+- **`name` is not a step label.** The reserved step keys are exactly
+  `uses`/`type`, `id`, `background` and `with`; every other field is forwarded
+  to the action as an argument. So `name` is a real argument — the barrier's
+  name for `barrier`, the *artifact* name for `upload-artifact` — and putting a
+  descriptive label there silently renames the artifact rather than annotating
+  the step. `anvil-vm` sets `deny_unknown_fields`, so there it fails outright
+  instead. Use `id` when you want a label.
 - **End the payload with `exit 0`** and write the real status to a file.
   `anvil-vm` pulls `artifacts` into the job workdir whatever the payload's
   exit code, but a non-zero payload fails the step, and systemslab runs no
@@ -135,8 +141,11 @@ is only reported when the step starts.
   or `systemslab logs --experiment <id>`.
 - Artifacts: `systemslab api /api/v1/experiment/<id>` lists `.artifacts[]` with
   ids; `systemslab api /api/v1/artifact/<artifact-id>` returns the body.
-  **`systemslab artifact download-all` / `list --experiment` ignore the filter
-  and return other experiments' files** (CLI 160) — do not use them.
+  `artifact list --experiment` and `download-all` scope correctly — verified on
+  CLI 160.0.0 against the live rack, two sibling experiments carrying identical
+  artifact names, zero id overlap. **What they do exclude is context-attached
+  artifacts**, by design, so anything pre-staged on a context is absent from an
+  experiment-scoped list and the tool looks like it is lying.
 
 ## 6. Before believing a green result
 

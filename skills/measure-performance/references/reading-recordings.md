@@ -5,9 +5,22 @@
 A systemslab job records; the recording arrives as an artifact; the rezolus MCP
 tools read it. Each link has a name that has to match the previous one.
 
-1. **`systemslab/start-metrics`** with `name` and `source`. `source` is the label
-   you will select the recording by, so name it after the thing being measured
-   (`redis`, not `run1`).
+1. **`systemslab/start-metrics`** with `name`, and `metadata` for anything you
+   will select on later. `name` identifies the recording within the experiment
+   and names its artifact (`metrics-<name>`).
+
+   **`start-metrics`'s `source` is not a label.** The runner parses it as a
+   socket address and scrapes that rezolus endpoint instead of the local one, so
+   `source = "redis"` fails the step with `invalid source address`. The labels
+   you select by come from `metadata`, which the runner forwards to
+   `rezolus record --metadata key=value`. There, `source` and `host` are
+   auto-populated and a supplied `source` wins — so `metadata = { source =
+   "redis" }` is what makes `recording: {"source": "redis"}` work downstream.
+   Name it after the thing being measured (`redis`, not `run1`).
+
+   `--metadata` applies to every recording in the run and so cannot tell two
+   endpoints apart; that is `--endpoint url,source=name`.
+
 2. **`systemslab/stop-metrics`** with the same `name`. Bracket only the measured
    region — setup and teardown inside the window are noise you will have to
    reason around.
@@ -15,10 +28,11 @@ tools read it. Each link has a name that has to match the previous one.
    `systemslab api /api/v1/experiment/<id>` to list `.artifacts[]` and
    `systemslab api /api/v1/artifact/<id>` to fetch one.
 
-   **Do not use `systemslab artifact download-all` or `list --experiment`.** On
-   CLI 160 they ignore the experiment filter and return other experiments'
-   files. For a measurement that is not a nuisance — it is analysing the wrong
-   run and reporting it as this one, with nothing in the output to say so.
+   `artifact list --experiment` and `download-all` scope correctly — verified
+   on the rack against CLI 160.0.0, two sibling experiments with identical
+   artifact names and zero id overlap. They do exclude **context-attached**
+   artifacts by design, so a pre-staged file is absent from an
+   experiment-scoped list without anything saying so.
 4. **`describe_recording`** with no `recording` argument first, to list what the
    file holds. A `.rez` can carry several recordings; the tools require exactly
    one, selected as `recording: {"source": "redis"}`.

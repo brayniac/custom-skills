@@ -115,8 +115,11 @@ cross-CCX memory access is in your measurement and you did not put it there.
 
 Attach `systemslab/start-metrics` around the measured region, not around the
 whole job — setup, warmup and teardown in the recording are noise you will have
-to reason around later. Give it a `source`, because that is the label you select
-the recording by afterward.
+to reason around later. Name it after the thing being measured, and put anything
+you will select on in `metadata` — **`start-metrics`'s own `source` field is a
+rezolus endpoint address, not a label**, and a word there fails the step. The
+selector you use later comes from `metadata`; `references/reading-recordings.md`
+has the exact mapping.
 
 For anything with a client and a server, `systemslab/barrier` is what makes the
 measured window the same window on both hosts. Without it you are averaging over

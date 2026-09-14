@@ -148,8 +148,7 @@ exit 0
 
 [[jobs.steps]]
 type = "systemslab/upload-artifact"
-name = "upload-results"
-path = "results.json"
+path = "results.json"         # no `name =` here: it would RENAME the artifact
 
 [[jobs.steps]]
 type = "barrier"              # LAST: any earlier failure leaves it unreached
@@ -178,9 +177,21 @@ systemslab api /api/v1/artifact/<artifact-id> > run.log
 ```
 
 MCP: `wait_for_experiment`, `get_logs` (`grep`, `tail`, `offset`/`limit`),
-`download_artifact(artifactId, outputPath)`. Do not use `systemslab artifact
-download-all` or `artifact list --experiment`: on CLI 160 they ignore the
-experiment and hand back other experiments' files.
+`download_artifact(artifactId, outputPath)`.
+
+`artifact list --experiment` and `download-all` scope correctly. Verified on the
+rack against CLI 160.0.0: two sibling experiments carrying identical artifact
+names returned 11 artifacts each with zero id overlap, the CLI's id set was
+byte-identical to `api /api/v1/artifact?experiment=<id>`, and `download-all`
+rejects `--experiment` outright rather than widening. An earlier "do not use"
+here was wrong.
+
+**Experiment-scoped queries exclude context-attached artifacts by design.** A
+file pre-staged on a context is absent from `list --experiment` — correct, and
+indistinguishable from the tool lying. `artifact list` has no `--context` flag
+at all, so such a file is unreachable through that command by every route it
+offers; the raw API (`api "/api/v1/artifact?context=<ctx>"`) is the only way to
+see it. Still untested on the deployed client: a re-run with `run_id > 0`.
 
 ## Import a cloud image as a new guest image (persistent rack state)
 
