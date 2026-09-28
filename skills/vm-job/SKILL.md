@@ -7,9 +7,9 @@ description: Run work inside an ephemeral VM on the lab hypervisors (hv01/hv02) 
 
 The rack rule: **hv01 and hv02 are only ever used through SystemsLab jobs.** A
 job on a host is the exclusivity guarantee (one job per host). Never `ssh` to a
-hypervisor to build, test, or demo, never `anvilctl instance create` by hand,
+hypervisor to build, test, or demo, never create a guest with `virsh` by hand,
 never `rsync` a tree over. Put the work in a job payload. The one sanctioned
-out-of-band action is terminating an orphaned guest after a cancel (step 7).
+out-of-band action is destroying an orphaned guest after a cancel (step 7).
 
 A whole job — boot, toolchain, clone, cold build, test suite, teardown — is
 about three minutes. Treat "run it on distro X" as routine, not an expedition.
@@ -54,7 +54,9 @@ themselves instead of racing each other.
 Whole host by default. `slots` (one slot = one CCX, 4 cores / 8
 threads, 4 GiB per thread, on both hosts; hv01 has 7 usable, hv02 3),
 `memory_gib`, and `ports` (0-4 passthrough NIC ports, bonded in the guest)
-only when the size is the experiment. Each host holds one RTX 4090 and a
+only when the size is the experiment. `disk_gib` grows the root disk past the
+image's 100 GiB (anvil >= 0.8.10; thin, so it costs only what the guest
+writes; smaller than the image is refused). Each host holds one RTX 4090 and a
 guest gets it unless `gpu = false`; set that unless the payload uses the
 card, so a stray or orphaned guest cannot sit on it. Timeouts are seconds.
 
@@ -218,22 +220,28 @@ commit-status context, cancelling one can overwrite the other's green with
 `cancelled` — the intervention that looks protective is what causes the harm.
 Let a superseded run finish unless it is holding a host you need.
 
-Cancelling is supposed to tear the guest down, but has left orphans that held
-every slot and failed later jobs with `503 No suitable slots available`.
-After any cancel or timeout, from the Mac:
+Cancelling tears the guest down: `anvil-holder` watches the job's runner and
+the guest is created with `virsh create --autodestroy`, so the runner exiting
+destroys the domain and the libvirt hook removes its disk clone. If one is left
+anyway, the next anvil-vm job on that host reclaims it before building its own
+guest (one job per host makes anything already there an orphan) and prints
+`reclaiming orphaned guest <id>` in its output. Each of those lines is a leak
+worth filing in the anvil repo (`~/workspace/brayniac/anvil`).
+
+To look at a host yourself, from the Mac:
 
 ```sh
-anvilctl -e http://forge:8080 instance list        # ID, TYPE, HOST, STATUS
-systemslab host list                               # is that HOST running a job?
-anvilctl -e http://forge:8080 instance terminate <id>
+systemslab host list                  # is a job running there?
+ssh hv01 sudo virsh list              # the guests that exist
+ssh hv01 pgrep -af anvil-holder       # what is keeping each one alive
 ```
 
-An instance on a host that systemslab shows idle, or whose job is no longer
-running, is an orphan; one on a busy host belongs to that job (rack-ci or
-another session) and is left alone. Because systemslab runs one job per host,
-a 503 is never ordinary contention: it means an orphan or a slot-release bug.
-Terminate the orphan, file the bug in the anvil repo
-(`~/workspace/brayniac/anvil`), then resubmit. Do not add retry loops.
+A guest on a host systemslab shows busy belongs to that job (rack-ci or
+another session) and is left alone. A guest on an idle host with no live
+holder is an orphan; `ssh hv01 sudo virsh destroy <id>` removes it now rather
+than at the next job. There is no anvil control plane or `anvilctl` any more
+(retired in anvil 0.9.0); anything telling you to ask `http://forge:8080` is
+out of date. Do not add retry loops.
 
 ## 8. Persistent state on the rack
 
