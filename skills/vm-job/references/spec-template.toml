@@ -8,7 +8,7 @@ name = "NAME"
 
 [[jobs]]
 name = "vm"
-tags = ["hypervisor"]            # subset-of-host semantics; see skill step 1
+tags = ["hypervisor", "x86_64"]  # subset-of-host semantics; x86_64 because the Pis carry hypervisor too
 
 [[jobs.steps]]
 uses = "anvil-vm"

@@ -28,8 +28,14 @@ The authoritative per-host image lists are `infra/fleet/hosts/hv01.toml` and
 
 Shape is `{generation}.{class}`, and **the default is `auto`**: since anvil
 0.8.6, `auto.c` and `auto.g` resolve the generation against the host the guest
-is actually built on, so `tags = ["hypervisor"]` with `shape = "auto.c"` lands
-on either hypervisor and works. Pin a generation — `z2.c` with
+is actually built on, so `tags = ["hypervisor", "x86_64"]` with `shape =
+"auto.c"` lands on either hypervisor and works. The `x86_64` is not optional
+since 2026-09-28: the Raspberry Pis run guests too and carry `hypervisor`, so
+`["hypervisor"]` alone also matches eighteen Pis, where an x86 image, a 16 GiB
+guest or a GPU does not exist. `["hypervisor", "aarch64"]` is a Pi guest
+(shape `a72.c` or `auto.c`, image `debian-13-base` or `debian-13-ci`, two
+cores and 2 GiB by default; see infra's docs/guides/vm-jobs.md, "Guests on a
+Pi"). Pin a generation — `z2.c` with
 `["z2.baremetal"]` (hv01, Zen2, 56 vCPU / ~224 GiB) or `z1.c` with
 `["z1.baremetal"]` (hv02, Zen1, 24 vCPU / ~96 GiB) — only when the silicon is
 part of the question. **A pinned shape whose generation disagrees with the
