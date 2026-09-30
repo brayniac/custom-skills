@@ -16,8 +16,8 @@ use std::{path::PathBuf, sync::Arc};
 use anyhow::{bail, Context, Result};
 use rmcp::{
     model::{
-        CallToolRequestParams, CallToolResponse, CallToolResult, ContentBlock, Implementation,
-        InitializeResult, ListToolsResult, PaginatedRequestParams, ProtocolVersion,
+        CacheScope, CallToolRequestParams, CallToolResponse, CallToolResult, ContentBlock,
+        Implementation, InitializeResult, ListToolsResult, PaginatedRequestParams, ProtocolVersion,
         ServerCapabilities, Tool, ToolAnnotations,
     },
     service::RequestContext,
@@ -116,6 +116,21 @@ impl SkillsServer {
         tools
     }
 
+    /// The `tools/list` result, with the caching fields protocol 2026-07-28
+    /// requires. rmcp accepts a 2026-07-28 client but leaves `ttlMs` and
+    /// `cacheScope` unset, and a client validating against that schema then
+    /// rejects the whole list. Older protocols ignore both fields.
+    ///
+    /// `ttl_ms` is 0 because the list changes whenever the binary is reinstalled
+    /// or a `CUSTOM_SKILLS_PATH` skill is edited, and a client holding a cached
+    /// list across that restart would hide the change; the list is small enough
+    /// to refetch. `Private` because disk roots make the list per-user.
+    fn tools_list_result(&self) -> ListToolsResult {
+        ListToolsResult::with_all_items(self.listed_tools())
+            .with_ttl_ms(0)
+            .with_cache_scope(CacheScope::Private)
+    }
+
     fn route_tool(
         &self,
         name: &str,
@@ -202,7 +217,7 @@ impl ServerHandler for SkillsServer {
         _request: Option<PaginatedRequestParams>,
         _context: RequestContext<RoleServer>,
     ) -> Result<ListToolsResult, McpError> {
-        Ok(ListToolsResult::with_all_items(self.listed_tools()))
+        Ok(self.tools_list_result())
     }
 
     async fn call_tool(
@@ -274,6 +289,13 @@ mod tests {
         for skill in server.skills.iter() {
             assert!(names.contains(&skill.name), "missing tool {}", skill.name);
         }
+    }
+
+    #[test]
+    fn tools_list_carries_the_caching_fields_protocol_2026_07_28_requires() {
+        let json = serde_json::to_value(server().tools_list_result()).unwrap();
+        assert_eq!(json["ttlMs"], json!(0));
+        assert_eq!(json["cacheScope"], json!("private"));
     }
 
     #[test]
