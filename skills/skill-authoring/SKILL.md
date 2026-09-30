@@ -7,7 +7,7 @@ description: Add or revise a skill in the custom-skills Claude Code plugin — n
 
 A skill is one directory under `skills/` holding a `SKILL.md`. The repository
 is a Claude Code plugin, and its own marketplace: Claude Code lists each skill
-as `custom-skills:<name>` with its description, and loads everything below the
+as `cs:<name>` with its description, and loads everything below the
 frontmatter when the skill is invoked.
 
 ## Steps

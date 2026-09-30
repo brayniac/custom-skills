@@ -3,7 +3,10 @@
 A personal library of agent skills, packaged as a Claude Code plugin. The
 repository root is both the plugin (`.claude-plugin/plugin.json`) and its
 marketplace (`.claude-plugin/marketplace.json`, named `custom-skills`). Each
-`skills/<name>/SKILL.md` is listed as `custom-skills:<name>`. The Rust crate at
+`skills/<name>/SKILL.md` is listed as `cs:<name>`: the prefix is the `name` in
+`plugin.json`, kept short because it is typed before every skill, while the
+marketplace and its entry stay `custom-skills`, so installs are
+`custom-skills@custom-skills`. The Rust crate at
 the root is not part of the plugin: it is `check-skills`, which refuses a skills
 tree Claude Code would load wrongly.
 

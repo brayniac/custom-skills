@@ -17,7 +17,7 @@ description: Write a pull-request body as a guide for the reviewer. Use when ope
 
 | Field | Required | Rules |
 | --- | --- | --- |
-| `name` | yes | 1–64 chars, `[a-z0-9_-]` only, equal to the skill's directory name. Claude Code lists it as `custom-skills:<name>`. Unique across the tree, including grouping directories. |
+| `name` | yes | 1–64 chars, `[a-z0-9_-]` only, equal to the skill's directory name. Claude Code lists it as `cs:<name>`. Unique across the tree, including grouping directories. |
 | `description` | yes | Non-empty, at most 1,536 characters (Claude Code truncates past that). It is the only text an agent sees when choosing a skill. What it does, then when to use it, ending with "Use when …" and a list of the situations. These run a few lines; a short description is how a skill fails to be chosen. |
 
 No other key is accepted. Claude Code supports more (`allowed-tools`,

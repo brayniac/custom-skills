@@ -3,7 +3,7 @@
 A personal library of agent skills, packaged as a Claude Code plugin. This
 repository is both the plugin and the marketplace it is installed from. Each
 skill is a directory under `skills/` holding a `SKILL.md`; Claude Code lists it
-as `custom-skills:<name>` and loads its instructions when the skill is invoked.
+as `cs:<name>` and loads its instructions when the skill is invoked.
 
 ## Install
 
@@ -17,7 +17,7 @@ claude plugin install --scope user custom-skills@custom-skills
 
 Both commands run without prompts, so they work when provisioning a VM. Start a
 new session, or run `/reload-plugins` in one that is open, and the skills are
-listed as `custom-skills:*`.
+listed as `cs:*`.
 
 To pick up merged changes:
 
