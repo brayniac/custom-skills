@@ -12,8 +12,9 @@ from the workload.
 
 **Getting work onto the rack is the `vm-job` skill.** It owns shapes, images,
 specs, artifacts, and orphan recovery, and it is the authority whenever the two
-disagree. Spec syntax beyond that is in
-`systemslab/docs/llm/writing-experiments.md`. This skill starts where those leave
+disagree. Spec mechanics that apply to every job — the interpolator, `set -ex`,
+state names, staging files on a context — are `systemslab-spec-authoring`;
+Jsonnet syntax is in `systemslab/docs/llm/writing-experiments.md`. This skill starts where those leave
 off: choosing an environment whose numbers mean something, and deciding whether a
 difference between two of them is real.
 
@@ -65,7 +66,7 @@ the message does not distinguish: a **generation mismatch in your own spec**
 — check this first, since a generation-specific shape under `tags =
 ["hypervisor"]` is a coin flip, which `shape = "auto.c"` now removes — or an
 orphaned guest holding
-slots, which `vm-job`'s "Cancel, timeout, orphan" step (6) recovers. A number
+slots, which `vm-job`'s "Cancel, timeout, orphan" step (7) recovers. A number
 obtained after retrying around a 503 is not a clean number.
 
 ## Step 2 — On the hypervisors, measure in a VM, and verify fidelity

@@ -17,8 +17,8 @@ description: Write a pull-request body as a guide for the reviewer. Use when ope
 
 | Field | Required | Rules |
 | --- | --- | --- |
-| `name` | yes | 1–64 chars, `[a-z0-9_-]` only. Becomes the MCP tool name; must be unique across every skill root, and may not be `skill_catalog` or `skill_resource`. |
-| `description` | yes | Non-empty. Becomes the MCP tool description — the only text an agent sees when choosing a tool. One or two sentences: what it does, then when to use it. |
+| `name` | yes | 1–64 chars, `[a-z0-9_-]` only. Becomes the MCP tool name; must be unique within a root, and may not be `skill_catalog` or `skill_resource`. The same name in a later root replaces the earlier one: disk roots override embedded skills, and the last root in `CUSTOM_SKILLS_PATH` wins. |
+| `description` | yes | Non-empty. Becomes the MCP tool description — the only text an agent sees when choosing a tool. What it does, then when to use it, ending with "Use when …" and a list of the situations. These run a few lines; a short description is how a skill fails to be chosen. |
 
 Unknown keys are ignored, so a skill may carry its own metadata for other
 tooling without breaking the server.

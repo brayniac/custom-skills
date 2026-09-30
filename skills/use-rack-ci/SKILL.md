@@ -28,7 +28,7 @@ Before reading a diff, check the shape of the red mark.
 | `rack-ci/<name>` reports **`error`** | infrastructure: rack unreachable, source download broken, superseded run, timeout | **not a code problem.** Do not send anyone to read the diff |
 | status stuck **`pending`** forever | a restart orphaned the verdict (pre-0.3.2), or the run was superseded | re-run with `rack-ci build`, or post the status by hand |
 
-**That `failure`/`error` split is deliberate and load-bearing.** Reporting an
+**That `failure`/`error` split is deliberate.** Reporting an
 infrastructure problem as a failing build sends someone hunting a bug that is
 not there.
 

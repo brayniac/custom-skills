@@ -17,7 +17,7 @@ The release workflow was copied into every repo and drifted. This replaces each
 copy with a ten-line call to one shared workflow, so the parts that must agree
 are defined once and the parts that legitimately differ are named inputs.
 
-`references/standard.md` is the standard: the caller stub, the four inputs, what
+`references/standard.md` is the standard: the caller stub, the six inputs, what
 is fixed and why, and the per-repo settings derived from the current workflows.
 Read it before proposing a migration. The shared workflow itself lives at
 [`brayniac/rust-workflows`](https://github.com/brayniac/rust-workflows), pinned
@@ -60,7 +60,7 @@ in detail — use it rather than re-deriving.
 ## Step 3 — Report the diff, then stop
 
 State, for this repo: what it does now, what the standard does, which of the
-four inputs it needs and why, and what will change in observable behavior — in
+six inputs it needs and why, and what will change in observable behavior — in
 particular whether the commit prefix changes, because that is the part that
 silently breaks releases.
 

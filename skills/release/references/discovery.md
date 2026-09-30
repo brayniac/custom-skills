@@ -176,11 +176,16 @@ read, and do not promise crates.io when `publish = false`.
 ## 6. What are this repo's checks?
 
 ```sh
-grep -n 'cargo ' .github/workflows/ci.yml 2>/dev/null
-grep -n -i 'clippy\|cargo test\|cargo fmt' CLAUDE.md 2>/dev/null
+cat .rack-ci.toml 2>/dev/null
+grep -n 'cargo ' .github/workflows/*.yml 2>/dev/null
+grep -n -i 'clippy\|cargo test\|cargo fmt\|cargo doc' CLAUDE.md 2>/dev/null
 ```
 
-Use what CI uses. The variations seen here — `--all-features`, `--workspace`,
+A repo on rack-ci has usually had its Actions workflows deleted, so
+`.rack-ci.toml` and its scripts are the only CI definition; reading only
+`.github/workflows` finds nothing and reads as "no checks". Where `CLAUDE.md`
+and CI list different commands, run the union and say which list each came
+from. Use what CI uses. The variations seen here — `--all-features`, `--workspace`,
 `--lib`, `--all-targets`, with and without a `cargo fmt --all -- --check` rung —
 are deliberate per repo, and a check you invented can fail for reasons the repo
 does not care about, or pass over the ones it does.

@@ -86,7 +86,7 @@ The shape to copy: **name the alternative and say what it would cost.** A
 comment that says what the code does is redundant with the code; a comment that
 says why the obvious alternative was rejected is the only place that survives.
 
-Where a decision is deliberate and looks wrong, say so at the site. Load-bearing
+Where a decision is deliberate and looks wrong, say so at the site. Deliberate
 absences — a missing tag, an omitted `?`, an error deliberately swallowed —
 are invisible to a reader who was not there.
 
@@ -94,7 +94,8 @@ are invisible to a reader who was not there.
 
 Every repo: `cargo clippy --all-targets -- -D warnings` and
 `cargo fmt --all -- --check`. Flags vary (`--all-features`, `--workspace`,
-`--locked`); read the repo's workflow rather than assuming. **No repo here sets
+`--locked`); read the repo's CI definition — `.rack-ci.toml` on repos moved to
+rack-ci, `.github/workflows/` otherwise — rather than assuming. **No repo here sets
 `[workspace.lints]` or crate-level `#![deny]`** — the gate is clippy's defaults
 at deny-warnings, so a lint you want enforced has to go in CI, not in an
 attribute nobody will notice.
