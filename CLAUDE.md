@@ -1,60 +1,69 @@
 # custom-skills
 
-A single-binary MCP server (`custom-skills-mcp`) that serves a personal library
-of agent skills over stdio. Each `skills/<name>/SKILL.md` becomes one MCP tool
-whose call returns the skill's body. Two Rust-backed tools round it out:
-`skill_catalog` (metadata) and `skill_resource` (one file beside a `SKILL.md`).
+A personal library of agent skills, packaged as a Claude Code plugin. The
+repository root is both the plugin (`.claude-plugin/plugin.json`) and its
+marketplace (`.claude-plugin/marketplace.json`, named `custom-skills`). Each
+`skills/<name>/SKILL.md` is listed as `custom-skills:<name>`. The Rust crate at
+the root is not part of the plugin: it is `check-skills`, which refuses a skills
+tree Claude Code would load wrongly.
 
-Most work here is **writing skills**, not changing the server. The server is
-~830 lines including tests and stable; the library is where the content lives.
-
-README.md covers install, client wiring, and raw-protocol debugging. This file
-covers what is not obvious from reading the code.
+Most work here is **writing skills**. README.md covers install, updating, and
+moving from the old MCP server. This file covers what is not obvious from the
+code.
 
 ## Checks
 
-Run all four before claiming a change is done. **Right now they are the only
-gate** — see below.
+Run all of these before claiming a change is done:
 
 ```sh
+cargo run --quiet                                  # check-skills over skills/
 cargo fmt --all -- --check
 cargo clippy --all-targets --locked -- -D warnings
 cargo test --locked
-cargo build --locked && ./scripts/smoke.sh   # needs jq
+claude plugin validate .                           # manifests only
 ```
 
-`.rack-ci.toml` declares these same four for rack-ci, split by what each needs:
-fmt, clippy and test on a pi, and build-plus-smoke on x86 because `smoke.sh`
-needs `jq`, which the Debian guest image installs and the pi baseline does not
-declare. The `use-rack-ci` skill covers the mechanism.
+rack-ci runs the first four (`.rack-ci.toml`); the repository is on its
+allowlist and every PR gets `rack-ci/check`, `rack-ci/lint` and `rack-ci/test`
+statuses. `claude plugin validate` needs Claude Code, which the CI guests do not
+have, so run it locally when a manifest changes. Its "No version specified"
+warning is expected: see Invariants.
 
-**No CI runs on this repository today.** GitHub Actions cannot execute on this
-account's private repos — every push failed in about four seconds with no
-runner assigned — so the workflow was deleted rather than left posting a red X
-that means nothing. rack-ci does not pick this repo up until it is added to the
-`repos` allowlist in `/etc/rack-ci/rack-ci.toml` on delta, which is in no
-repository and cannot be changed from a checkout. Until that lands, running the
-four commands yourself is the whole of the gate.
-
-`scripts/smoke.sh` drives the real JSON-RPC exchange against
-`target/debug/custom-skills-mcp`, so it needs a build first. It asserts on
-`skill-authoring` specifically — renaming or restructuring that skill means
-updating the script's `jq` checks.
+`claude plugin validate` does not look inside skills. It passed a copy of this
+repository with a skill whose frontmatter was not valid YAML, a skill whose
+`name` differed from its directory, and an empty skill directory. Claude Code
+loads such a skill with empty metadata, so it drops out of the listing with no
+error. That is why `check-skills` exists; keep it failing on those cases.
 
 ## Invariants
 
-- **The server never writes.** Every tool is annotated read-only. A skill
-  returns instructions; the agent and the user decide what happens next. Do not
-  add a tool or a skill that has a side effect.
-- **Fail fast at load, never serve a library with a hole in it.** Malformed
-  frontmatter, a bad name, an empty description, a duplicate name within a root,
-  or a directory under `skills/` holding neither a `SKILL.md` nor further skill
-  directories all abort startup. Keep it that way — silently skipping a
-  misfiled skill is how it disappears from the tool list unnoticed.
-- **`skill_resource` resolves only inside a skill's own directory.** Traversal
-  is rejected for both embedded and on-disk skills, and there are tests for it.
-- Skill names must match `[a-z0-9_-]{1,64}` and may not collide with
-  `skill_catalog` or `skill_resource`; tool lists are sorted and deduped.
+- **A skill must work on a host with only this plugin installed.** Ship the
+  script, config values and endpoints in the skill (`references/`), and name
+  them through `${CLAUDE_SKILL_DIR}`. Point at another repository only for work
+  that has to happen there.
+- **Sibling files are named `${CLAUDE_SKILL_DIR}/references/<file>`.** Claude
+  Code substitutes the skill's absolute directory when it loads the body. A bare
+  `references/<file>` resolves against the session's working directory. Another
+  skill's file is `${CLAUDE_SKILL_DIR}/../<other>/references/<file>`.
+  `check-skills` fails on a path that names no file; a path containing `<` is a
+  placeholder and is skipped.
+- **Skills do not act when loaded.** A skill returns instructions; a script
+  beside it runs only when the body tells the agent to run it. Do not add hooks,
+  monitors, or MCP servers to the plugin without deciding that deliberately.
+- **No `version` in `plugin.json`.** Without it, an install's version is the
+  commit SHA, so `claude plugin update` and auto-update pick up every merge. A
+  pinned version would hold every host on the old copy until someone changed
+  the string.
+- **Frontmatter holds exactly `name` and `description`.** `name` matches
+  `[a-z0-9_-]{1,64}` and equals the directory name; `description` is at most
+  1,536 characters. `check-skills` rejects any other key so a misspelled one
+  fails instead of being ignored; add a key to `Frontmatter` in `src/skill.rs`
+  when a skill needs one Claude Code supports.
+- **The description listing has a budget.** Claude Code allots about 1% of the
+  context window to all skill descriptions and drops the least-used past that.
+  `check-skills` prints the total (about 21,500 characters for 38 skills on
+  2026-09-30, all listed under Sonnet 5.5 and Opus 5.5). If it grows a lot,
+  check `/context` in a session.
 
 ## Adding or changing a skill
 
@@ -63,15 +72,15 @@ authoritative process; read it before writing one. In short:
 
 1. `skills/<name>/SKILL.md`, verb-first hyphenated name, YAML frontmatter with
    `name` and `description`.
-2. The `description` is the only text an agent sees when choosing a tool — it
+2. The `description` is the only text an agent sees when choosing a skill — it
    states what the skill does *and* ends with "Use when …". These run long (a
    few lines); that is deliberate, not sloppy.
 3. The body is instructions to an agent: numbered steps, explicit inputs,
    explicit stopping conditions, and explicit "do not" lines.
-4. Long material goes in `skills/<name>/references/*.md`, named in the body with
-   an instruction to fetch it via `skill_resource`, so the body stays short
-   enough to read every time.
-5. `cargo build && ./scripts/smoke.sh`.
+4. Long material goes in `skills/<name>/references/`, named in the body as
+   `${CLAUDE_SKILL_DIR}/references/<file>`, so the body stays short enough to
+   read every time.
+5. `cargo run --quiet`, and try it in a session: `claude --plugin-dir .`.
 
 Conventions the existing skills follow:
 
@@ -85,29 +94,24 @@ Conventions the existing skills follow:
   levels — a directory with a `SKILL.md` is a skill, one with only directories
   is a group.
 
-### Iterating without a rebuild
+### Iterating
 
-`skills/` is `include_dir!`-embedded at compile time. While drafting, point
-`CUSTOM_SKILLS_PATH` (PATH-separated roots, searched recursively) at a draft
-directory and restart the client instead of rebuilding. Disk roots override
-embedded skills by name and the **last** root wins. Move the skill into
-`skills/` once it settles.
-
-`build.rs` watches `skills/` so a *newly added* file triggers a rebuild;
-`include_dir!` alone would not notice one.
+On this machine the plugin is installed from the checkout as a local-directory
+marketplace, so it loads in place: an edit takes effect at the next session or
+after `/reload-plugins`. For a one-off session, `claude --plugin-dir .`.
 
 ## Layout
 
 | Path | Responsibility |
 | --- | --- |
-| `src/main.rs` | MCP init, tool schemas, routing, responses, server tests |
-| `src/skill.rs` | Discovery, frontmatter parsing, resource access, loader tests |
-| `skills/` | The skills, embedded at compile time |
-| `build.rs` | Rebuild when a skill file is added |
-| `scripts/smoke.sh` | End-to-end check of the real MCP exchange |
+| `.claude-plugin/plugin.json` | Plugin manifest |
+| `.claude-plugin/marketplace.json` | The `custom-skills` marketplace, with this repository as its one plugin (`"source": "./"`) |
+| `skills/` | The skills |
+| `src/skill.rs` | The rules `check-skills` enforces, and their tests |
+| `src/main.rs` | The `check-skills` command |
 
-Tests live inline in `#[cfg(test)]` modules; `tests/` is empty. New server
-behavior gets a unit test next to it.
+Tests live inline in `#[cfg(test)]` modules. A new rule in `src/skill.rs` gets a
+test that fails without it.
 
 ## Commits
 
