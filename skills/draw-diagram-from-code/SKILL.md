@@ -21,7 +21,8 @@ two systems each and are defaults to override with a stated reason.
 - The question the chart answers, in one sentence.
 - The repository, and whether you can add files to it.
 - An existing generator, regeneration command, CI freshness check, or charter
-  (`references/charter.md` is the template), if the repository has one.
+  (`${CLAUDE_SKILL_DIR}/references/charter.md` is the template), if the
+  repository has one.
 
 ## 1. Check there is a program to derive from
 
@@ -33,12 +34,12 @@ to a design with no code behind it.
 
 | Question | Chart | Reference |
 | --- | --- | --- |
-| What are the units and what depends on what; what is each shipped binary made of | build-time structure chart | `references/architecture.md` |
-| Which threads run and how they connect; what happens to one request, in order | runtime thread model, request flow | `references/architecture.md` |
-| What moves where in one running pipeline, DAG, or stream topology | dataflow chart | `references/dataflow.md` |
-| Which bytes hold which field; what a stored offset points at | byte layout | `references/byte-layout.md` |
+| What are the units and what depends on what; what is each shipped binary made of | build-time structure chart | `${CLAUDE_SKILL_DIR}/references/architecture.md` |
+| Which threads run and how they connect; what happens to one request, in order | runtime thread model, request flow | `${CLAUDE_SKILL_DIR}/references/architecture.md` |
+| What moves where in one running pipeline, DAG, or stream topology | dataflow chart | `${CLAUDE_SKILL_DIR}/references/dataflow.md` |
+| Which bytes hold which field; what a stored offset points at | byte layout | `${CLAUDE_SKILL_DIR}/references/byte-layout.md` |
 
-Fetch the one you need with `skill_resource`. Structure and runtime claims go
+Read the one you need. Structure and runtime claims go
 on separate charts: on a dependency graph with runtime arrows added, a reader
 cannot tell which kind of claim an edge makes.
 
@@ -108,8 +109,8 @@ embedded chart beside it.
 - After refactoring the generator, byte-compare its output to the previous
   output.
 - A bounds check proves containment and nothing else. Seven defects a reader
-  reported on the io_uring runtime's charts all passed the bounds check.
-  Run the placement checks in `references/placement.md` as generator
+  reported on the io_uring runtime's charts all passed the bounds check. Run the
+  placement checks in `${CLAUDE_SKILL_DIR}/references/placement.md` as generator
   assertions.
 
 ## 9. Have a person read it, then turn findings into assertions

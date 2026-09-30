@@ -1,0 +1,15 @@
+{
+  "name": "custom-skills",
+  "description": "The custom-skills plugin, served from its own repository.",
+  "owner": {
+    "name": "Brian Martin",
+    "email": "brayniac@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "custom-skills",
+      "source": "./",
+      "description": "A personal library of agent skills: measurement and noise analysis, the rack lab, Rust conventions, verification, debugging, releases, PRs, reviews, and technical writing."
+    }
+  ]
+}

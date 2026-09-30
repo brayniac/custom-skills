@@ -68,8 +68,8 @@ card, so a stray or orphaned guest cannot sit on it. Timeouts are seconds.
 
 ## 2. Write the spec
 
-Fetch `references/spec-template.toml` with `skill_resource` (or read it from
-the skill directory) and start from it. Rules:
+Read `${CLAUDE_SKILL_DIR}/references/spec-template.toml` and start from it.
+Rules:
 
 - TOML, `uses = "anvil-vm"`. Payload in a `'''` literal string.
 - **`name` is not a step label.** The reserved step keys are exactly
@@ -140,7 +140,8 @@ inside that step for the whole run, so nothing can interrupt it.
 - Readiness is not a barrier's job here. The server guest has no moment at
   which it can signal the host, so the client retries the connection.
 
-Worked spec: `references/recipes.md`, "Two guests that have to meet".
+Worked spec: `${CLAUDE_SKILL_DIR}/references/recipes.md`, "Two guests that have
+to meet".
 
 ## 4. Submit
 

@@ -6,20 +6,22 @@ description: Bring one repo's release automation onto the shared standard, or re
 # Conform a repo's release setup
 
 **This standard is the GitHub Actions path, and it does not apply to every
-repo.** `brayniac/ferallm` and `brayniac/slipway` release through rack-ci on
-the rack — a tag builds in a guest and publishes to the internal apt repo, with
-no workflow file involved — and Actions is disabled on both. Conforming such a
-repo to a reusable Actions workflow would be conforming it to a mechanism it
-does not use. Establish which path a repo is on first (`release` skill,
-discovery question 4); `release/references/rack-ci.md` describes the other one.
+repo.** `brayniac/ferallm` and `brayniac/slipway` release through rack-ci on the
+rack — a tag builds in a guest and publishes to the internal apt repo, with no
+workflow file involved — and Actions is disabled on both. Conforming such a repo
+to a reusable Actions workflow would be conforming it to a mechanism it does not
+use. Establish which path a repo is on first (`release` skill, discovery
+question 4); `${CLAUDE_SKILL_DIR}/../release/references/rack-ci.md` describes
+the other one.
 
 The release workflow was copied into every repo and drifted. This replaces each
 copy with a ten-line call to one shared workflow, so the parts that must agree
 are defined once and the parts that legitimately differ are named inputs.
 
-`references/standard.md` is the standard: the caller stub, the six inputs, what
-is fixed and why, and the per-repo settings derived from the current workflows.
-Read it before proposing a migration. The shared workflow itself lives at
+`${CLAUDE_SKILL_DIR}/references/standard.md` is the standard: the caller stub,
+the six inputs, what is fixed and why, and the per-repo settings derived from
+the current workflows. Read it before proposing a migration. The shared workflow
+itself lives at
 [`brayniac/rust-workflows`](https://github.com/brayniac/rust-workflows), pinned
 by callers at `@v1`.
 
@@ -44,7 +46,8 @@ a healthy repo look like a failed release.
 Establish, and write down: the version manifest and current version; whether
 versioning is shared, independent, or hybrid; the commit prefix its workflow
 matches today; how it lands the dev bump; whether it is fork-gated; whether it
-publishes. The `release` skill's `references/discovery.md` covers each of these
+publishes. The `release` skill's
+`${CLAUDE_SKILL_DIR}/../release/references/discovery.md` covers each of these
 in detail — use it rather than re-deriving.
 
 ## Step 2 — Classify the repo
@@ -75,7 +78,8 @@ to `main`, so a PR goes green regardless and the first real test is the merge.
 ## Step 4 — Migrate
 
 1. Replace `.github/workflows/tag-release.yml` with the caller stub from
-   `references/standard.md`, filling in only the inputs this repo needs.
+   `${CLAUDE_SKILL_DIR}/references/standard.md`, filling in only the inputs this
+   repo needs.
 2. Reconcile `release.toml` if present, per the standard's final section.
 3. Update the repo's `CLAUDE.md` if it documents the old prefix or procedure.
 4. Confirm `RELEASE_TOKEN` exists in the repo's secrets — the shared workflow

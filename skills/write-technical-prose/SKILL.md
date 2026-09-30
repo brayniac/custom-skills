@@ -97,7 +97,7 @@ reader knows? "Gracefully handles" names a quality of the handling instead of
 the handling; write what happens ("retries three times, then returns
 `Timeout`"). "Robust", "performant", "fast" assert what the reader cannot
 check; if the property is real it has a number. The substitution table is in
-`references/word-table.md` (fetch with `skill_resource`).
+`${CLAUDE_SKILL_DIR}/references/word-table.md`.
 
 **One name per thing.** Pick one term per object and keep it across the
 document and every site that points back to it. "The executor", "the runner"

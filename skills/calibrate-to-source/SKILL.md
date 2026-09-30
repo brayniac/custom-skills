@@ -27,7 +27,8 @@ carry to a new source unchanged and need nothing.
 | prewhitened CCF band | anything with "threshold" in its name |
 
 **If your reading is a slope, a ratio, or a share, stop here.** The
-`references/portability.md` table says what was tested and how far it holds.
+`${CLAUDE_SKILL_DIR}/references/portability.md` table says what was tested and
+how far it holds.
 
 ## Step 2 — Say what precision the number needs
 

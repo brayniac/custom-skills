@@ -45,8 +45,8 @@ on the node beside the measurement (see `analysis-placement.md` in
 **W1 comes out in the units of the metric.** "The distribution moved 107 µs of
 mass" is a sentence an engineer can act on, where a KS statistic of 0.32 is not.
 
-`references/histogram-distance.md` has the implementation, the log-bucket
-handling, and the numbers all of this was checked against.
+`${CLAUDE_SKILL_DIR}/references/histogram-distance.md` has the implementation,
+the log-bucket handling, and the numbers all of this was checked against.
 
 ## Step 3 — Ask whether the CDFs cross
 
@@ -86,8 +86,8 @@ total W1 falling in each band:
 Identical ratios, unmistakably different regressions. **Mass spread across the
 body is a different mechanism from mass concentrated past p99** — a uniformly
 slower code path versus something that occasionally goes very wrong — and the
-decomposition is what separates them. `references/histogram-distance.md` has the
-implementation.
+decomposition is what separates them.
+`${CLAUDE_SKILL_DIR}/references/histogram-distance.md` has the implementation.
 
 Report the ratio *and* the band shares. Either alone is ambiguous.
 

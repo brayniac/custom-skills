@@ -36,8 +36,8 @@ identified a period (from `attribute-perturbation` step 3, not by assumption).
 Every added component costs identifiability, and an over-specified model does not
 announce itself — it quietly splits one real component across two fitted ones.
 
-`references/components.md` has the state space forms and which noise colour each
-disturbance produces.
+`${CLAUDE_SKILL_DIR}/references/components.md` has the state space forms and
+which noise colour each disturbance produces.
 
 ## Step 2 — Fit, and expect variances to pile up at zero
 
@@ -121,9 +121,10 @@ filter at four values of `q`: the analytic `K` matches the converged Kalman gain
 to six decimals, and the EWMA reproduces the filtered state to ~1e-8.
 
 So the deployment is: fit on a recording (tier 3), ship `K` (tier 1), and watch
-the standardized innovations on the node — CUSUM over them is O(1) and fires when
-the series stops matching the model it was fitted to. `references/online-filter.md`
-has the recursion, what to monitor, and when a refit is due.
+the standardized innovations on the node — CUSUM over them is O(1) and fires
+when the series stops matching the model it was fitted to.
+`${CLAUDE_SKILL_DIR}/references/online-filter.md` has the recursion, what to
+monitor, and when a refit is due.
 
 ## Step 7 — Report
 

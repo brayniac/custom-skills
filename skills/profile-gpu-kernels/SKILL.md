@@ -42,7 +42,7 @@ nsys export --type sqlite --force-overwrite true -o /tmp/prof.sqlite \
   /tmp/prof.nsys-rep
 ```
 
-Fetch `references/nsys-queries.py` with `skill_resource` and run it against the
+Run `${CLAUDE_SKILL_DIR}/references/nsys-queries.py` against the
 `.sqlite` (it uses Python's `sqlite3`, since the `sqlite3` CLI is often not
 installed). It prints:
 
