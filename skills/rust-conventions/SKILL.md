@@ -78,6 +78,12 @@ so rezolus's `rez` crate exposes its fixture builders under a `test-support`
 feature that the binary and the viewer both enable. Reaching for `pub` and a
 `#[doc(hidden)]` instead is the wrong fix.
 
+**Concurrency tests are model-checked, and the models must be able to fail.**
+`cache-core` in crucible-wt-cachers gates its loom models on
+`cfg(feature = "loom")` behind a `sync` shim, and keeps shuttle and TSan
+suites beside them. The setup, what each checker cannot see, and how to prove
+a model reaches its hazard are in `model-check-concurrency`.
+
 ## Comments describe the code as it is, and why
 
 Doc-comment density runs 8–13% of all lines across these repos, well above what

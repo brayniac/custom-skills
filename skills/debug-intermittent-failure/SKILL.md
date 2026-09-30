@@ -45,6 +45,37 @@ failure it was supposed to have caused. One command removed a whole line of
 investigation. If the failure predates the suspect, stop investigating the
 suspect.
 
+Then separate commit from host. For every run you can find, failing and
+passing, record the commit, the host or runner, and the outcome:
+
+```sh
+gh run list --workflow <wf> --branch main --limit 50 \
+  --json databaseId,headSha,createdAt,conclusion
+gh run view <id> --log | grep -E 'Runner name|Machine name|Driver Version'
+```
+
+For rack-ci and SystemsLab runs, the host is on the experiment page the
+status links to.
+
+| Pattern | Reading |
+| --- | --- |
+| one commit passes on host A and fails on host B | host-specific: compare the hosts before reading the diff |
+| every host fails from commit X on | a code regression at or before X; `git bisect run` between the last pass and X |
+| one host alternates on one commit | intermittent: size the sweep with step 1 |
+| failing and passing runs differ in a package or driver version | environment change |
+
+Host differences on the rack have been invisible from the job: two builds
+of anvil were both installed as `0.3.0-1`, and a hypervisor's rezolus left
+every guest's hardware counters reading near zero while reporting themselves
+healthy. When outcome follows the host, run the infra repository's drift check
+(`vm-job` step 8) before investigating the code.
+
+rack-ci builds pull requests and tags, not pushes to `main`
+(`use-rack-ci` step 3), so there is no per-commit history of `main` to read.
+To find where a regression entered, build candidate commits yourself: one VM
+job per bisect step (`vm-job`), or `git bisect run` locally when the failure
+reproduces off the rack.
+
 ## 3. Write the prediction into the spec before running
 
 In the experiment spec, the PR, or the journal, before submitting:
@@ -115,6 +146,45 @@ In the journal or the issue:
 
 An unrecorded dead end is investigated again by the next person.
 
+## When a test fails only alongside other tests
+
+A test that passes alone and fails in the full suite, or a file or directory
+that appears after a test run, is usually state left behind by another test:
+a global, an environment variable, the working directory, a file, a port.
+Find the test that leaves it by bisection, not by reading every test.
+
+`references/find-polluter.sh` (fetch with `skill_resource`) bisects a list of
+candidate test ids in at most about 2·log2(N) + 3 runs, where a linear
+search needs N:
+
+```sh
+# In-process state: the victim runs in the same process after the candidates.
+# libtest runs tests in name order under --test-threads=1, so check with
+# `cargo test -- --list` that the victim sorts after the candidates.
+cargo test -q -- --list | sed -n 's/: test$//p' | grep -v <victim> > ids.txt
+bash find-polluter.sh --list ids.txt \
+  --run 'cargo test -q -- --exact --test-threads=1 <victim>'
+
+# Left-behind files: a separate check and a reset between trials.
+bash find-polluter.sh --list files.txt --run 'npm test' \
+  --check 'test ! -e .git/stray' --reset 'rm -rf .git/stray'
+```
+
+It prints `POLLUTER=<id>` and exits 0 when one candidate does it; it exits 2
+with `INTERACTION=` when neither half pollutes alone (two tests together are
+needed), and with `FLAKY=` when the survivor does not reproduce on a
+confirming run. Treat `FLAKY` as an intermittent failure and go back to
+step 1. It refuses to start if the victim fails with no candidate run, or if
+the check reports pollution straight after the reset.
+
+A cargo test filter that matches nothing exits 0 (`verify-change` step 4), so
+a misspelled id reads as clean. Take the ids from `--list`, as above.
+
+Then fix the polluting test, and add a guard where the state is created (a
+test-only assertion that the directory is a temp dir, a reset of the global
+in the test's setup), and confirm with `verify-by-breaking` that the guard
+fails when the polluter is restored.
+
 ## Never
 
 - **Never report a fix from a sweep with no positive control**, or from one
@@ -123,3 +193,5 @@ An unrecorded dead end is investigated again by the next person.
   instrumentation is possible.
 - **Never write the prediction after the result.**
 - **Never delete a refuted hypothesis from the record**; label it refuted.
+- **Never read every test by hand to find a polluter** when the candidate list
+  can be bisected.

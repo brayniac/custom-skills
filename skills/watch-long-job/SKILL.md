@@ -25,6 +25,10 @@ Prefer "ended when the state is no longer one of the non-terminal states" over
 state then ends the loop instead of hanging it. Enumerate what the watcher can
 report — `running`, `ended:<state>`, `watcher-error` — and handle each.
 
+For a source you have not watched before, capture its output through one
+successful, one failed and one cancelled run before writing the matcher;
+`capture-before-parsing` has the procedure.
+
 ## 2. Make the job emit one verdict line
 
 A job that runs several gates prints exactly one machine-readable line at the

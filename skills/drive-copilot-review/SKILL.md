@@ -10,6 +10,10 @@ it reviews again. The loop ends only when **a Copilot review of the current
 head commit adds no threads**. Resolving every thread does not end it: a fix
 commit is new code that has not been reviewed.
 
+This covers Copilot's review rounds only. For the PR's checks, other
+reviewers, and when to stop, use `drive-pr-to-green`; run both when asked to
+land a PR that Copilot reviews.
+
 The GraphQL is in `references/copilot_review.py` (fetch with `skill_resource`
 and save it locally). Use it rather than writing the queries each round; the
 pagination and the reply-then-resolve pair are easy to get wrong.
