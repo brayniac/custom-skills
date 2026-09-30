@@ -73,8 +73,8 @@ Add a second estimator when the shape asks for one:
 | **Hadamard (OHDEV)** | ADEV rises toward τ^+1, or you can see drift in the raw series | the three-sample difference cancels linear drift and converges for noise redder than random walk, where Allan just reports the drift |
 | **Modified (MDEV)** | the fast end slopes at τ^-1 | ADEV cannot tell white PM from flicker PM; MDEV splits them (τ^-3/2 vs τ^-1) |
 
-`references/computing.md` has the estimators, the τ grid, the confidence rule,
-and a NumPy implementation short enough to paste. Read it with `skill_resource`
+`${CLAUDE_SKILL_DIR}/references/computing.md` has the estimators, the τ grid,
+the confidence rule, and a NumPy implementation short enough to paste. Read it
 before writing your own — the off-by-one in the overlapping sum is silent and
 tilts the whole curve.
 
@@ -115,8 +115,9 @@ paying, which is the opposite of "it's just white noise."
 
 Real curves are several processes summed — Allan *variances* add — so expect
 segments with knees between them, and read each segment separately.
-`references/slopes.md` has the full slope↔spectrum table, the degeneracies, the
-periodic signature, and the causes worth suspecting per color.
+`${CLAUDE_SKILL_DIR}/references/slopes.md` has the full slope↔spectrum table,
+the degeneracies, the periodic signature, and the causes worth suspecting per
+color.
 
 ## Step 5 — Read the decisions off the curve
 
@@ -141,8 +142,8 @@ periodic signature, and the causes worth suspecting per color.
   periodic component of period τ. Go find the thing with that period.
 
 Coefficients worth quoting (random walk coefficient, bias instability, ramp
-rate) are read off fitted slope lines at fixed τ; `references/slopes.md` gives
-the five standard readings.
+rate) are read off fitted slope lines at fixed τ;
+`${CLAUDE_SKILL_DIR}/references/slopes.md` gives the five standard readings.
 
 All of this is geometry, and it comes with no standard errors. When a component
 needs an interval, a test, or an estimate of the underlying level — "is that
@@ -172,8 +173,9 @@ one without inventing it.
 
 **Quote `N_eff` beside `N` whenever you report a mean.** "12,000 samples" and
 "12,000 samples, 340 effective" lead to different decisions, and only the second
-is a fact about the system. `references/effective-samples.md` has the estimators,
-the windowing rules, and the numbers all three routes were checked against.
+is a fact about the system.
+`${CLAUDE_SKILL_DIR}/references/effective-samples.md` has the estimators, the
+windowing rules, and the numbers all three routes were checked against.
 
 ## Step 7 — Compare two curves, not two numbers
 

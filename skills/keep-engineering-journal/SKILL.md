@@ -42,8 +42,9 @@ gh repo view --json visibility -q .visibility
 - **An existing convention wins.** Keep its path, headings, and status
   vocabulary. Do not migrate existing entries to a new format.
 - **No journal exists:** propose `docs/journal/YYYY-MM-DD-slug.md` and
-  `docs/journal/README.md` with the formats in `references/entry-format.md`
-  (fetch with `skill_resource`), and create them once the user agrees.
+  `docs/journal/README.md` with the formats in
+  `${CLAUDE_SKILL_DIR}/references/entry-format.md`, and create them once the
+  user agrees.
 - **The repository is public:** an entry is published material. Apply
   `publishing-findings` before writing anything from client or engagement
   work into it.
@@ -80,7 +81,8 @@ whole effort.
 
 ## 4. Open the entry
 
-Use the repository's format, or `references/entry-format.md`. Write:
+Use the repository's format, or
+`${CLAUDE_SKILL_DIR}/references/entry-format.md`. Write:
 
 - the goal, and the scope boundary;
 - **GO/NO-GO criteria as numbers where the effort makes a cost or performance
@@ -138,8 +140,8 @@ A design document the repository keeps as maintained reference (named in
 
 ## 7. Close the entry in the implementing PR
 
-Set the state (`references/entry-format.md` lists the four and the evidence
-each requires):
+Set the state (`${CLAUDE_SKILL_DIR}/references/entry-format.md` lists the four
+and the evidence each requires):
 
 - `shipped`: what landed, where (PR, SHA), and how it was verified, with the
   command and result. Include what the change cost or removed, not only what
@@ -156,7 +158,7 @@ document the outcome changes. Write the entry after verifying the work
 (`verify-change`), not from memory of it.
 
 If the repository's entries end with a skills-invoked appendix, keep it by the
-rules in `references/skill-use-appendix.md`.
+rules in `${CLAUDE_SKILL_DIR}/references/skill-use-appendix.md`.
 
 ## 8. Reconcile when asked, or when the index is touched
 
@@ -179,9 +181,10 @@ the verification run, the derived documents updated, and any gap left open.
 
 ## Bootstrapping from history
 
-For a repository with no journal, `references/retrospective-and-publishing.md`
-covers writing one entry per arc of commit history and, if wanted, rendering the
-journal as a site.
+For a repository with no journal,
+`${CLAUDE_SKILL_DIR}/references/retrospective-and-publishing.md` covers writing
+one entry per arc of commit history and, if wanted, rendering the journal as a
+site.
 
 ## Never
 

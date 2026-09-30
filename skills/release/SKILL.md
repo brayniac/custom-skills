@@ -24,8 +24,8 @@ nothing checks and no test covers.
 
 ## Step 1 — Discover, before touching anything
 
-Answer all six. `references/discovery.md` has the exact commands and what each
-answer implies.
+Answer all six. `${CLAUDE_SKILL_DIR}/references/discovery.md` has the exact
+commands and what each answer implies.
 
 1. **Where does the version live?** Root `[package]`, `[workspace.package]`, or a
    member manifest. Some repos version a subdirectory crate, not the root.
@@ -39,16 +39,16 @@ answer implies.
    authority on what the tool will do. These differ between repos: some set
    `tag = false, push = false` and leave both to the workflow, others set both
    true and expect the tool to do it.
-4. **What triggers a release here — and is it GitHub Actions at all?**
-   Establish the mechanism first. Actions is disabled on some of these repos
-   after a billing lapse, and **`.github/workflows/` still holds files in that
-   state**, so reading them tells you what would run rather than what does.
-   `brayniac/ferallm` and `brayniac/slipway` release through rack-ci on the
-   rack instead; `references/rack-ci.md` covers that path. For the Actions
-   path, read the `if:` condition in `.github/workflows/tag-release.yml` and
-   derive the commit message from it — the condition is the specification, the
-   skill is not. **The absence of `tag-release.yml` does not mean tagging is
-   manual.**
+4. **What triggers a release here — and is it GitHub Actions at all?** Establish
+   the mechanism first. Actions is disabled on some of these repos after a
+   billing lapse, and **`.github/workflows/` still holds files in that state**,
+   so reading them tells you what would run rather than what does.
+   `brayniac/ferallm` and `brayniac/slipway` release through rack-ci on the rack
+   instead; `${CLAUDE_SKILL_DIR}/references/rack-ci.md` covers that path. For
+   the Actions path, read the `if:` condition in
+   `.github/workflows/tag-release.yml` and derive the commit message from it —
+   the condition is the specification, the skill is not. **The absence of
+   `tag-release.yml` does not mean tagging is manual.**
 5. **What does the automation do after tagging?** Publish to crates.io, build a
    GitHub release, bump to a dev version, or nothing. Read the steps — do not
    promise the user an outcome you have not seen in the workflow file.
@@ -89,9 +89,9 @@ is not. Report that as unknown rather than inferring it either way.
 6. **Changelog.** Move `Unreleased` into a new `<version>` section with today's
    date, open a fresh empty `Unreleased`. Keep a Changelog format. If
    `Unreleased` is thin, fill it from `git log <last-tag>..HEAD` using
-   `references/changelog.md`. **Show the user the section and ask before
-   continuing** — this is the one part of the release that carries prose a
-   reader will rely on.
+   `${CLAUDE_SKILL_DIR}/references/changelog.md`. **Show the user the section
+   and ask before continuing** — this is the one part of the release that
+   carries prose a reader will rely on.
 7. **Commit** with the message derived in step 1, question 4. Nothing before the
    prefix. On a squash merge the PR's single commit message becomes the merge
    commit message, which is what the workflow matches against.
@@ -114,11 +114,12 @@ If the workflow was skipped, the commit message did not match its condition —
 report that, and say so plainly rather than reporting the release as complete.
 
 On the rack path there is no workflow run to check. The verdict is the
-`rack-ci/release` commit status, and `Error` there means the build never
-started — which is not the same as a failing build. **A tag builds from the
-tag's tree, so fixing `main` does not fix a broken tag**; it needs a new tag,
-and re-pointing a published one is never the answer. `references/rack-ci.md`
-has the status mapping and what verifying a publish actually requires.
+`rack-ci/release` commit status, and `Error` there means the build never started
+— which is not the same as a failing build. **A tag builds from the tag's tree,
+so fixing `main` does not fix a broken tag**; it needs a new tag, and
+re-pointing a published one is never the answer.
+`${CLAUDE_SKILL_DIR}/references/rack-ci.md` has the status mapping and what
+verifying a publish actually requires.
 
 ## Never
 
@@ -132,4 +133,5 @@ has the status mapping and what verifying a publish actually requires.
 - **Never conclude that tagging is manual from a missing `tag-release.yml`.**
   Check whether Actions is enabled and whether the repo releases on the rack.
 - **Never report a publish as verified because the publish job went green.**
-  That is three layers above the claim; `references/rack-ci.md` has the five.
+  That is three layers above the claim;
+  `${CLAUDE_SKILL_DIR}/references/rack-ci.md` has the five.

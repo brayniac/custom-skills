@@ -40,13 +40,14 @@ cacheable.
 
 ## 2. Run the installer
 
-Fetch `references/install-sccache.sh` with `skill_resource`, save it, and run
-it as the user who builds (not under sudo), with cargo already installed:
+Run `${CLAUDE_SKILL_DIR}/references/install-sccache.sh` as the user who builds
+(not under sudo), with cargo already installed:
 
 ```sh
-bash install-sccache.sh                    # the store
-bash install-sccache.sh --no-incremental   # the store, for a build-only host
-bash install-sccache.sh --local            # disk cache, off-LAN machine
+S=${CLAUDE_SKILL_DIR}/references/install-sccache.sh
+bash $S                     # the store
+bash $S --no-incremental    # the store, for a build-only host
+bash $S --local             # disk cache, off-LAN machine
 ```
 
 It installs sccache (Homebrew on macOS; on Linux the pinned 0.18.0 musl

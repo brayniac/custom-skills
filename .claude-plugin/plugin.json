@@ -1,0 +1,10 @@
+{
+  "name": "custom-skills",
+  "description": "A personal library of agent skills: measurement and noise analysis, the rack lab (SystemsLab, VMs, rack-ci, the shared compiler cache), Rust conventions, verification, debugging, releases, PRs, reviews, and technical writing.",
+  "author": {
+    "name": "Brian Martin",
+    "email": "brayniac@gmail.com"
+  },
+  "repository": "https://github.com/brayniac/custom-skills",
+  "license": "MIT OR Apache-2.0"
+}

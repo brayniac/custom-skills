@@ -21,12 +21,11 @@ checks and the other reviewers.
 
 ## 1. Snapshot
 
-`references/pr_state.sh` (fetch with `skill_resource`, save it, run with
-`bash`) prints one `PR` line, one `CHECK` line per check run or commit status,
-and one `VERDICT` line:
+`${CLAUDE_SKILL_DIR}/references/pr_state.sh` prints one `PR` line, one `CHECK`
+line per check run or commit status, and one `VERDICT` line:
 
 ```sh
-bash pr_state.sh <pr> [OWNER/REPO]
+bash ${CLAUDE_SKILL_DIR}/references/pr_state.sh <pr> [OWNER/REPO]
 ```
 
 Also read the review state:

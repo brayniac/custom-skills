@@ -112,7 +112,7 @@ manufacture doubt, and do not present one reading of an ambiguous requirement
 as the only one. If nothing was genuinely open, say so and why.
 
 Worked examples of a summary, a decision subsection and a glossed "before"
-beat are in `references/examples.md` (fetch with `skill_resource`).
+beat are in `${CLAUDE_SKILL_DIR}/references/examples.md`.
 
 ## 4. Where to look more closely
 

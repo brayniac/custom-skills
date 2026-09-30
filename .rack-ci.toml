@@ -6,11 +6,13 @@
 # host, and each step runs even after an earlier one fails -- stopping at the
 # first problem costs another push and another host to find the second.
 #
-# The split is not arbitrary: `scripts/smoke.sh` needs `jq`, which the Debian
-# guest image installs (host-setup/guest-images/base.sh) and the pi baseline
-# does not declare (fleet/hosts/pi00.toml has no [packages]). Everything that
-# is pure cargo stays on a pi, where there are twenty and no contention.
-# Add jq to the pi baseline and the smoke check can move there too.
+# Everything is pure cargo, so everything runs on a pi, where there are twenty
+# and no contention. `claude plugin validate` is not here: the guests have no
+# Claude Code, and it checks only the manifests.
+
+[checks.check]
+target = "pi"
+run = "cargo run --locked --quiet"
 
 [checks.lint]
 target = "pi"
@@ -24,9 +26,3 @@ exit $bad
 [checks.test]
 target = "pi"
 run = "cargo test --locked"
-
-[checks.smoke]
-target = "x86"
-run = """
-cargo build --locked && ./scripts/smoke.sh
-"""

@@ -70,11 +70,11 @@ pub use loom::sync::atomic::{AtomicU64, Ordering};
   execution state from outside a Loom model"), so gate the models to the
   feature and run them with a name filter (`-- loom_`, `-- shuttle_`).
 
-`references/setup.md` (fetch with `skill_resource`) has the Cargo features,
-the shuttle gating, a hazard-witness sketch, and the CI jobs.
-`references/loom-calibration.rs` holds the toy models behind the claims in
-this step and step 1, with their observed outcomes; rerun it after a loom
-upgrade.
+`${CLAUDE_SKILL_DIR}/references/setup.md` has the Cargo features, the shuttle
+gating, a hazard-witness sketch, and the CI jobs.
+`${CLAUDE_SKILL_DIR}/references/loom-calibration.rs` holds the toy models behind
+the claims in this step and step 1, with their observed outcomes; rerun it after
+a loom upgrade.
 
 ## 3. Build a fixture that can express the hazard
 

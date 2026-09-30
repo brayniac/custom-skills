@@ -108,10 +108,10 @@ connection, which accept it was, how many operations succeeded, the raw `errno`,
 and what the peer observed identified the mechanism in one run.
 
 - Record at the boundaries of each component: what went in, what came out.
-- One structured line per event, one file per connection, worker, or thread,
-  so the files can be diffed. `references/divergence-diff.md` (fetch with
-  `skill_resource`) has the method for finding the first event where a failing
-  unit departs from a good one.
+- One structured line per event, one file per connection, worker, or thread, so
+  the files can be diffed. `${CLAUDE_SKILL_DIR}/references/divergence-diff.md`
+  has the method for finding the first event where a failing unit departs from a
+  good one.
 - **Break it once on purpose before trusting a clean run from a new
   instrument.** Confirm the instrument reports the injected fault.
 - Instrumentation can change timing enough to hide a race. If the rate drops
@@ -153,7 +153,7 @@ that appears after a test run, is usually state left behind by another test:
 a global, an environment variable, the working directory, a file, a port.
 Find the test that leaves it by bisection, not by reading every test.
 
-`references/find-polluter.sh` (fetch with `skill_resource`) bisects a list of
+`${CLAUDE_SKILL_DIR}/references/find-polluter.sh` bisects a list of
 candidate test ids in at most about 2·log2(N) + 3 runs, where a linear
 search needs N:
 
@@ -162,11 +162,11 @@ search needs N:
 # libtest runs tests in name order under --test-threads=1, so check with
 # `cargo test -- --list` that the victim sorts after the candidates.
 cargo test -q -- --list | sed -n 's/: test$//p' | grep -v <victim> > ids.txt
-bash find-polluter.sh --list ids.txt \
+bash ${CLAUDE_SKILL_DIR}/references/find-polluter.sh --list ids.txt \
   --run 'cargo test -q -- --exact --test-threads=1 <victim>'
 
 # Left-behind files: a separate check and a reset between trials.
-bash find-polluter.sh --list files.txt --run 'npm test' \
+bash ${CLAUDE_SKILL_DIR}/references/find-polluter.sh --list files.txt --run 'npm test' \
   --check 'test ! -e .git/stray' --reset 'rm -rf .git/stray'
 ```
 

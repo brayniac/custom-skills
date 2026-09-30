@@ -66,8 +66,8 @@ Two shape rules that are not style preferences:
   Stopping at the first problem costs another push and another host to find the
   second.
 
-`references/onboarding.md` has the targets table, the full config surface, and
-which steps you cannot do yourself.
+`${CLAUDE_SKILL_DIR}/references/onboarding.md` has the targets table, the full
+config surface, and which steps you cannot do yourself.
 
 ## Step 2 — Pick the target honestly
 
@@ -122,8 +122,8 @@ repo on delta.
 hand with `rack-ci build --release`, or delete and re-push the tag.
 
 macOS — studio as a runner, and a macOS artifact to ship — is
-`references/macos.md`. The runner is blocked on more than setup: the bare-target
-sandbox is bubblewrap, hardcoded, and Linux-only.
+`${CLAUDE_SKILL_DIR}/references/macos.md`. The runner is blocked on more than
+setup: the bare-target sandbox is bubblewrap, hardcoded, and Linux-only.
 
 ## Step 6 — Retire the Actions workflow
 

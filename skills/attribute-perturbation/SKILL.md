@@ -57,8 +57,9 @@ which is the honest tool where `analyze-noise` tells you to split the series.
 
 A confirmed line is worth more than any correlation you could compute: a period
 usually names the mechanism outright (a scrape interval, a GC cycle, log
-rotation, an autoscaler, a fan or power cycle). `references/spectral.md` has the
-parameters, the test, and the code.
+rotation, an autoscaler, a fan or power cycle).
+`${CLAUDE_SKILL_DIR}/references/spectral.md` has the parameters, the test, and
+the code.
 
 ## Step 4 — Prewhiten before every cross-correlation
 
@@ -106,8 +107,8 @@ a tendency. Measured on independent white series:
 
 With 8 Welch segments, uncorrelated signals show coherence 0.125. **Never report
 a coherence without saying how many segments produced it**, and never read one
-computed from fewer than about 16. `references/spectral.md` has the segment-count
-tradeoff and the null threshold to compare against.
+computed from fewer than about 16. `${CLAUDE_SKILL_DIR}/references/spectral.md`
+has the segment-count tradeoff and the null threshold to compare against.
 
 ## Step 6 — Screen many metrics without testing many metrics
 
@@ -123,8 +124,8 @@ multiple-comparisons machine. Narrow first:
 - **Rank, then test a handful.** Carry at most a few candidates into steps 4–5,
   chosen before you look at their p-values.
 
-`references/coupling.md` has the screening code and the partial-correlation form
-for controlling a third metric.
+`${CLAUDE_SKILL_DIR}/references/coupling.md` has the screening code and the
+partial-correlation form for controlling a third metric.
 
 ## Step 7 — Stop before causality
 
@@ -157,5 +158,5 @@ intervention that would confirm it.
 - **Never test every metric in the recording.** Screen, then test a few.
 - **Never let a model's output stand in for a measurement.** A forecast residual
   or an anomaly score points at a metric worth opening; it is not a finding. See
-  `references/further-techniques.md` for where those models earn their place and
-  where they do not.
+  `${CLAUDE_SKILL_DIR}/references/further-techniques.md` for where those models
+  earn their place and where they do not.

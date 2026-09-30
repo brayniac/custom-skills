@@ -14,12 +14,12 @@ This covers Copilot's review rounds only. For the PR's checks, other
 reviewers, and when to stop, use `drive-pr-to-green`; run both when asked to
 land a PR that Copilot reviews.
 
-The GraphQL is in `references/copilot_review.py` (fetch with `skill_resource`
-and save it locally). Use it rather than writing the queries each round; the
+The GraphQL is in `${CLAUDE_SKILL_DIR}/references/copilot_review.py`; run it
+in place. Use it rather than writing the queries each round; the
 pagination and the reply-then-resolve pair are easy to get wrong.
 
 ```sh
-H=/path/to/copilot_review.py; R=owner/repo; N=<pr>
+H=${CLAUDE_SKILL_DIR}/references/copilot_review.py; R=owner/repo; N=<pr>
 ```
 
 ## 1. Baseline

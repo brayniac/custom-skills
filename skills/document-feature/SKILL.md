@@ -80,8 +80,7 @@ Word choice is `write-technical-prose`; doc comments on the code are
 ## 4. Check deterministically
 
 - Render the real text from a build: `cargo run --quiet -- <cmd> --help`, or
-  for an MCP server the `tools/list` response (custom-skills does this in
-  `scripts/smoke.sh`). The source strings are not what the reader gets.
+  for an MCP server the `tools/list` response. The source strings are not what the reader gets.
 - **Run every command example** in every edited surface, or mark it as not
   run and why. Four blind readers once recovered all seven frozen outcomes
   from a README and a critic passed it; a later review running the commands
@@ -100,13 +99,12 @@ Dispatch in one turn, as fresh agents, never forks:
   `MISSING_EXAMPLE`, `JARGON`, `WHEN_TO_USE`, each with the quoted text and a
   minimal fix.
 
-Prompts are in `references/subagent-prompts.md` (fetch with
-`skill_resource`). Grade each command against the frozen one semantically:
-right subcommand, every required argument, right flags and values, any order.
-`UNSURE`, a wrong flag or a plausible wrong reading is a fail. **If the WHY
-cites anything not in the text you gave it, context leaked; rerun it clean.**
-Blind users find text that is insufficient; the critic finds text a blind user
-passed by luck.
+Prompts are in `${CLAUDE_SKILL_DIR}/references/subagent-prompts.md`. Grade each
+command against the frozen one semantically: right subcommand, every required
+argument, right flags and values, any order. `UNSURE`, a wrong flag or a
+plausible wrong reading is a fail. **If the WHY cites anything not in the text
+you gave it, context leaked; rerun it clean.** Blind users find text that is
+insufficient; the critic finds text a blind user passed by luck.
 
 For an MCP server or a skill, the blind user gets the tool list and picks a
 tool; `skill-authoring` step 7 is the same test for one skill's description.

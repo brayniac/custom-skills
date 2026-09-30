@@ -123,8 +123,7 @@ Restate the surviving fact in the present tense and delete the rest:
 Keep issue references, present-tense counterfactuals ("without the fence, a
 reader can observe a torn write"), measured bounds with the word "measured",
 and runtime old/new ("the old connection drains before the new one accepts").
-Grep probes for this step are in `references/probes.md` (fetch with
-`skill_resource`).
+Grep probes for this step are in `${CLAUDE_SKILL_DIR}/references/probes.md`.
 
 ### 5. Check every surviving claim against the code
 
@@ -185,7 +184,7 @@ satisfy a linter on a trivial internal item (suppress the lint at the site); a
 comment written to end a reviewer's question (answer in the thread); a
 rationale you do not know to be true. Genericised examples of comments that
 did not survive, and trims that changed a claim, are in
-`references/examples.md`.
+`${CLAUDE_SKILL_DIR}/references/examples.md`.
 
 ## Never
 

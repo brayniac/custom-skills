@@ -17,25 +17,32 @@ description: Write a pull-request body as a guide for the reviewer. Use when ope
 
 | Field | Required | Rules |
 | --- | --- | --- |
-| `name` | yes | 1–64 chars, `[a-z0-9_-]` only. Becomes the MCP tool name; must be unique within a root, and may not be `skill_catalog` or `skill_resource`. The same name in a later root replaces the earlier one: disk roots override embedded skills, and the last root in `CUSTOM_SKILLS_PATH` wins. |
-| `description` | yes | Non-empty. Becomes the MCP tool description — the only text an agent sees when choosing a tool. What it does, then when to use it, ending with "Use when …" and a list of the situations. These run a few lines; a short description is how a skill fails to be chosen. |
+| `name` | yes | 1–64 chars, `[a-z0-9_-]` only, equal to the skill's directory name. Claude Code lists it as `custom-skills:<name>`. Unique across the tree, including grouping directories. |
+| `description` | yes | Non-empty, at most 1,536 characters (Claude Code truncates past that). It is the only text an agent sees when choosing a skill. What it does, then when to use it, ending with "Use when …" and a list of the situations. These run a few lines; a short description is how a skill fails to be chosen. |
 
-Unknown keys are ignored, so a skill may carry its own metadata for other
-tooling without breaking the server.
+No other key is accepted. Claude Code supports more (`allowed-tools`,
+`when_to_use`, `disable-model-invocation`, and others); add one to the
+`Frontmatter` struct in `src/skill.rs` when a skill needs it, so a misspelled key
+still fails the check instead of being ignored.
 
 ## Body
 
-Everything after the closing `---` is the tool's return value, verbatim, with
-leading blank lines trimmed. It is Markdown by convention only — the server does
-not parse it.
+Everything after the closing `---` is loaded when the skill is invoked, with
+`${CLAUDE_SKILL_DIR}` replaced by the skill's absolute directory. Name sibling
+files through it.
 
 ## Failure modes
 
-The server refuses to start rather than serving a broken library, so any of
-these stops it at load time:
+Claude Code loads a skill whose frontmatter does not parse with empty metadata,
+so the skill drops out of the listing with no error, and `claude plugin validate`
+does not inspect skills. `cargo run --quiet` refuses, and exits 1 on:
 
-- missing or malformed frontmatter;
-- a `name` outside the allowed character set, or an empty `description`;
-- two skills claiming the same `name` within one root;
-- a directory under a skill root holding neither a `SKILL.md` nor further skill
-  directories — that shape means a misfiled skill nobody would serve.
+- missing frontmatter, or frontmatter that is not YAML with exactly `name` and
+  `description`;
+- a `name` outside the character set, or different from its directory;
+- an empty description, or one over 1,536 characters;
+- two skills with one name;
+- a directory under `skills/` holding neither a `SKILL.md` nor further skill
+  directories;
+- a `${CLAUDE_SKILL_DIR}` path in a body that names no file, or a file outside
+  `skills/`. A path containing `<` is a placeholder and is not checked.
