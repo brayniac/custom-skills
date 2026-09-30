@@ -137,6 +137,12 @@ clean, read the logs before reporting it.
 
 ## Before trusting a timing
 
+**State the compiler cache's state with any build or test duration.** With
+sccache on the shared store, the same check took 951 s cold and 503 s warm.
+A build time without "cold" or "warm" cannot be compared with anything; to
+measure without the cache, run with `RUSTC_WRAPPER=` (empty)
+(`use-shared-compiler-cache` step 5).
+
 **Compare `user` + `sys` with `real`.** When CPU time is far below wall time,
 the timer measured a wait. Cargo's target-directory lock does this: a second
 build elsewhere blocks yours and the wall clock counts the queue. One build read

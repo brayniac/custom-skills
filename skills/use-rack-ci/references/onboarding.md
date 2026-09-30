@@ -96,9 +96,10 @@ ceremony; a credential in one is a credential you have stopped tracking.
   host's, so `["z2.baremetal", "z1.baremetal"]` means "a host that is both" —
   nothing is. It does not fail; it waits until the timeout. Both hypervisors
   carry `hypervisor`, so "either one" is a single tag.
-- **No build cache.** `Swatinem/rust-cache` has no equivalent — the guest is
-  destroyed. The CI image ships a warm crates.io index, which covers the fetch
-  and not the compile.
+- **No target-directory cache.** `Swatinem/rust-cache` has no equivalent —
+  the guest is destroyed. The CI image ships a warm crates.io index for the
+  fetch, and routes rustc through sccache against the shared store for the
+  compile (`use-shared-compiler-cache`); drop any cache step when porting.
 - **`cargo audit` is not covered.** `rustsec/audit-check` posts its own check
   run, which a token cannot create. Until `cargo-audit` is in the CI image,
   advisories are unchecked — and a step that silently skips when the tool is

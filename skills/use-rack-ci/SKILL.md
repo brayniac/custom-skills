@@ -148,9 +148,14 @@ is a guaranteed false one.
 - **Never deploy rack-ci with builds in flight** without checking `/health`;
   pre-0.3.2 that orphaned their verdicts, and the tarball a guest had not yet
   fetched is gone.
-- **Never expect a build cache.** Every run starts cold; there is no
-  `rust-cache` equivalent because the guest is destroyed. A bare target keeps a
-  warm `CARGO_TARGET_DIR`; a guest does not.
+- **Never expect a warm target directory.** The guest is destroyed after
+  every run, so there is no `rust-cache` equivalent. Compilation is cached
+  instead: every ci image routes rustc through sccache against the shared
+  store on delta:8081 (`use-shared-compiler-cache`), so a `.rack-ci.toml`
+  needs nothing, a store that is down is a miss rather than a failed check,
+  and `sccache --show-stats` at the end of a check prints the hit rate.
+  Linking and running tests are not cached: slipway's Pi test check went from
+  951 s cold to 503 s warm.
 - **Never debug code for a failure that follows the host.** Two different
   anvil builds were once both installed as `0.3.0-1`, and a hypervisor's
   rezolus config without `reserved_pmu_counters` left every guest's hardware
