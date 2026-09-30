@@ -123,3 +123,17 @@ convenient to write.
 Correct in place rather than editing the error out. The wrong reasoning is
 usually the useful part: a reader who can see what was concluded and why can
 check whether they made the same move.
+
+## Recording what did not work
+
+A refuted hypothesis narrows the answer, and a knob that did nothing will be
+tuned again by the next person if nobody wrote it down. When a finding closes,
+record in the same place as the finding:
+
+- each hypothesis ruled out, the evidence that ruled it out, and the condition
+  under which it should be reopened ("reopen if the failure appears with
+  io_uring disabled");
+- each setting varied with no effect, and the range tried;
+- what was lost, not only what was gained, when the finding led to a change: a
+  CHANGELOG or PR line that describes the diff's shape can be accurate and
+  still hide a removed capability.

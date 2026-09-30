@@ -242,9 +242,13 @@ change is done as a `shell` job pinned to that host (`systemslab-agent` has
 `~/workspace/brayniac/infra/fleet/hosts/<host>.toml` (drift tooling only sees
 declared images), and the rack owner (Brian, in the recap) told; if a session
 named `infra-*` is live (`ListAgents`), it is editing those files and should
-make the change.
-Images are per host: building on hv01 does not put it on hv02. Recipes has
-the import job.
+make the change. Images are per host: building on hv01 does not put it on
+hv02. Recipes has the import job.
+
+To check a host against its declared state afterwards, the infra repo's
+`infra-drift` skill runs `cargo run -q --bin infra -- diff --json` (exit 1
+means drift). An unreachable host produces no findings, so a clean diff means
+nothing checked has drifted, not that the rack is correct.
 
 ## Never
 

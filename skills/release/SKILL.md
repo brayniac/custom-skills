@@ -52,9 +52,9 @@ answer implies.
 5. **What does the automation do after tagging?** Publish to crates.io, build a
    GitHub release, bump to a dev version, or nothing. Read the steps — do not
    promise the user an outcome you have not seen in the workflow file.
-6. **What are this repo's checks?** From its CI workflow or `CLAUDE.md`, not from
-   habit. `--all-features`, `--workspace`, `--lib`, and a `cargo fmt --check`
-   rung all appear in different repos here.
+6. **What are this repo's checks?** From `.rack-ci.toml`, its CI workflows, or
+   `CLAUDE.md`, not from habit. `--all-features`, `--workspace`, `--lib`, and a
+   `cargo fmt --check` rung all appear in different repos here.
 
 ## Step 2 — State the plan, then stop
 
@@ -78,8 +78,8 @@ is not. Report that as unknown rather than inferring it either way.
 
 1. **Prerequisites.** On `main`, clean tree, up to date with `origin/main`. Stop
    on any of the three rather than fixing it.
-2. **Run the repo's checks.** Capture to a file and read the file. If they fail,
-   stop and report — do not release past a red check.
+2. **Run the repo's checks** with `verify-change`: every gate, to a file, exit
+   code first. If any fails, stop and report — do not release past a red check.
 3. **Compute the new version** from the level argument (`patch`/`minor`/`major`)
    or take the explicit version given. Dev suffixes like `-alpha.N` are dropped
    by the bump, not carried.
@@ -87,9 +87,11 @@ is not. Report that as unknown rather than inferring it either way.
 5. **Bump.** With `cargo release version <level> --execute --no-confirm` when
    `release.toml` exists, by editing the manifest found in step 1 otherwise.
 6. **Changelog.** Move `Unreleased` into a new `<version>` section with today's
-   date, open a fresh empty `Unreleased`. Keep a Changelog format. **Show the
-   user the section and ask before continuing** — this is the one part of the
-   release that carries prose a reader will rely on.
+   date, open a fresh empty `Unreleased`. Keep a Changelog format. If
+   `Unreleased` is thin, fill it from `git log <last-tag>..HEAD` using
+   `references/changelog.md`. **Show the user the section and ask before
+   continuing** — this is the one part of the release that carries prose a
+   reader will rely on.
 7. **Commit** with the message derived in step 1, question 4. Nothing before the
    prefix. On a squash merge the PR's single commit message becomes the merge
    commit message, which is what the workflow matches against.

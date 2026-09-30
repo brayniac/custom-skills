@@ -18,7 +18,7 @@ when it is silent.
 ## Habits do not travel between repos
 
 The most common way to write non-idiomatic code here is to import a convention
-from the repo you were in yesterday. Three that differ:
+from the repo you were in yesterday. Five that differ:
 
 **Error handling is a per-repo choice, not a per-crate one.** slipway uses
 `thiserror` in all seven of its crates and `anyhow` in none. systemslab uses
@@ -35,6 +35,20 @@ them. A commit trailer is not a house style you carry in.
 times — default, `force-mio`, `tls-unbuffered` — because a feature combination
 nothing lints is a feature combination nothing compiles. If you add a feature,
 add its clippy rung.
+
+**Platform `cfg` hides code from the local compiler.** ringline gates its
+io_uring backend and several test files on `has_io_uring` (set by `build.rs`
+on Linux), so on macOS those files compile to nothing: a moved-on-use change
+was green locally and broke inside a `#[cfg(has_io_uring)]` block in CI, and
+a whole test file reported `running 0 tests; test result: ok`. The same holds
+for GPU backends (`ferallm-cuda` is an empty member on macOS). Grep every use
+of a changed item, including inside `cfg` blocks, and treat the Linux job as
+the compile for that code (`verify-change` steps 4 and 5).
+
+**Some repos format with nightly.** systemslab and durable set
+`imports_granularity` and `group_imports` in `rustfmt.toml`, which stable
+rustfmt ignores, so run `cargo +nightly fmt` there; stable `cargo fmt`
+produces a diff CI rejects. Check `rustfmt.toml` before formatting.
 
 ## Tests
 
@@ -64,11 +78,12 @@ so rezolus's `rez` crate exposes its fixture builders under a `test-support`
 feature that the binary and the viewer both enable. Reaching for `pub` and a
 `#[doc(hidden)]` instead is the wrong fix.
 
-## Comments carry the rationale, not the mechanism
+## Comments describe the code as it is, and why
 
 Doc-comment density runs 8–13% of all lines across these repos, well above what
 Rust code usually carries. That budget is not spent restating signatures. It is
-spent on why a thing is the way it is, and what breaks if it changes:
+spent on the contract a caller must uphold and on why the current design is the
+way it is, and what breaks if it changes:
 
 ```rust
 /// `include_dir!` expands to one `include_bytes!` per file, so Cargo already
@@ -82,26 +97,70 @@ spent on why a thing is the way it is, and what breaks if it changes:
 /// every analysis tool renders it as a failure.
 ```
 
-The shape to copy: **name the alternative and say what it would cost.** A
-comment that says what the code does is redundant with the code; a comment that
-says why the obvious alternative was rejected is the only place that survives.
+For rationale, name the alternative and say what it would cost. A comment
+that says what the code does is redundant with the code; one that says why the
+obvious alternative was rejected is information the code cannot carry.
 
 Where a decision is deliberate and looks wrong, say so at the site. Deliberate
 absences — a missing tag, an omitted `?`, an error deliberately swallowed —
 are invisible to a reader who was not there.
+
+**Rationale for the current design is not the history of the change.** A
+public `///` comment opens with what the item does and what a caller must
+uphold, in plain declarative sentences. It does not say what the API used to
+be, why the old shape was wrong, or how many entry points were removed; that
+goes in the CHANGELOG, the PR, or the journal. A reviewer summarising forty
+findings on one change put it as "doc comments were written as justification
+for the change rather than as a description of the result". Test every
+comment against: could a reader at HEAD, with no access to the PR or the
+session that wrote it, resolve every reference? Cut or restate:
+
+- change narration: "used to", "no longer", "the old X", "now" contrasted
+  with a past state;
+- references only the author could see: "decision 3", "plan §4", "the
+  approach discussed above", "rejected in review";
+- argument with a reviewer: "this is safe because…" — state the invariant
+  instead;
+- control-flow narration: "first we X, then we Y";
+- hedges: "should be enough for now" — state the bound or add a `TODO`.
+
+Keep present-tense counterfactuals ("without the fence, a reader can observe a
+torn write") and measured bounds ("measured: 83 ms per refresh"). No metaphor,
+no bold or italics for emphasis, no rhetorical questions.
 
 ## What CI gates
 
 Every repo: `cargo clippy --all-targets -- -D warnings` and
 `cargo fmt --all -- --check`. Flags vary (`--all-features`, `--workspace`,
 `--locked`); read the repo's CI definition — `.rack-ci.toml` on repos moved to
-rack-ci, `.github/workflows/` otherwise — rather than assuming. **No repo here sets
-`[workspace.lints]` or crate-level `#![deny]`** — the gate is clippy's defaults
+rack-ci, `.github/workflows/` otherwise — rather than assuming. **No repo here
+sets `[workspace.lints]` or crate-level `#![deny]`** — the gate is clippy's
+defaults
 at deny-warnings, so a lint you want enforced has to go in CI, not in an
 attribute nobody will notice.
 
-Run the repo's own checks before proposing a change; `release` skill step 1
-question 6 covers finding them.
+Run the repo's own checks before proposing a change; `verify-change` covers
+finding and running them.
+
+## Review sweeps to run by grep before reading
+
+A reviewer reading excerpts misses what only an exhaustive search finds. Run
+these over the diff's crates first, then review:
+
+- **A renamed item's old name** appears zero times in code and docs:
+  `rg -F -w '<old_name>'`.
+- **Inert `#[allow]`.** `clippy::too_many_arguments` fires above 7 arguments,
+  so an `#[allow(clippy::too_many_arguments)]` on a function with 7 or fewer
+  suppresses nothing. Remove any allow whose lint would not fire, and expect
+  clippy to stay green; if it goes red, the allow was needed and needs a
+  comment saying why.
+- **`lib.rs` / `mod.rs` hold wiring only** — `mod`, `pub use`, attributes. Logic
+  added there belongs in a named module.
+- **Sideways `super::`** reaching into a sibling module
+  (`super::other::thing`) becomes `crate::other::thing`.
+- **Superseded comment stacks**: a comment followed by a second one that
+  corrects or contradicts it. Replace both with one statement of the current
+  behaviour.
 
 ## Never
 
@@ -109,8 +168,8 @@ question 6 covers finding them.
   crates first.
 - **Never add a feature without adding its clippy rung**, or it compiles only
   by luck.
-- **Never write a comment that restates the signature.** If the alternative is
-  not named, the comment is not carrying its weight.
+- **Never write a comment that restates the signature**, or one that narrates
+  the change that produced the code.
 - **Never put cross-crate test fixtures behind `#[cfg(test)]`** — other crates
   cannot see them, and the workaround is worse than the feature.
 - **Never carry a commit-message convention between repos.** At least one here

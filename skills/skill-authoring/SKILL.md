@@ -33,6 +33,16 @@ frontmatter, and calling it returns everything below the frontmatter.
 6. **Rebuild and check.** `cargo test` covers loading and routing;
    `./scripts/smoke.sh` shows the real `tools/list` and `tools/call` responses.
 
+7. **Check that the skill changes what an agent does.** Loading proves the
+   file parses, not that it helps. For a skill that corrects a behaviour, give
+   a fresh agent (no skill) a realistic task that invites the mistake and
+   record what it does, in its own words; then repeat with the skill available
+   and compare. Two things to look for: whether the agent calls the skill at
+   all from its description, and whether it follows the body or only the
+   description — a description that summarises the steps can be followed
+   instead of the body. Put what was observed in the commit body. If the
+   baseline agent already does the right thing, the skill is not needed.
+
 ## While iterating
 
 Point `CUSTOM_SKILLS_PATH` at a directory of skills and restart the client to

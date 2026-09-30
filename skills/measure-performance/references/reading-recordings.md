@@ -1,5 +1,16 @@
 # Reading a rezolus recording
 
+The rezolus MCP server carries its own instructions (`src/mcp/skill/SKILL.md`
+in the rezolus repo): call order, the `recording` selector, uncertainty bands
+on `rate()`, a missing metric not being zero, and writing findings back with
+`add_event` and `run_checks`. Follow them; they are maintained with the tools.
+Two of them matter most for a verdict: a difference inside the `[lo, hi]` band
+of a `rate()` is not a difference, and a recording without acquisition windows
+(a parquet combined into a `.rez`) has no band, which says nothing about its
+precision. This file covers what those instructions do not: the chain from a
+SystemsLab job to a recording, and the readings that have gone wrong in this
+lab.
+
 ## The chain
 
 A systemslab job records; the recording arrives as an artifact; the rezolus MCP
@@ -28,11 +39,8 @@ tools read it. Each link has a name that has to match the previous one.
    `systemslab api /api/v1/experiment/<id>` to list `.artifacts[]` and
    `systemslab api /api/v1/artifact/<id>` to fetch one.
 
-   `artifact list --experiment` and `download-all` scope correctly — verified
-   on the rack against CLI 160.0.0, two sibling experiments with identical
-   artifact names and zero id overlap. They do exclude **context-attached**
-   artifacts by design, so a pre-staged file is absent from an
-   experiment-scoped list without anything saying so.
+   Experiment-scoped listing excludes context-attached artifacts; see
+   `systemslab-spec-authoring` for the query that lists those.
 4. **`describe_recording`** with no `recording` argument first, to list what the
    file holds. A `.rez` can carry several recordings; the tools require exactly
    one, selected as `recording: {"source": "redis"}`.

@@ -70,13 +70,13 @@ eventually go. `pi4b` and `pi4b-thermal` are not aliases; they are pools, and
 they are staying.
 
 **A subset-matching scheduler cannot express exclusion.** There is no "not
-thermal": a host stays out of a pool only by lacking a tag, so a tag's
-*absence* can be what keeps a host out of a pool — and absence is invisible
-when you read the tag instead of the roster. Before replacing a tag with what looks like an
+thermal": a host stays out of a pool only by lacking a tag, so a tag's *absence*
+can be what keeps a host out of a pool — and absence is invisible when you read
+the tag instead of the roster. Before replacing a tag with what looks like an
 equivalent capability, count the hosts matching before and after. Translating
 `pi4b` to `["bare","aarch64"]` reads as a faithful rewrite and silently widens
-the pool from eighteen hosts to twenty, because both are true of the two
-thermal Pis.
+the pool from eighteen hosts to twenty, because both are true of the two thermal
+Pis.
 
 ## Exclusivity is already guaranteed — do not manage it
 

@@ -117,6 +117,21 @@ exactly 1.001 and 1.000, and a whole-matrix spread inside the noise floor, is
 the shape of a rig that measured one thing twice. When a result is suspiciously
 clean, read the logs before reporting it.
 
+## Before trusting a timing
+
+**Compare `user` + `sys` with `real`.** When CPU time is far below wall time,
+the timer measured a wait. Cargo's target-directory lock does this: a second
+build elsewhere blocks yours and the wall clock counts the queue. One build read
+2658 s wall against 203 s CPU.
+
+**A uniform slowdown across unrelated units is contention.** Contention scales
+everything together, so it reads like a fixed cost. One gate run showed 54 s
+for each of several test binaries that take 0.1–1.6 s idle. The same rung was
+reported three ways — 15 min, "30 min warm / 90 min cold", and 30 s — and only
+the last was taken on an idle machine; the first two were published and were
+wrong by more than an order of magnitude. Name what else was running before
+reporting any duration.
+
 ## Before quoting a ratio
 
 **Measure the noise floor first.** Repeats of unchanged code have spanned
@@ -136,6 +151,39 @@ requested, with zero errors reported; it surfaced only because the latencies
 were arithmetically impossible against each other — higher time-to-first-token
 *and* higher per-token time, yet lower total. Check units-per-request, and
 compare engines on per-token latency.
+
+**Subtract the fixed floor before computing a ratio.** Two GPU kernels at
+240 µs and 279 µs over a ~210 µs dispatch floor are ~30 µs and ~70 µs of work,
+not 1.16× apart. Measure the floor with an empty operation and say whether a
+ratio includes it.
+
+**An isolated component probe overestimates its share.** Against the real
+model, an isolated probe was 1.5–4× over, and counting the operations in a
+chain was 5.3× over; differencing the real model with and without a prefix was
+within 8%. Measure in place where you can.
+
+**Report sizes the system counted, not sizes the generator intended.** A
+prompt generator's nominal sizes ran ~0.87× the tokenizer's count, so a "16k"
+prompt was ~14.1k and sat on the other side of a 13,824-token limit. Take sizes
+from the system's own counters and label nominal sizes as nominal.
+
+**Check synthetic inputs for aliasing.** Filler seeded as `seed × 7919 mod 24`
+gave the 12k and 24k prompts the same opening tokens, so a "cold" run was a
+partial cache hit and two cells could not be reported. Use a distinct seed per
+input.
+
+## Before writing a measured value into a threshold
+
+- **Calibrate from the whole distribution and have the failing check print
+  it.** A bound set from two of eight values fired on a row drifting 2.61 and
+  let a row drifting 1.75 through unexamined.
+- **Apply one bound to every row.** A bound that applies to some rows and not
+  others does not gate the rest.
+- **Compare against the format's resolution, not equality.** bf16 has 8
+  significand bits, so `ulp(x) = 2^(floor(log2|x|) − 7)`. A difference of one
+  ulp means the values cannot be distinguished; a check for `gap == 0.0` calls
+  that a failure.
+- **Record the platform and inputs** the value was measured on, next to it.
 
 ## Order of operations
 
