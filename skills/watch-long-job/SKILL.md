@@ -51,6 +51,12 @@ sudo prlimit --pid $$ --nofile=1000000:1000000 || ulimit -n 65536
 limit it was meant to have raised. Check the state you needed, immediately
 after establishing it.
 
+The same applies outside job scripts. `gh pr edit --base` failed without an
+error, and the merge that followed went to the wrong branch and was reported
+as merged. After any step whose effect a later step depends on, read the
+effect back (`gh pr view --json baseRefName`, `git log origin/main..`), not the
+command's exit status.
+
 ## 4. Parse by name, and know how each filter exits on empty input
 
 - Parse `key=value` or JSON fields by name (`jq -r .state`, `sed -n

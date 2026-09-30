@@ -215,6 +215,12 @@ quiet zero.
   not expect is information; one you did expect and got is not confirmation on
   its own. A prediction written after the result is a story fitted to it
   (`debug-intermittent-failure` step 3).
+- **Carry a control cell shared with the last published run.** One
+  configuration every arm repeats from the previous report lets a disturbed
+  run be identified rather than argued about: a crossover probe that repeated
+  the prior run's 8k cell, with two reps agreeing within 0.1 s at every cell,
+  let a loaded-machine start (a background malware scan) be dismissed. Start
+  each arm from the same state (one server per arm, caches empty).
 - **Keep the same-configuration pairs.** Interleaving produces A-vs-A comparisons
   as a byproduct — four runs a side gives six — and those pairs are the null
   distribution for every threshold you will ever set on this source.

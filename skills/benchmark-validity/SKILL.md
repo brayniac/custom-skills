@@ -14,6 +14,24 @@ number out of this lab specifically — hosts, recordings, and whether a
 difference between two numbers is real — and is the authority where the two
 overlap.
 
+## Before reporting any number
+
+Answer four questions, in the report:
+
+1. **What command produced it?** The one whose output you are reading, not the
+   one you meant to run. If you are quoting what a script does, check the
+   script produced the number and you did not run the underlying tool by hand.
+2. **What else was running?** See "Before trusting a timing".
+3. **Which part was measured and which was inferred?** State an inference at
+   the confidence of an inference.
+4. **Did each step do what it is for?** Check its effect, not its exit status.
+
+Capture the whole run to a file and filter the file. Piping a run through
+`tail` or `head` cut the evidence five times in one day across two sessions: a
+report of 7 test binaries when 55 ran, the `real` line of `/usr/bin/time`
+output cut off twice, a whole check battery's output lost, and the "behind
+origin/main by 25 commits" line that was the evidence being sought.
+
 ## Before interpreting a number
 
 **Is the instrument the bottleneck?** Check saturation on the *load generator*,
