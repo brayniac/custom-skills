@@ -25,6 +25,9 @@ frontmatter, and calling it returns everything below the frontmatter.
 4. **Write the body as instructions to an agent, not documentation for a
    person.** Numbered steps, explicit inputs, explicit stopping conditions. State
    what the skill must not do — those lines do more work than the happy path.
+   Run `write-technical-prose` over the body before committing. A 376-word
+   section added to a PR-body skill to say "use plain words" lost nothing
+   when cut to 151.
 
 5. **Put long material in sibling files** rather than inline: a reference table,
    a template, a checklist. Name them in the body and say to fetch them with

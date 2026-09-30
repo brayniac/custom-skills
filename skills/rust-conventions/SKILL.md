@@ -111,22 +111,14 @@ uphold, in plain declarative sentences. It does not say what the API used to
 be, why the old shape was wrong, or how many entry points were removed; that
 goes in the CHANGELOG, the PR, or the journal. A reviewer summarising forty
 findings on one change put it as "doc comments were written as justification
-for the change rather than as a description of the result". Test every
-comment against: could a reader at HEAD, with no access to the PR or the
-session that wrote it, resolve every reference? Cut or restate:
+for the change rather than as a description of the result". No metaphor, no
+bold or italics for emphasis, no rhetorical questions.
 
-- change narration: "used to", "no longer", "the old X", "now" contrasted
-  with a past state;
-- references only the author could see: "decision 3", "plan §4", "the
-  approach discussed above", "rejected in review";
-- argument with a reviewer: "this is safe because…" — state the invariant
-  instead;
-- control-flow narration: "first we X, then we Y";
-- hedges: "should be enough for now" — state the bound or add a `TODO`.
-
-Keep present-tense counterfactuals ("without the fence, a reader can observe a
-torn write") and measured bounds ("measured: 83 ms per refresh"). No metaphor,
-no bold or italics for emphasis, no rhetorical questions.
+Before a PR, run `sweep-comments` over the touched files. It carries the
+reader-at-HEAD test and the list of what to cut or restate (change narration,
+references only the author could see, argument with a reviewer, control-flow
+narration, hedges), and it checks each surviving claim of absence,
+equivalence or who-does-what against the code with a grep.
 
 ## What CI gates
 
@@ -161,6 +153,8 @@ these over the diff's crates first, then review:
 - **Superseded comment stacks**: a comment followed by a second one that
   corrects or contradicts it. Replace both with one statement of the current
   behaviour.
+  `sweep-comments` step 4 has grep probes for the rest of the authoring
+  session's vantage.
 
 ## Never
 

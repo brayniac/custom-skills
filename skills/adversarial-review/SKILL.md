@@ -35,7 +35,9 @@ In this order:
    `rust-conventions`, and the writing rules in `~/.claude/CLAUDE.md`.
 6. **The output shape**: each finding as `file:line`, the offending text quoted
    exactly, and a concrete replacement. Findings you have to interpret get
-   half-applied.
+   half-applied. Then the commands the reviewer ran and what they returned,
+   and what it could not check. An empty findings list means nothing
+   actionable was found; it is not evidence the change is correct.
 7. **Permission to say a section is fine**, or the reviewer pads.
 
 ## 3. Mandate 1 — what a caller can express
@@ -70,11 +72,20 @@ Reference documentation describes the result. The argument for the change goes
 in the CHANGELOG, the PR, or the journal. The most common finding of this review
 is doc comments written as justification of the change.
 
+The wording rules the reviewer checks against are in `write-technical-prose`
+(reader, modality, one name per thing) and `sweep-comments` step 4 (what a
+reader at HEAD cannot resolve). Ask the reviewer to check each claim of
+absence or equivalence in a comment against the code; a comment can be well
+worded and false.
+
 Name conventions to keep (issue-number references, for example), and exclude
 registers that are meant to differ: a journal entry or design note is not
 reference documentation.
 
 ## 5. Apply the findings
+
+Answer every finding with `answer-review`: one disposition each, fixed with
+the commit, disputed with evidence, or deferred with a reopen condition.
 
 - **Reproduce a blocking finding before acting on it** — compile the misuse
   the reviewer describes. Do not apply what you have not reproduced.

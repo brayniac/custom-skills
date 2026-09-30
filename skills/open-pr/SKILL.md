@@ -80,11 +80,12 @@ gh pr create --repo <owner/repo> --head <head> --base main \
   --title "<subject>" --body-file <file>
 ```
 
-The body says what changed and why, how it was verified (the per-gate lines
-from `verify-change`), and anything not verified. For an API change, state
-what a caller can no longer do, not only what was added. Keep engagement or
-client detail out of public repositories (`publishing-findings`; a hook
-enforces the literal terms).
+Write the body with `write-pr-body`: why the change exists, the decisions
+that want the reviewer, where to look more closely, what the tests ran and do
+not cover (the per-gate lines from `verify-change`), and what only production
+can show. For an API change, state what a caller can no longer do, not only
+what was added. Keep engagement or client detail out of public repositories
+(`publishing-findings`; a hook enforces the literal terms).
 
 If a PR already exists for the branch, report its URL instead of creating
 another.
@@ -97,7 +98,8 @@ gh pr view --json url,state,isDraft
 ```
 
 Report the URL. If CI has started, give its state; on repos with rack-ci, read
-the `rack-ci/*` statuses (`use-rack-ci`).
+the `rack-ci/*` statuses (`use-rack-ci`). When review arrives, answer it with
+`answer-review`.
 
 ## Never
 

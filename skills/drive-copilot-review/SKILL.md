@@ -34,9 +34,13 @@ Follow the repository's own review conventions if it has them. Otherwise:
 - **Correctness, security, a broken invariant, a wrong exit code**: fix it in
   this PR.
 - **The finding is wrong, or the behaviour is intended**: reply with the
-  reason and resolve. No code change.
+  evidence (a test, a quoted line, command output) and resolve. Restating the
+  code is not evidence. No code change.
 - **Style or a minor improvement off the critical path**: open an issue (or add
-  to an existing one), reply with its link, resolve.
+  to an existing one), reply with its link and what would reopen it, resolve.
+
+`answer-review` has the full disposition rules; this skill adds the
+Copilot-specific mechanics.
 
 Then reply and resolve, which the helper does as two mutations and checks:
 
