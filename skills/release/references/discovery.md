@@ -141,6 +141,28 @@ Two further clauses to read out loud before relying on the workflow:
   so.
 - `contains(..., 'release/v')` — some workflows also match the merge-commit form,
   which makes them tolerant of a non-squash merge. Most do not.
+- A version check against `Cargo.toml`. rezolus's workflow fails the run with
+  an error, rather than skipping it, when the squash commit's title names a
+  version other than the manifest's; so a retitled or rebased release PR
+  cannot tag the wrong version, and a red `Verify the commit names this
+  version` step means the title, not the code.
+
+**Release branches.** Some repos cut patch releases from an `X.Y.x` branch
+(thermite/cachecannon: created at the line's first tag, fixes arrive by
+cherry-pick or backport). There the release PR targets the branch it started
+from, the new version must stay on `X.Y`, and the workflow runs on merges to
+that branch as well as `main`. Check `on.push.branches` in `tag-release.yml`
+for an `X.Y.x` pattern.
+
+**Do not tag by hand where a workflow tags.** A tag pushed before the workflow
+runs makes it find the tag already present and skip, so the repo is left on
+the release version with no development bump.
+
+**Prereleases may be a separate path.** In rezolus, a `-alpha.N` / `-rc.N`
+version is released by pushing an annotated `v<version>` tag directly (after
+checking `git ls-remote --tags upstream` for it); `release.yml` marks a tag
+containing `-` as a GitHub pre-release and skips package registries and
+Homebrew. The tag-release commit path is for stable versions only.
 
 ### The rack path
 
@@ -173,13 +195,23 @@ builds artifacts and cuts a GitHub release; publishes to crates.io; and commits
 a bump to the next `-alpha.N` dev version. Do not describe a step you did not
 read, and do not promise crates.io when `publish = false`.
 
+List the secrets the steps reference and confirm each exists
+(`gh secret list`): `RELEASE_TOKEN` for the tag and bump PR, and
+`CARGO_REGISTRY_TOKEN` for a crates.io publish in `release.yml`. A missing
+secret fails after the tag exists, which is the hardest point to recover from.
+
 ## 6. What are this repo's checks?
 
 ```sh
-grep -n 'cargo ' .github/workflows/ci.yml 2>/dev/null
-grep -n -i 'clippy\|cargo test\|cargo fmt' CLAUDE.md 2>/dev/null
+cat .rack-ci.toml 2>/dev/null
+grep -n 'cargo ' .github/workflows/*.yml 2>/dev/null
+grep -n -i 'clippy\|cargo test\|cargo fmt\|cargo doc' CLAUDE.md 2>/dev/null
 ```
 
+A repo on rack-ci has usually had its Actions workflows deleted, so
+`.rack-ci.toml` and its scripts are the only CI definition; reading only
+`.github/workflows` finds nothing and reads as "no checks". Where `CLAUDE.md`
+and CI list different commands, run the union and say which list each came from.
 Use what CI uses. The variations seen here — `--all-features`, `--workspace`,
 `--lib`, `--all-targets`, with and without a `cargo fmt --all -- --check` rung —
 are deliberate per repo, and a check you invented can fail for reasons the repo

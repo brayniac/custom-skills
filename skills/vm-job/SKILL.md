@@ -161,19 +161,16 @@ is only reported when the step starts.
 
 ## 5. Wait and read
 
-**The terminal states are `success` and `failure`.** Not `completed`, not
-`failed` — a watch loop matching on those two runs on past the end (40 minutes,
-twice in one day). If you script a wait: Monitor's shell is zsh, which does not
-word-split unquoted variables, and macOS `bash` is 3.2, which has no
-`declare -A`. **A monitor that has produced no output is a broken monitor, not a
-quiet world** — 45 minutes of silence read as "still queued" when both runs had
-long finished.
+The experiment's state names, which differ from a run's, and the `submit
+--wait` exit status are in `systemslab-spec-authoring` ("Three things the CLI
+will not tell you"). If you script a wait, follow `watch-long-job`: Monitor's
+shell is zsh, which does not word-split unquoted variables, and macOS `bash` is
+3.2, which has no `declare -A`. A monitor that has produced no output is
+broken until shown otherwise — 45 minutes of silence read as "still queued"
+when both runs had long finished.
 
-- `wait_for_experiment` (MCP) or `systemslab experiment show <id>`.
-  **`systemslab submit --wait` exits 0 whether the work succeeded or failed** —
-  it reports that the submission worked, not that the job did, and it can
-  return before the state settles. Take the verdict from the experiment state,
-  polled until terminal.
+- `wait_for_experiment` (MCP) or `systemslab experiment show <id>`, polled until
+  the state is no longer `pending`.
 - Log: `get_logs` (MCP; use `grep`/`tail`, the payload's stdout is all there)
   or `systemslab logs --experiment <id>`.
 - Artifacts: `systemslab api /api/v1/experiment/<id>` lists `.artifacts[]` with
@@ -205,17 +202,11 @@ the `exit 0` half and omits the re-raise makes the state lie by construction.**
 So when reading someone else's run: if the payload ends `exit 0`, find the
 re-raise step before believing `success`.
 
-**Assert on evidence that work happened, not on the absence of failure.** A
-tier that skips can skip its way to a green: one gate passed with 41 of its
-checks SKIPPED for missing checkpoints, which the status API renders
-identically to a real pass. What separated them was a line proving work
-occurred — a version banner, 7 pulls, 0 failures, a skip count of 16 rather
-than 41. Decide before the run which line in the log proves the work ran, and
-grep for that.
-
-**A green suite proves no regression, not that the feature works.** A full
-goldens run can pass without anything in it ever setting the new flag, leaving
-the affirmative behaviour unproven on that backend.
+The rest of the checks on a green result — evidence that work happened, a
+suite that never set the new flag — are in `benchmark-validity` ("Before
+trusting a green result") and apply unchanged. In the log, the line proving work
+occurred was a version banner, 7 pulls, 0 failures and a skip count of 16
+rather than 41; decide before the run which line that is, and grep for it.
 
 ## 7. Cancel, timeout, orphan
 
@@ -257,9 +248,13 @@ change is done as a `shell` job pinned to that host (`systemslab-agent` has
 `~/workspace/brayniac/infra/fleet/hosts/<host>.toml` (drift tooling only sees
 declared images), and the rack owner (Brian, in the recap) told; if a session
 named `infra-*` is live (`ListAgents`), it is editing those files and should
-make the change.
-Images are per host: building on hv01 does not put it on hv02. Recipes has
-the import job.
+make the change. Images are per host: building on hv01 does not put it on
+hv02. Recipes has the import job.
+
+To check a host against its declared state afterwards, the infra repo's
+`infra-drift` skill runs `cargo run -q --bin infra -- diff --json` (exit 1
+means drift). An unreachable host produces no findings, so a clean diff means
+nothing checked has drifted, not that the rack is correct.
 
 ## Never
 

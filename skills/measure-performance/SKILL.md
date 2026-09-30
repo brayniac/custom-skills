@@ -7,15 +7,16 @@ description: Produce a performance number from the local lab — anvil VMs or ba
 
 Three systems, one loop: **SystemsLab** picks the machine and runs the work,
 **anvil** builds the VM the shape asks for, **rezolus** is what you read the
-numbers out of. Most wrong numbers here come from the seams between them, not
-from the workload.
+numbers out of. Most wrong numbers here come from the handoffs between them,
+not from the workload.
 
 **Getting work onto the rack is the `vm-job` skill.** It owns shapes, images,
 specs, artifacts, and orphan recovery, and it is the authority whenever the two
-disagree. Spec syntax beyond that is in
-`systemslab/docs/llm/writing-experiments.md`. This skill starts where those leave
-off: choosing an environment whose numbers mean something, and deciding whether a
-difference between two of them is real.
+disagree. Spec mechanics that apply to every job — the interpolator, `set -ex`,
+state names, staging files on a context — are `systemslab-spec-authoring`;
+Jsonnet syntax is in `systemslab/docs/llm/writing-experiments.md`. This skill
+starts where those leave off: choosing an environment whose numbers mean
+something, and deciding whether a difference between two of them is real.
 
 ## The two layers, and which one is wrong
 
@@ -65,7 +66,7 @@ the message does not distinguish: a **generation mismatch in your own spec**
 — check this first, since a generation-specific shape under `tags =
 ["hypervisor"]` is a coin flip, which `shape = "auto.c"` now removes — or an
 orphaned guest holding
-slots, which `vm-job`'s "Cancel, timeout, orphan" step (6) recovers. A number
+slots, which `vm-job`'s "Cancel, timeout, orphan" step (7) recovers. A number
 obtained after retrying around a 503 is not a clean number.
 
 ## Step 2 — On the hypervisors, measure in a VM, and verify fidelity
@@ -208,8 +209,18 @@ quiet zero.
 - **Use `detect_anomalies` and `analyze_correlation` to find the mechanism**,
   not to decide the verdict. A correlation tells you where to look next; it is
   not evidence that a change caused an effect.
-- **Predict before you compute.** A delta you did not expect is information; one
-  you did expect and got is not confirmation on its own.
+- **Predict before you compute, in writing.** Put the expected direction and
+  size in the spec or the journal before submitting, with what result would
+  refute it and what you would look at next for each outcome. A delta you did
+  not expect is information; one you did expect and got is not confirmation on
+  its own. A prediction written after the result is a story fitted to it
+  (`debug-intermittent-failure` step 3).
+- **Carry a control cell shared with the last published run.** One
+  configuration every arm repeats from the previous report lets a disturbed
+  run be identified rather than argued about: a crossover probe that repeated
+  the prior run's 8k cell, with two reps agreeing within 0.1 s at every cell,
+  let a loaded-machine start (a background malware scan) be dismissed. Start
+  each arm from the same state (one server per arm, caches empty).
 - **Keep the same-configuration pairs.** Interleaving produces A-vs-A comparisons
   as a byproduct — four runs a side gives six — and those pairs are the null
   distribution for every threshold you will ever set on this source.

@@ -120,7 +120,7 @@ name = "myapp.jar"
 path = "myapp.jar"
 ```
 
-**The ordering is the point.** `submit` has no `--hold`, so uploading to the
+Upload before submitting. `submit` has no `--hold`, so uploading to the
 experiment id after submitting races the scheduler — the job may already be
 running. The download action searches the experiment first and then the
 contexts the experiment is attached to, and that context fallback exists for
@@ -141,14 +141,30 @@ Note also that `submit --context` auto-uploads the spec file itself as a `user`
 artifact, so a context always holds at least one artifact you did not stage —
 and a spec sharing a name with a staged file is an exactly-one collision.
 
-## Two things the CLI will not tell you
+## Three things the CLI will not tell you
 
 **`submit --wait` exits 0 whether the work succeeded or failed.** It reports
 that the submission worked. Take the verdict from the experiment state, polled
 until terminal — `--wait` can also return before the state settles.
 
-**Terminal states are `success` and `failure`**, never `completed` or `failed`.
-A watch loop matching the wrong pair runs past the end.
+**An experiment and a run have different state names.** Poll the experiment,
+and match its states:
+
+| Level | Non-terminal | Terminal |
+| --- | --- | --- |
+| experiment | `pending` | `success`, `failure`, `error`, `cancelled`, `timeout` |
+| run (job) | `unscheduled`, `scheduled`, `running` | `complete`, `failed`, `cancelled`, `lost`, `error`, `timeout` |
+
+A watch loop matching the run's `complete`/`failed` against the experiment's
+state runs past the end — 40 minutes, twice in one day. Match on "not
+`pending`" rather than on a list of terminal states, so a state you did not
+list still ends the loop. The enums are `ExperimentState` and `RunState` in
+`crates/data/schema/src/lib.rs` in the systemslab repo; read them there rather
+than from memory.
+
+**`artifact list` cannot see context artifacts.** It is scoped to the
+experiment, so a file pre-staged on a context looks absent. List them with
+`systemslab api "/api/v1/artifact?context=$CTX"`.
 
 ## Destructive steps
 

@@ -27,8 +27,9 @@ Before reading a diff, check the shape of the red mark.
 | `rack-ci/<name>` reports **`failure`** | the CI script exited non-zero | a real failure; read the log at the linked experiment |
 | `rack-ci/<name>` reports **`error`** | infrastructure: rack unreachable, source download broken, superseded run, timeout | **not a code problem.** Do not send anyone to read the diff |
 | status stuck **`pending`** forever | a restart orphaned the verdict (pre-0.3.2), or the run was superseded | re-run with `rack-ci build`, or post the status by hand |
+| `rack-ci/<name>` fails on one host and passes on another **for the same commit** | host drift: a package, image, or config that differs between hosts | from `brayniac/infra`: `cargo run -q --bin infra -- diff --json` (exit 1 is drift) and `host-setup/deploy-anvil --check`. Report the host; do not change code for it |
 
-**That `failure`/`error` split is deliberate and load-bearing.** Reporting an
+**That `failure`/`error` split is deliberate.** Reporting an
 infrastructure problem as a failing build sends someone hunting a bug that is
 not there.
 
@@ -150,3 +151,9 @@ is a guaranteed false one.
 - **Never expect a build cache.** Every run starts cold; there is no
   `rust-cache` equivalent because the guest is destroyed. A bare target keeps a
   warm `CARGO_TARGET_DIR`; a guest does not.
+- **Never debug code for a failure that follows the host.** Two different
+  anvil builds were once both installed as `0.3.0-1`, and a hypervisor's
+  rezolus config without `reserved_pmu_counters` left every guest's hardware
+  counters reading near zero while reporting healthy; neither shows in the
+  job's own output. Check drift first. A clean `infra diff` means nothing it
+  checks has drifted, and an unreachable host produces no findings at all.
