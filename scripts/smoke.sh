@@ -37,4 +37,13 @@ check 'select(.id==3) | .result.isError != true and ((.result.content[0].text | 
 check 'select(.id==4) | .result.isError != true and (.result.content[0].text | test("Authoring a skill"))' 'skill call returns its body'
 check 'select(.id==5) | .result.isError != true and (.result.content[0].text | test("Frontmatter contract"))' 'skill_resource'
 
-emit "smoke passed: $(emit "$out" | jq -r 'select(.id==2) | .result.tools | length') tools"
+# Protocol 2026-07-28 has no initialize: each request carries the version in
+# `_meta`, and a list result must carry `ttlMs` and `cacheScope`. A client that
+# validates against that schema rejects a tools/list missing either.
+out=$(
+  printf '%s\n' '{"jsonrpc":"2.0","id":6,"method":"tools/list","params":{"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientCapabilities":{}}}}' \
+    | "$BIN"
+)
+check 'select(.id==6) | (.result.ttlMs | type) == "number" and (.result.cacheScope | IN("public", "private")) and (.result.tools | length) > 0' 'tools/list under 2026-07-28 has ttlMs and cacheScope'
+
+emit "smoke passed: $(emit "$out" | jq -r 'select(.id==6) | .result.tools | length') tools"
