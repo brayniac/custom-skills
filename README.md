@@ -71,9 +71,10 @@ makes GitHub refuse the merge if the head moved after the review. The SHA has
 to be written out: the gate reads the command before the shell expands a
 variable.
 
-The gate reads the command as the shell would: across newlines and `;`, `&&`
-and `|`, inside `bash -c`, `eval`, `$( )` and backticks, and in a heredoc a
-shell reads. It refuses `--auto`, a pipe into a shell in a command that
+The gate parses common shell forms: line continuations, comments, newlines and
+`;`, `&&` and `|`, `if`/`for`/`while` bodies, wrappers such as `sudo` and
+`xargs`, `bash -c`, `eval`, `$( )` and backticks, and heredocs and here-strings
+a shell reads. `hooks/review_gate.py` lists exactly what it reads. It refuses `--auto`, a pipe into a shell in a command that
 mentions a merge, and `gh api` merges (the pull merge and repository `merges`
 endpoints, and the merge, auto-merge and merge-queue mutations). It does not
 see a gh alias or gh run from another language, it does not check the base

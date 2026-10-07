@@ -8,6 +8,7 @@ temporary directory.
 import json
 import os
 import pathlib
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -18,6 +19,14 @@ GATE = HERE / "review_gate.py"
 RECORD = HERE.parent / "skills" / "review" / "references" / "record-review.sh"
 A, B = "a" * 40, "b" * 40
 PINNED = f"gh pr merge 7 --repo owner/repo --match-head-commit {A} --squash"
+
+
+def nested(levels):
+    """`gh pr merge` inside `levels` nested `bash -c`, quoted as the shell needs."""
+    cmd = "gh pr merge 7 --repo owner/repo"
+    for _ in range(levels):
+        cmd = "bash -c " + shlex.quote(cmd)
+    return cmd
 
 
 class Gate(unittest.TestCase):
@@ -145,6 +154,50 @@ class Gate(unittest.TestCase):
 
     def test_record_review_refuses_a_path_out_of_the_record_directory(self):
         self.assertNotEqual(self.record("../..", A, "merge", "x").returncode, 0)
+
+    def test_line_continuations_join_a_command(self):
+        self.record("owner/repo", A, "merge", "ok")
+        self.assertFalse(self.blocked(f"gh pr merge 7 --repo owner/repo \\\n"
+                                      f"  --match-head-commit {A} \\\n  --squash"))
+        for c in ["gh api graphql \\\n  -f query='mutation { mergePullRequest(input: {}) { x } }'",
+                  "gh api -X PUT \\\n  repos/o/r/pulls/7/merge",
+                  "gh \\\n  pr merge 7 --squash", "gh pr \\\n  merge 7 --squash"]:
+            self.assertTrue(self.blocked(c), c)
+
+    def test_quotes_in_comments_and_single_quotes_are_text(self):
+        for c in ["# Check the PR's merge state\ngh pr view 7 --json mergeStateStatus",
+                  "git log --merges --format='%H %s' -5   # the PR's merge commits",
+                  "gh pr comment 7 --body 'Run `gh pr merge 7 --squash` once green'",
+                  "git commit -m 'Gate `gh pr merge` on a review record'"]:
+            self.assertFalse(self.blocked(c), c)
+        self.assertTrue(self.blocked('git commit -m "x `gh pr merge 7 --repo o/r`"'))
+
+    def test_keywords_and_wrapper_options_do_not_hide_gh(self):
+        for c in ["if gh pr checks 7 --watch; then gh pr merge 7 --squash; fi",
+                  "for n in 7; do gh pr merge $n; done", "{ gh pr merge 7; }", "! gh pr merge 7",
+                  "sudo -u brian gh pr merge 7", "env -u GH_TOKEN gh pr merge 7",
+                  "nice -n 10 gh pr merge 7", "timeout 60 gh pr merge 7",
+                  "echo 7 | xargs gh pr merge", "env gh pr merge 7", "time gh pr merge 7",
+                  "FOO=1 gh pr merge 7"]:
+            self.assertTrue(self.blocked(c), c)
+
+    def test_more_ways_to_feed_a_shell(self):
+        for c in ["cat <<'EOF' | bash\ngh pr merge 7 --repo owner/repo\nEOF",
+                  "echo 'gh pr merge 7 --repo owner/repo' |& bash",
+                  "bash <<< 'gh pr merge 7 --repo owner/repo'",
+                  "cat <<EOF\n$(gh pr merge 7 --repo owner/repo)\nEOF",
+                  nested(5)]:
+            self.assertTrue(self.blocked(c), c)
+        self.assertFalse(self.blocked("cat <<'EOF' > notes.md\nthen gh pr merge 7\nEOF"))
+
+    def test_a_url_and_a_disagreeing_repo_are_refused_even_with_records(self):
+        self.record("owner/repo", A, "merge", "ok")
+        self.record("other/x", A, "merge", "ok")
+        self.assertTrue(self.blocked(f"gh pr merge https://github.com/owner/repo/pull/7 "
+                                     f"--repo other/x --match-head-commit {A}"))
+
+    def test_gh_repo_from_the_environment_is_the_repository_checked(self):
+        self.assertTrue(self.blocked(f"GH_REPO=owner/repo gh pr merge 7 --match-head-commit {A}"))
 
     def test_an_internal_error_lets_the_command_through(self):
         p = subprocess.run([sys.executable, str(GATE)], input="not json",

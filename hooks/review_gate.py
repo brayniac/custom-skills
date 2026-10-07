@@ -11,11 +11,14 @@ skills/review/references/record-review.sh after a review whose verdict was
 merge, or as a waiver the user agreed to. `--match-head-commit` makes GitHub
 refuse the merge if the head moved after the review; the gate needs no network.
 
-The command is read the way the shell reads it: split at `;`, `&`, `|`,
-parentheses and newlines, `#` comments dropped, quotes and backslashes
-removed. In each simple command, after leading `VAR=value` assignments and the
-wrappers `command`, `exec`, `env`, `nohup`, `time`, `nice` and `sudo`, the
-first word decides:
+The command is parsed the way the shell would split it, for the forms below.
+Line continuations are joined; `#` comments (a `#` at the start of a word,
+outside quotes) are dropped; the rest is split at `;`, `&`, `|`, parentheses,
+redirections and newlines, with quotes and backslashes removed. In each simple
+command, leading `VAR=value` assignments and the keywords `if then else elif do
+while until ! { } time` are skipped; after a wrapper (`command`, `exec`, `env`,
+`nohup`, `nice`, `sudo`) or a runner (`xargs`, `timeout`, `stdbuf`, `watch`,
+`find`) any later `gh` word is the command. Then:
 
 - `gh` (by basename), or a word that is a variable or a `$( )`/backtick
   substitution (`$GH`, `$(which gh)`), followed by `pr merge`: a merge, checked
@@ -26,14 +29,17 @@ first word decides:
   or the `mergePullRequest`, `enablePullRequestAutoMerge` or
   `enqueuePullRequest` mutations: refused, with the pinned form to use.
 - a shell (`bash`, `sh`, `zsh`, `dash`, `ksh`) with `-c` among its options, or
-  `eval`: its script is checked the same way. A shell or `ssh` reading a
-  heredoc has the heredoc checked; any other heredoc body is text, not
-  commands, and is ignored. A shell reading a pipe, in a command that mentions
-  a merge, is refused.
+  `eval`: its script is checked the same way, as is a here-string or a heredoc
+  a shell or `ssh` reads. A shell reading a pipe, in a command that mentions a
+  merge (a piped heredoc's body included), is refused.
 
-Substitutions anywhere are checked too. `--auto` is refused; `--disable-auto`
-and `--help` pass. Not seen: a gh alias, or gh run from another language
-(`python3 -c "subprocess.run(['gh', ...])"`). This is a backstop for an agent
+`$( )` and backtick substitutions outside single quotes are checked too, also
+inside a heredoc with an unquoted delimiter; other heredoc bodies and
+single-quoted text are text. Nesting deeper than four levels around a merge is
+refused. `--auto` is refused; `--disable-auto` and `--help` pass. Not seen: a
+gh alias, gh run from another language
+(`python3 -c "subprocess.run(['gh', ...])"`), or shell syntax outside these
+forms (`case`, functions, arithmetic). This is a backstop for an agent
 forgetting the review, not a sandbox.
 
 Blocks with exit 2 and the reason on stderr. A command that mentions a merge
@@ -53,6 +59,8 @@ RECORD = '"' + os.path.join(PLUGIN, "skills", "review", "references", "record-re
 SHELLS = {"bash", "sh", "zsh", "dash", "ksh"}
 WRAPPERS = {"command", "exec", "env", "nohup", "time", "nice", "sudo"}
 SEPARATORS = set(";&|()<>\n")
+KEYWORDS = {"if", "then", "else", "elif", "do", "while", "until", "!", "{", "}", "time"}
+RUNNERS = WRAPPERS | {"xargs", "timeout", "stdbuf", "watch", "find"}
 SHA = re.compile(r"^[0-9a-f]{40}$")
 ASSIGN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
 HEREDOC = re.compile(r"<<-?[ \t]*(['\"]?)([A-Za-z_][A-Za-z0-9_]*)\1[^\n]*\n(.*?)\n[ \t]*\2[ \t]*(?=\n|$)", re.S)
@@ -74,20 +82,64 @@ def mentions_merge(text):
     return "merge" in low or "enqueuepullrequest" in low
 
 
+def single_quoted_spans(cmd):
+    """(start, end) of each single-quoted string, read the way the shell reads
+    quotes: a `'` inside double quotes or after a backslash does not open one."""
+    spans, i, q, start = [], 0, None, 0
+    while i < len(cmd):
+        c = cmd[i]
+        if q == "'":
+            if c == "'":
+                spans.append((start, i + 1)); q = None
+        elif c == "\\":
+            i += 2; continue
+        elif q == '"':
+            if c == '"':
+                q = None
+        elif c == "'":
+            q, start = "'", i
+        elif c == '"':
+            q = '"'
+        i += 1
+    if q == "'":
+        spans.append((start, len(cmd)))
+    return spans
+
+
+def strip_comments(cmd):
+    """Drop `#` comments as the shell does: a `#` at the start of a word,
+    outside quotes, to the end of the line."""
+    out, i, q, prev = [], 0, None, "\n"
+    while i < len(cmd):
+        c = cmd[i]
+        if q == "'":
+            q = None if c == "'" else q
+        elif c == "\\":
+            out.append(cmd[i:i + 2]); prev = "x"; i += 2; continue
+        elif q == '"':
+            q = None if c == '"' else q
+        elif c in "'\"":
+            q = c
+        elif c == "#" and prev in " \t\n;&|()":
+            j = cmd.find("\n", i)
+            i = len(cmd) if j < 0 else j
+            continue
+        out.append(c); prev = c; i += 1
+    return "".join(out)
+
+
 def simple_commands(cmd):
     """[(operator_before, words)], split where the shell splits commands."""
     lex = shlex.shlex(cmd, posix=True, punctuation_chars=";&|()<>\n")
     lex.whitespace = " \t\r"
     lex.whitespace_split = True
     lex.commenters = ""
-    out, cur, op, comment = [], [], "", False
+    out, cur, op = [], [], ""
     for tok in lex:
         if tok and set(tok) <= SEPARATORS:
             if cur:
                 out.append((op, cur))
-            cur, op, comment = [], tok.strip(), False
-        elif comment or tok.startswith("#"):
-            comment = True  # a comment runs to the next separator (newline)
+            cur, op = [], tok.strip()
         else:
             cur.append(tok)
     if cur:
@@ -103,7 +155,15 @@ def command_word(words):
         if ASSIGN.match(w):
             k, v = w.split("=", 1)
             env[k] = v
-        elif w in WRAPPERS or (w.startswith("-") and i > 0 and words[i - 1] in WRAPPERS):
+        elif w in KEYWORDS:
+            pass
+        elif w in WRAPPERS:
+            # A wrapper's options can take values (`sudo -u x`, `nice -n 10`);
+            # the command it runs is gh if any later word is.
+            later = [j for j in range(i + 1, len(words)) if os.path.basename(words[j]) == "gh"]
+            if later:
+                return later[0], env
+        elif w.startswith("-") and i > 0 and words[i - 1] in WRAPPERS:
             pass
         else:
             return i, env
@@ -223,30 +283,49 @@ def check_pr_merge(args, repo):
 
 
 def check(cmd, depth=0):
-    if depth > 4 or not mentions_merge(cmd):
+    if not mentions_merge(cmd):
         return
+    if depth > 4:
+        raise Refuse("this command nests shells or substitutions more than four deep around a "
+                     "merge. Run the merge as its own plain command.")
+    cmd = cmd.replace("\\\n", "")  # a line continuation joins two lines into one command
+    hidden_merge = False
 
-    # Heredocs: a body a shell or ssh reads is commands; any other is text.
+    # Heredocs: a body a shell or ssh reads is commands; any other is text, but
+    # an unquoted delimiter still runs the body's substitutions.
     def heredoc(m):
+        nonlocal hidden_merge
         line_start = cmd.rfind("\n", 0, m.start()) + 1
         try:
-            line = simple_commands(cmd[line_start:m.start()])
+            line = simple_commands(strip_comments(cmd[line_start:m.start()]))
         except ValueError:
             line = []
         words = line[-1][1] if line else []
         ci, _ = command_word(words)
+        body = m.group(3)
         if ci is not None and os.path.basename(words[ci]) in SHELLS | {"ssh"} and \
                 not any(re.match(r"^-[A-Za-z]*c[A-Za-z]*$", w) for w in words[ci + 1:]):
-            check(m.group(3), depth + 1)
+            check(body, depth + 1)
+        else:
+            if not m.group(1):
+                for sm in SUBST.finditer(body):
+                    check(sm.group(1) or sm.group(2) or "", depth + 1)
+            hidden_merge = hidden_merge or mentions_merge(body)
         return m.group(0).split("\n", 1)[0]
     cmd = HEREDOC.sub(heredoc, cmd)
+    cmd = strip_comments(cmd)
 
-    # Substitutions are commands; check them, then stand a placeholder in.
-    def subst(m):
+    # Substitutions outside single quotes are commands: check them, then stand
+    # a placeholder in. Inside single quotes they are text.
+    quoted = single_quoted_spans(cmd)
+    pieces, last = [], 0
+    for m in SUBST.finditer(cmd):
+        if any(a <= m.start() < b for a, b in quoted):
+            continue
         check(m.group(1) or m.group(2) or "", depth + 1)
-        return PLACEHOLDER
-    cmd = SUBST.sub(subst, cmd)
-    if not mentions_merge(cmd):
+        pieces.append(cmd[last:m.start()]); pieces.append(PLACEHOLDER); last = m.end()
+    cmd = "".join(pieces) + cmd[last:]
+    if not mentions_merge(cmd) and not hidden_merge:
         return
 
     try:
@@ -254,8 +333,14 @@ def check(cmd, depth=0):
     except ValueError:
         raise Refuse("this command mentions a merge and does not tokenise (unbalanced "
                      "quotes?). Run the merge as its own plain command.")
+    prev_shell = False
     for op, words in commands:
+        # The tokeniser splits at `<<<`: the words after it are a here-string,
+        # which a shell before it runs.
+        if op == "<<<" and prev_shell and words:
+            check(words[0], depth + 1)
         ci, env = command_word(words)
+        prev_shell = ci is not None and os.path.basename(words[ci]) in SHELLS
         if ci is None:
             continue
         cw, rest = words[ci], words[ci + 1:]
@@ -271,13 +356,16 @@ def check(cmd, depth=0):
                     break
             if script is not None:
                 check(script, depth + 1)
-            elif op == "|":
+            elif op in ("|", "|&"):
                 raise Refuse("this pipes text into a shell in a command that mentions a "
                              f"merge. Run the merge as its own plain command: {FORM}")
         elif cw == "eval":
             check(" ".join(rest), depth + 1)
         elif base == "gh" or cw.startswith("$") or cw == PLACEHOLDER:
             check_gh(rest, env)
+        elif base in RUNNERS and any(os.path.basename(x) == "gh" for x in rest):
+            j = next(j for j, x in enumerate(rest) if os.path.basename(x) == "gh")
+            check_gh(rest[j + 1:], env)
 
 
 def main():

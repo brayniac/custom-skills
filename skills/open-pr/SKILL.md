@@ -114,11 +114,11 @@ git rev-parse HEAD origin/<branch>     # must match
 gh pr view --json url,state,isDraft,headRefOid
 ```
 
-Record the step 6 review against that head (`review` step 8) if no commit landed
-after it and its verdict was merge; the merge gate refuses an unrecorded head.
-Report the URL and what the review found. If CI has started, give its state; on
-repos with rack-ci, read the `rack-ci/*` statuses (`use-rack-ci`). When a
-reviewer answers, reply with `review` step 7.
+Record the step 6 review against that head (`review` step 8) if its verdict was
+merge and nothing but the mechanical fixes that step allows landed after it; the
+merge gate refuses an unrecorded head. Report the URL and what the review found.
+If CI has started, give its state; on repos with rack-ci, read the `rack-ci/*`
+statuses (`use-rack-ci`). When a reviewer answers, reply with `review` step 7.
 
 ## Never
 
