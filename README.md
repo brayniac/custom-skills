@@ -55,6 +55,25 @@ claude mcp remove custom-skills --scope user
 rm -f ~/.cargo/bin/custom-skills-mcp
 ```
 
+## The review gate
+
+The plugin installs one hook. Before a Bash command runs `gh pr merge`, it
+looks up the PR's current head commit and refuses the merge unless that exact
+commit has a review recorded on this machine. `/cs:review` reviews a change with
+a fresh agent and records it; `open-pr` and `drive-pr-to-green` run it before
+opening and merging. A commit pushed after the review is a new head and needs
+its own.
+
+To merge something with nothing to review, record a waiver:
+
+```sh
+bash skills/review/references/record-review.sh <owner/repo> <pr-or-sha> --waive "<reason>"
+```
+
+Records are files under `~/.claude/cs-reviews` (`CS_REVIEW_DIR` moves them).
+To turn the gate off, remove `hooks/hooks.json` from your copy, or disable the
+plugin.
+
 ## Add a skill
 
 Create `skills/<name>/SKILL.md`:
@@ -104,6 +123,7 @@ rack-ci runs the first four (`.rack-ci.toml`).
 | `.claude-plugin/plugin.json` | The plugin manifest |
 | `.claude-plugin/marketplace.json` | The `custom-skills` marketplace, listing this repository as its one plugin |
 | `skills/` | The skills |
+| `hooks/` | `hooks.json` and the review gate (`review_gate.py`, its test) |
 | `src/skill.rs` | The rules `check-skills` enforces, and their tests |
 | `src/main.rs` | The `check-skills` command |
 

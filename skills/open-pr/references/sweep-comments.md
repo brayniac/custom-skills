@@ -1,9 +1,4 @@
----
-name: sweep-comments
-description: Sweep the comments and doc comments a change touches before a PR — decide where each fact lives (one home per design model, one sentence at any site where a wrong edit would still compile), delete what a competent reader derives from the code in front of them, check every surviving claim of absence, equivalence or who-does-what against the code with a grep, strip text written from the authoring session's vantage, then walk the edit sites to restore constraints the first pass removed. Reports one line per comment touched. Use before opening or updating a PR, after a design changed direction mid-session, when writing or reviewing comments in any language, when asked to "document this" or "add comments", and when a reviewer finds a comment the code contradicts.
----
-
-# Sweep comments
+# Sweeping comments
 
 Design changes during a session are the main source of false comments: a
 comment written for the third iteration still sits on the code of the
@@ -123,7 +118,7 @@ Restate the surviving fact in the present tense and delete the rest:
 Keep issue references, present-tense counterfactuals ("without the fence, a
 reader can observe a torn write"), measured bounds with the word "measured",
 and runtime old/new ("the old connection drains before the new one accepts").
-Grep probes for this step are in `${CLAUDE_SKILL_DIR}/references/probes.md`.
+Grep probes for this step are in `sweep-comments-probes.md`, beside this file.
 
 ### 5. Check every surviving claim against the code
 
@@ -184,7 +179,7 @@ satisfy a linter on a trivial internal item (suppress the lint at the site); a
 comment written to end a reviewer's question (answer in the thread); a
 rationale you do not know to be true. Genericised examples of comments that
 did not survive, and trims that changed a claim, are in
-`${CLAUDE_SKILL_DIR}/references/examples.md`.
+`sweep-comments-examples.md`, beside this file.
 
 ## Never
 

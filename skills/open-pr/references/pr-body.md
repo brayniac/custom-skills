@@ -1,14 +1,9 @@
----
-name: write-pr-body
-description: Write or update a pull-request body as a guide for the human reviewing it — a summary of why the change exists with no identifiers in it, the concepts a reviewer needs before any type name, one subsection per decision with its context and `path:line` ahead of the question, a ranked list of where to look more closely and what is safe to skim, what the tests ran and do not cover with real output, and what can only show up in production. Length follows what the change carries; a change with nothing to direct attention to gets one sentence. Use when opening a PR (from `open-pr` step 6), when updating a PR body after new commits, when asked to write a PR description or make a change reviewable, and when a reviewer says the body did not help them.
----
-
-# Write a PR body
+# Writing a PR body
 
 The reviewer already has the diff. The body does not summarise it. It says
 why the change exists, where a reviewer's limited attention is best spent, and
-what the author could not settle. `open-pr` handles the mechanics; this skill
-is the body it passes to `gh pr create --body-file`.
+what the author could not settle. `open-pr` handles the mechanics; this is
+the body it passes to `gh pr create --body-file`.
 
 The rules below came from one reader's reports on about a dozen bodies across
 two repositories, each report against a specific body. Every one was invisible
@@ -22,7 +17,7 @@ the commit that updates this skill.
   pinned to.
 - The per-gate lines from `verify-change`.
 - For a change to a public interface, what a caller can no longer do
-  (`adversarial-review` mandate 1).
+  (`review` step 4).
 
 Before writing, check the destination's visibility and apply
 `publishing-findings`.
@@ -112,7 +107,7 @@ manufacture doubt, and do not present one reading of an ambiguous requirement
 as the only one. If nothing was genuinely open, say so and why.
 
 Worked examples of a summary, a decision subsection and a glossed "before"
-beat are in `${CLAUDE_SKILL_DIR}/references/examples.md`.
+beat are in `pr-body-examples.md`, beside this file.
 
 ## 4. Where to look more closely
 

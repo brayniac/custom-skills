@@ -120,7 +120,7 @@ findings on one change put it as "doc comments were written as justification
 for the change rather than as a description of the result". No metaphor, no
 bold or italics for emphasis, no rhetorical questions.
 
-Before a PR, run `sweep-comments` over the touched files. It carries the
+Before a PR, sweep the touched files (`open-pr` step 4). It carries the
 reader-at-HEAD test and the list of what to cut or restate (change narration,
 references only the author could see, argument with a reviewer, control-flow
 narration, hedges), and it checks each surviving claim of absence,
@@ -158,9 +158,8 @@ these over the diff's crates first, then review:
   (`super::other::thing`) becomes `crate::other::thing`.
 - **Superseded comment stacks**: a comment followed by a second one that
   corrects or contradicts it. Replace both with one statement of the current
-  behaviour.
-  `sweep-comments` step 4 has grep probes for the rest of the authoring
-  session's vantage.
+  behaviour. `open-pr`'s comment sweep, step 4, has grep probes for the rest of
+  the authoring session's vantage.
 
 ## Never
 

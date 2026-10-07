@@ -26,6 +26,8 @@ cargo test --locked
 claude plugin validate .                           # manifests only
 ```
 
+Changing `hooks/`, also run `python3 hooks/test_review_gate.py`.
+
 rack-ci runs the first four (`.rack-ci.toml`); the repository is on its
 allowlist and every PR gets `rack-ci/check`, `rack-ci/lint` and `rack-ci/test`
 statuses. `claude plugin validate` needs Claude Code, which the CI guests do not
@@ -53,6 +55,11 @@ error. That is why `check-skills` exists; keep it failing on those cases.
 - **Skills do not act when loaded.** A skill returns instructions; a script
   beside it runs only when the body tells the agent to run it. Do not add hooks,
   monitors, or MCP servers to the plugin without deciding that deliberately.
+  One hook was decided (2026-10-07): `hooks/review_gate.py`, a PreToolUse hook
+  on Bash that refuses `gh pr merge` of a head with no review recorded by
+  `review`'s `record-review.sh`. It backs up `open-pr` and `drive-pr-to-green`,
+  which run `review`; it is not the review. `python3 hooks/test_review_gate.py`
+  tests it offline (rack-ci's `test` check runs it).
 - **No `version` in `plugin.json`.** Without it, an install's version is the
   commit SHA, so `claude plugin update` and auto-update pick up every merge. A
   pinned version would hold every host on the old copy until someone changed
@@ -110,6 +117,7 @@ after `/reload-plugins`. For a one-off session, `claude --plugin-dir .`.
 | `.claude-plugin/plugin.json` | Plugin manifest |
 | `.claude-plugin/marketplace.json` | The `custom-skills` marketplace, with this repository as its one plugin (`"source": "./"`) |
 | `skills/` | The skills |
+| `hooks/` | `hooks.json` and the review gate (`review_gate.py`, its test) |
 | `src/skill.rs` | The rules `check-skills` enforces, and their tests |
 | `src/main.rs` | The `check-skills` command |
 

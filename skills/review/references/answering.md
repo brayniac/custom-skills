@@ -1,9 +1,4 @@
----
-name: answer-review
-description: Answer a round of review findings as the author — read every finding and every earlier round before replying, check each against the code before acting, give each exactly one disposition (fixed with the commit, disputed with evidence, or deferred with a reason and a reopen condition), reply where the finding was made, list changes nobody asked for, and ask for a review of the new head because fix commits have not been reviewed. Use when a human reviewer, `adversarial-review`, Copilot or another agent has left findings on a PR or branch; when asked to "address the review", "reply to the comments" or "resolve the feedback"; and when a finding you believe is wrong needs an answer instead of silence.
----
-
-# Answer a review
+# Answering a review
 
 A review round ends when every finding has an answer the reviewer can check.
 When the author could not write back, findings the author disagreed with were
@@ -11,13 +6,14 @@ either accepted without a word or dropped, and the next round raised them
 again. Every step below closes one of those gaps.
 
 Copilot's loop, with its thread pagination and re-request traps, is in
-`drive-copilot-review`; use that for the mechanics and this for the answers.
+`drive-pr-to-green` ("Copilot review rounds"); use that for the mechanics and
+this for the answers.
 
 ## 1. Collect every finding before answering any
 
 - Every thread on the PR, all pages. `gh pr view --comments` omits inline
   review threads; use the GraphQL `reviewThreads` connection with pagination
-  (`drive-copilot-review`'s helper lists them).
+  (`drive-pr-to-green`'s Copilot helper lists them).
 - Every earlier round, including resolved threads and review summaries, so
   that you do not re-answer a settled point or contradict an earlier reply.
 - Any finding given in chat or in a file, copied into your list with its
@@ -29,9 +25,8 @@ Number them. The reply covers the whole list.
 
 - Reread the code the finding cites, at the head you will push, not the line
   as the reviewer quoted it.
-- **Reproduce a blocking finding before fixing it** (`adversarial-review`
-  step 5). Compile the misuse, run the input, write the failing test with
-  `verify-by-breaking`.
+- **Reproduce a blocking finding before fixing it** (`review` step 5). Compile
+  the misuse, run the input, write the failing test with `verify-by-breaking`.
 - **A reader's confusion is evidence the claim may be wrong.** When a reviewer
   says a passage does not make sense, go to the source before rewording. A PR
   body rewrite once kept a "before" state that had never existed, in

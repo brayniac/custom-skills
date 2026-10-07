@@ -121,7 +121,7 @@ a clean context (a fresh agent, not a fork of this one) asked specifically:
   concurrently, recover from an error, use it across an `.await`)?
 - which callers outside this repository exist, and what do they do?
 
-`adversarial-review` has the full procedure.
+`review` step 4 has the full procedure.
 
 ## 8. Report
 
