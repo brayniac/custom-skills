@@ -231,6 +231,19 @@ class Gate(unittest.TestCase):
             cmd = "bash -c " + shlex.quote(cmd)
         self.assertTrue(self.blocked(cmd))
 
+    def test_fifth_review_forms(self):
+        for c in ["{ cat <<EOF\ngh pr merge 7\nEOF\n} | bash",
+                  "(cat <<EOF\ngh pr merge 7\nEOF\n) | bash",
+                  "ssh host -t 'gh pr merge 7'", "ssh host -- 'gh pr merge 7'",
+                  "ssh -tp 2222 host 'gh pr merge 7'", "ssh -B en0 host 'gh pr merge 7'",
+                  "ssh -P tag host 'gh pr merge 7'", "timeout 30 ssh host 'gh pr merge 7'",
+                  "x=`echo \\`gh pr merge 7\\` `",
+                  "ssh -c aes128-ctr host <<EOF\ngh pr merge 7\nEOF"]:
+            self.assertTrue(self.blocked(c), c)
+        for c in ["ssh -o User=merge host uptime", "ssh -p2222 merge-host 'git log --merges -3'",
+                  "ssh host", "ssh -i merge_key host 'grep merge /etc/x.conf'"]:
+            self.assertFalse(self.blocked(c), c)
+
     def test_an_internal_error_lets_the_command_through(self):
         p = subprocess.run([sys.executable, str(GATE)], input="not json",
                            capture_output=True, text=True, env=self.env)

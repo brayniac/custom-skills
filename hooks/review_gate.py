@@ -36,12 +36,12 @@ while until ! { } time` are skipped; after a wrapper (`command`, `exec`, `env`,
 `$( )` and backtick substitutions outside single quotes are checked too, also
 inside a heredoc with an unquoted delimiter; other heredoc bodies and
 single-quoted text are text. Nesting deeper than four levels around a merge is
-refused. A command `ssh` runs on another host is checked. `--auto` is
-refused; `--disable-auto` and `--help` pass. Not seen: a gh alias, gh run from
-another language (`python3 -c "subprocess.run(['gh', ...])"`), shell
-functions, and a branch merged locally and pushed to the base
-(`git merge` then `git push origin main`), which is not a PR merge. This is a backstop for an agent
-forgetting the review, not a sandbox.
+refused. The command `ssh` runs on another host is checked, with ssh's options
+before or after the host. `--auto` is refused; `--disable-auto` and `--help`
+pass. Not seen: a gh alias, gh run from another language (`python3 -c
+"subprocess.run(['gh', ...])"`), and a branch merged locally and pushed to the
+base (`git merge` then `git push origin main`), which is not a PR merge. This is
+a backstop for an agent forgetting the review, not a sandbox.
 
 Blocks with exit 2 and the reason on stderr. A command that mentions a merge
 and does not tokenise (unbalanced quotes) is refused. An internal error in
@@ -62,8 +62,7 @@ WRAPPERS = {"command", "exec", "env", "nohup", "time", "nice", "sudo"}
 SEPARATORS = set(";&|()<>\n")
 KEYWORDS = {"if", "then", "else", "elif", "do", "while", "until", "!", "{", "}", "time"}
 RUNNERS = WRAPPERS | {"xargs", "timeout", "stdbuf", "watch", "find"}
-SSH_VALUED = {"-b", "-c", "-D", "-E", "-e", "-F", "-I", "-i", "-J", "-L", "-l", "-m",
-              "-O", "-o", "-p", "-Q", "-R", "-S", "-W", "-w"}
+SSH_VALUED = set("BbcDEeFIiJLlmOoPpQRSWw")  # ssh options that take a value
 SHA = re.compile(r"^[0-9a-f]{40}$")
 ASSIGN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
 # Groups: an escaping backslash, a quote, the delimiter, the rest of the
@@ -88,9 +87,17 @@ def mentions_merge(text):
 
 
 def substitutions(text):
-    """SUBST matches in text, ignoring escaped characters: `\\`` and `\\$(` are
-    literal to the shell. The masking keeps offsets, so spans index `text`."""
+    """SUBST matches in text, ignoring escaped characters: outside backticks,
+    `\\`` and `\\$(` are literal to the shell. The masking keeps offsets, so
+    spans index `text`."""
     return SUBST.finditer(re.sub(r"\\[\\`$]", "__", text))
+
+
+def unescape_backticks(inner):
+    """Inside backticks bash removes one level of backslash escaping from a
+    backslash, a backtick or a dollar sign before running the text, so an
+    escaped backtick there starts a real substitution."""
+    return re.sub(r"\\([\\`$])", r"\1", inner)
 
 
 def single_quoted_spans(cmd):
@@ -293,6 +300,30 @@ def check_pr_merge(args, repo):
             f"  bash {RECORD} {repo} {sha} --waive \"<reason>\"")
 
 
+def check_ssh(args, depth):
+    """Check the command ssh runs on the remote host: the words after the host.
+    OpenSSH reads options before and after the host; a cluster such as `-tp 2222`
+    ends at the first letter that takes a value, attached (`-p2222`) or next.
+    `--` ends options."""
+    host, k, opts = None, 0, True
+    while k < len(args):
+        w = args[k]
+        if opts and w == "--":
+            opts = False
+        elif opts and w.startswith("-") and len(w) > 1:
+            for n, ch in enumerate(w[1:], 1):
+                if ch in SSH_VALUED:
+                    if n == len(w) - 1:
+                        k += 1  # the value is the next word
+                    break
+        elif host is None:
+            host = w
+        else:
+            check(" ".join(args[k:]), depth + 1)
+            return
+        k += 1
+
+
 def check(cmd, depth=0):
     if not mentions_merge(cmd):
         return
@@ -314,16 +345,20 @@ def check(cmd, depth=0):
         words = line[-1][1] if line else []
         ci, _ = command_word(words)
         body = m.group(5)
-        if ci is not None and os.path.basename(words[ci]) in SHELLS | {"ssh"} and \
-                not any(re.match(r"^-[A-Za-z]*c[A-Za-z]*$", w) for w in words[ci + 1:]):
+        reader = os.path.basename(words[ci]) if ci is not None else ""
+        if reader == "ssh" or (reader in SHELLS and not any(
+                re.match(r"^-[A-Za-z]*c[A-Za-z]*$", w) for w in words[ci + 1:])):
             check(body, depth + 1)
         else:
             if not m.group(1) and not m.group(2):
                 for sm in substitutions(body):
-                    check(body[sm.start(1):sm.end(1)] if sm.group(1) is not None
+                    check(unescape_backticks(body[sm.start(1):sm.end(1)]) if sm.group(1) is not None
                           else body[sm.start(2):sm.end(2)], depth + 1)
-            # Text only matters to a shell it is piped into on its own line.
-            if "|" in m.group(4):
+            # Text counts toward a pipe into a shell unless its command writes
+            # it to a file (`cat > NOTES.md <<EOF`); a group (`{ cat <<EOF; } | bash`)
+            # pipes it on a later line.
+            opline = cmd[line_start:m.start()] + m.group(4)
+            if "|" in m.group(4) or not re.search(r"(^|[^<>&0-9])1?>", opline):
                 hidden_merge = hidden_merge or mentions_merge(body)
         return m.group(0).split("\n", 1)[0]
     cmd = HEREDOC.sub(heredoc, cmd)
@@ -336,7 +371,7 @@ def check(cmd, depth=0):
     for m in substitutions(cmd):
         if any(a <= m.start() < b for a, b in quoted):
             continue
-        check(cmd[m.start(1):m.end(1)] if m.group(1) is not None
+        check(unescape_backticks(cmd[m.start(1):m.end(1)]) if m.group(1) is not None
               else cmd[m.start(2):m.end(2)], depth + 1)
         pieces.append(cmd[last:m.start()]); pieces.append(PLACEHOLDER); last = m.end()
     cmd = "".join(pieces) + cmd[last:]
@@ -377,17 +412,15 @@ def check(cmd, depth=0):
         elif cw == "eval":
             check(" ".join(rest), depth + 1)
         elif base == "ssh":
-            # ssh runs the words after the host on the remote host.
-            k = 0
-            while k < len(rest) and rest[k].startswith("-"):
-                k += 2 if rest[k] in SSH_VALUED else 1
-            if k + 1 < len(rest):
-                check(" ".join(rest[k + 1:]), depth + 1)
+            check_ssh(rest, depth)
         elif base == "gh" or cw.startswith("$") or cw == PLACEHOLDER:
             check_gh(rest, env)
-        elif base in RUNNERS and any(os.path.basename(x) == "gh" for x in rest):
-            j = next(j for j, x in enumerate(rest) if os.path.basename(x) == "gh")
-            check_gh(rest[j + 1:], env)
+        elif base in RUNNERS:
+            j = next((j for j, x in enumerate(rest) if os.path.basename(x) in ("gh", "ssh")), None)
+            if j is not None and os.path.basename(rest[j]) == "gh":
+                check_gh(rest[j + 1:], env)
+            elif j is not None:
+                check_ssh(rest[j + 1:], depth)
 
 
 def main():
