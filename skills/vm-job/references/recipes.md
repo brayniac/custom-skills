@@ -304,40 +304,39 @@ see it. Still untested on the deployed client: a re-run with `run_id > 0`.
 
 ## Import a cloud image as a new guest image (persistent rack state)
 
-Runs as a job on the hypervisor that will hold the image, so the exclusivity
-contract holds. Then declare it in `infra/fleet/hosts/<host>.toml` and tell the
-infra owner. Rocky 10 needs x86-64-v3 (Zen2 ok) and boots under SeaBIOS.
+Use infra's tool; it submits the import as a job pinned to the host, so the
+exclusivity contract holds, and checks the image against the distribution's
+checksum:
 
-```toml
-name = "rocky-10-image-import"
-
-[[jobs]]
-name = "import"
-tags = ["z2.baremetal"]                    # the host that will hold it
-
-[[jobs.steps]]
-uses = "shell"
-[jobs.steps.with]
-run = '''
-set -euo pipefail
-IMG=Rocky-10-GenericCloud-Base-10.2-20260525.0.x86_64.qcow2
-SHA=<sha256 from the .CHECKSUM file next to the image>
-DS=spool/images/rocky-10
-sudo zfs list -H "$DS" >/dev/null 2>&1 && { echo "$DS exists"; exit 1; }
-cd /tmp && curl -sSfL -o "$IMG" "https://dl.rockylinux.org/pub/rocky/10/images/x86_64/$IMG"
-echo "$SHA  $IMG" | sha256sum -c
-sudo zfs create -s -V 100G -o volblocksize=16K -o compression=lz4 "$DS"
-sudo udevadm settle
-sudo qemu-img convert -n -p -f qcow2 -O raw "$IMG" "/dev/zvol/$DS"
-sync && sudo zfs snapshot "$DS@golden"
-sudo zfs set anvil:source="$IMG" "$DS"
-rm -f "$IMG"
-'''
+```sh
+cd ~/workspace/brayniac/infra
+host-setup/import-zvol-image hv01 rocky-10 \
+    https://dl.rockylinux.org/pub/rocky/10/images/x86_64/Rocky-10-GenericCloud-Base-10.2-20260525.0.x86_64.qcow2 \
+    --sha256 <from the .CHECKSUM file next to the image>
 ```
 
-Amazon Linux images do not work this way: their cloud-init only takes the Ec2
-datasource and ignores the NoCloud seed, so the guest never joins the control
-network. Rocky/Debian GenericCloud images do.
+Use a dated release image, not `current`/`latest`, so the name is the same
+bytes on every host. Then declare it in `infra/fleet/hosts/<host>.toml` and
+tell the infra owner. Images are per host; repeat for each.
+
+The image must take anvil's NoCloud seed and have `bash` and `sudo`: the seed
+gives the `anvil` user `/bin/bash` and a sudo rule, and payloads run under
+`bash -s`. Debian, Ubuntu, Rocky and Amazon Linux cloud images qualify as
+shipped. Alpine does not; infra imports it with `--prepare
+host-setup/guest-images/alpine-prepare.sh`, which adds both in a chroot before
+the image is snapshotted.
+
+## Alpine
+
+`alpine-3.24` is musl and OpenRC with a busybox userland. In a payload:
+
+- `bash` and `sudo` are there (added at import); most else is busybox.
+- No `curl` by default: `wget -q -O- URL`, or `sudo apk add curl`.
+- `ip -br` may not exist (busybox `ip`); `ip -o -4 addr` works.
+- Packages: `sudo apk add --no-cache <pkg>`; build tools are `build-base`.
+- Services are OpenRC: `rc-service <name> start`, not `systemctl`.
+- No rezolus in the guest (none is published for Alpine); record from the
+  host, or not at all.
 
 ## Make a syscall fail without changing the host
 
