@@ -1,6 +1,6 @@
 ---
 name: open-pr
-description: Open a pull request from local work in any of these repositories — find the upstream and fork remotes, branch if on main, sweep the comments the change touches (where each fact lives, every claim of absence or equivalence checked by a grep), run the repo's gates, stage files by name, follow its commit convention and per-repo PR steps, run a `review` of the commits and answer it, push, and write the body as a guide for the reviewer (why, the decisions, where to look, what the tests ran and do not cover). Use when asked to open, create, submit, or send a PR; when uncommitted changes or unpushed commits need to become a PR; when asked to write or update a PR description, or to sweep, clean up or check the comments in a change; and before trusting a repo-local `pr` skill, several of which point at the wrong repository.
+description: Open a pull request from local work in any of these repositories — find the upstream and fork remotes, branch if on main, sweep the comments the change touches (where each fact lives, every claim of absence or equivalence checked by a grep), run the repo's gates, stage files by name, follow its commit convention and per-repo PR steps, run a `review` of the commits and answer it, push, and write the body as a guide for the reviewer (why, the decisions, where to look, what the tests ran and do not cover). Use when asked to open, create, submit, or send a PR; when uncommitted changes or unpushed commits need to become a PR; when asked to write or update a PR description, or to add, document, sweep, clean up or check the comments in a change, in any language; and before trusting a repo-local `pr` skill, several of which point at the wrong repository.
 ---
 
 # Open a PR
@@ -114,8 +114,9 @@ git rev-parse HEAD origin/<branch>     # must match
 gh pr view --json url,state,isDraft,headRefOid
 ```
 
-Record the step 6 review against that head (`review` step 6) if no commit
-landed after it; the merge gate refuses an unrecorded head. Report the URL
+Record the step 6 review against that head (`review` step 8) if no commit
+landed after it and its verdict was merge; the merge gate refuses an
+unrecorded head. Report the URL
 and what the review found. If CI has started, give its state; on repos with
 rack-ci, read the `rack-ci/*` statuses (`use-rack-ci`). When a reviewer
 answers, reply with `review` step 7.

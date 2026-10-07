@@ -7,7 +7,7 @@ as `cs:<name>` and loads its instructions when the skill is invoked.
 
 ## Install
 
-On any machine with Claude Code and git access to this private repository
+On any machine with Claude Code and git access to this repository
 (`gh auth login`, or an SSH key GitHub accepts):
 
 ```sh
@@ -57,22 +57,27 @@ rm -f ~/.cargo/bin/custom-skills-mcp
 
 ## The review gate
 
-The plugin installs one hook. Before a Bash command runs `gh pr merge`, it
-looks up the PR's current head commit and refuses the merge unless that exact
-commit has a review recorded on this machine. `/cs:review` reviews a change with
-a fresh agent and records it; `open-pr` and `drive-pr-to-green` run it before
-opening and merging. A commit pushed after the review is a new head and needs
-its own.
-
-To merge something with nothing to review, record a waiver:
+The plugin installs one hook. It refuses a PR merge from a Bash command unless
+the merge is pinned to a head commit with a review recorded on this machine:
 
 ```sh
-bash skills/review/references/record-review.sh <owner/repo> <pr-or-sha> --waive "<reason>"
+gh pr merge <n> --repo <owner/repo> --match-head-commit <sha> --squash
 ```
 
-Records are files under `~/.claude/cs-reviews` (`CS_REVIEW_DIR` moves them).
-To turn the gate off, remove `hooks/hooks.json` from your copy, or disable the
-plugin.
+`/cs:review` reviews a change with a fresh agent and, once its findings are
+answered and its verdict is merge, records the head it read; `open-pr` and
+`drive-pr-to-green` run it before opening and merging. `--match-head-commit`
+makes GitHub refuse the merge if the head moved after the review. The gate
+refuses `--auto` and merges through `gh api`; it does not see a gh alias or gh
+run from another language, and it does not check the base branch. It is a
+backstop for an agent that skipped the review, not an access control.
+
+When the gate refuses a merge, it prints the command that records a review.
+For a change with nothing to review, the same command takes
+`--waive "<reason>"` in place of the verdict. Records are files under
+`~/.claude/cs-reviews` (`CS_REVIEW_DIR` moves them), so a merge from another
+machine needs its own record there. To turn the gate off, disable the plugin;
+removing `hooks/hooks.json` lasts only until the plugin next updates.
 
 ## Add a skill
 

@@ -8,13 +8,15 @@ commit is new code that has not been reviewed.
 This covers Copilot's review rounds only; the PR's checks, other reviewers
 and when to stop are `drive-pr-to-green` itself.
 
-The GraphQL is in `copilot_review.py`, beside this file; `drive-pr-to-green`
-gives its path as `H`. Run it in place. Use it rather than writing the queries
+The GraphQL is in `copilot_review.py`, beside this file; `drive-pr-to-green`'s
+SKILL.md gives its full path. Set `H` to it in the same Bash call as each
+command below (shell variables do not persist between calls), and run it in
+place. Use it rather than writing the queries
 each round; the pagination and the reply-then-resolve pair are easy to get
 wrong.
 
 ```sh
-R=owner/repo; N=<pr>     # H is set by drive-pr-to-green
+H=<path from drive-pr-to-green>; R=owner/repo; N=<pr>
 ```
 
 ## 1. Baseline

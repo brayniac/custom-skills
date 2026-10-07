@@ -9,7 +9,7 @@ The rules below came from one reader's reports on about a dozen bodies across
 two repositories, each report against a specific body. Every one was invisible
 to the author and to automated review. They have not been measured beyond
 that; when one fights the change in front of you, override it and say so in
-the commit that updates this skill.
+the commit that updates this file.
 
 ## Inputs
 

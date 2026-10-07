@@ -1,110 +1,163 @@
 #!/usr/bin/env python3
-"""Refuse `gh pr merge` of a head commit nobody reviewed.
+"""Refuse a PR merge unless the merge is pinned to a reviewed head commit.
 
-PreToolUse hook on Bash. For each `gh pr merge` in the command, resolve the
-PR's current head with `gh pr view` and look for a record of that exact
-commit in ~/.claude/cs-reviews/<owner>/<repo>/<sha> (CS_REVIEW_DIR overrides
-the root), written by skills/review/references/record-review.sh after a
-review, or as a waiver the user agreed to. A commit pushed after the review
-is a new head and needs its own record.
+PreToolUse hook on Bash. A merge passes only in this form:
 
-A merge is `gh pr merge` as separate words (gh by basename), in the command
-or in the argument of `bash -c` / `sh -c` / `eval`; a mention inside any other
-quoted argument (`git log --grep "gh pr merge"`) is not one. Blocks (exit 2,
-reason on stderr) when the record is missing, when the PR cannot be resolved,
-or when a command mentioning a merge does not tokenise (unbalanced quotes): it
-guards a merge, so not knowing is a refusal. Lets the command through on
-an internal error in this script, so a bug here cannot stop all work.
+    gh pr merge <number-or-url> --repo <owner/repo> --match-head-commit <sha> ...
+
+and only when a record for <sha> exists in ~/.claude/cs-reviews/<owner>/<repo>/
+(CS_REVIEW_DIR overrides the root), written by
+skills/review/references/record-review.sh after a review whose verdict was
+merge, or as a waiver the user agreed to. `--match-head-commit` makes GitHub
+refuse the merge if the head moved after the review, so a push between the
+review and the merge cannot slip through; the gate needs no network.
+
+A merge is recognised as `gh ... merge` in one simple command (gh by basename,
+flags anywhere, quotes and backslashes removed), in the argument of a shell's
+`-c` option (`bash -c`, `-lc`, `-ec`) or `eval`, or in a backtick or `$( )`
+substitution. Heredoc bodies are ignored: text being written is not run.
+Refused outright, with the form to use instead: `gh api` calls to a pull's
+merge endpoint or the `mergePullRequest` mutation, and `--auto`. Allowed:
+`--disable-auto` and `--help`. Not recognised: a gh alias, or gh run from
+another language (`python3 -c "subprocess.run(['gh', ...])"`). This is a
+backstop for an agent forgetting the review, not a sandbox.
+
+Blocks with exit 2 and the reason on stderr. A command that mentions a merge
+and does not tokenise (unbalanced quotes) is refused. An internal error in this
+script lets the command through, so a bug here cannot stop all work.
 """
 import json
 import os
 import re
 import shlex
-import subprocess
 import sys
 
-MERGE = re.compile(r"\bgh\s+pr\s+merge\b")
-SHELLS = {"bash", "sh", "zsh", "dash"}
-OPERATORS = {";", "&&", "||", "|", "&", "\n", "(", ")"}
 ROOT = os.environ.get("CS_REVIEW_DIR") or os.path.expanduser("~/.claude/cs-reviews")
-RECORD = "bash " + os.path.join(
-    os.environ.get("CLAUDE_PLUGIN_ROOT")
-    or os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-    "skills", "review", "references", "record-review.sh")
+PLUGIN = os.environ.get("CLAUDE_PLUGIN_ROOT") or os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__)))
+RECORD = '"' + os.path.join(PLUGIN, "skills", "review", "references", "record-review.sh") + '"'
+SHELLS = {"bash", "sh", "zsh", "dash", "ksh"}
+SHA = re.compile(r"^[0-9a-f]{40}$")
+HEREDOC = re.compile(r"<<-?\s*(['\"]?)([A-Za-z_][A-Za-z0-9_]*)\1[^\n]*\n.*?\n[ \t]*\2[ \t]*(?=\n|$)", re.S)
+SUBST = re.compile(r"`([^`]*)`|\$\(([^()]*(?:\([^()]*\)[^()]*)*)\)")
+API_MERGE = re.compile(r"pulls/\d+/merge\b|mergePullRequest|enablePullRequestAutoMerge")
+MAYBE = re.compile(r"\bgh\b.*\bmerge\b|pulls/\d+/merge|mergePullRequest", re.S)
 
 
-def words_by_command(cmd):
-    """The command's simple commands as word lists, split at unquoted shell
-    operators. Quoted text stays one word, so `--body "a; b"` is not split."""
-    lex = shlex.shlex(cmd, posix=True, punctuation_chars=";&|()")
+class Refuse(Exception):
+    pass
+
+
+def strip_heredocs(cmd):
+    # Keep the line with the `<<` operator, drop the body and terminator.
+    return HEREDOC.sub(lambda m: m.group(0).split("\n", 1)[0], cmd)
+
+
+def simple_commands(cmd):
+    lex = shlex.shlex(cmd, posix=True, punctuation_chars=";&|()<>")
     lex.whitespace_split = True
     lex.commenters = ""
-    current, out = [], []
+    out, cur = [], []
     for tok in lex:
-        if set(tok) <= set(";&|()") or tok in OPERATORS:
-            if current:
-                out.append(current)
-            current = []
+        if tok and set(tok) <= set(";&|()<>"):
+            if cur:
+                out.append(cur)
+            cur = []
         else:
-            current.append(tok)
-    if current:
-        out.append(current)
+            cur.append(tok)
+    if cur:
+        out.append(cur)
     return out
 
 
-def invocations(cmd, depth=0):
-    """(selector, repo) for each `gh pr merge` in the command, including one
-    inside a `bash -c` or `eval` argument; None when the command does not
-    tokenise."""
+def check_pr_merge(args):
+    """args: the words after `gh`, which contain `merge` after `pr`."""
+    sel = repo = sha = None
+    auto = disable = helpw = False
+    i = 0
+    while i < len(args):
+        w = args[i]
+        nxt = args[i + 1] if i + 1 < len(args) else None
+        if w in ("-R", "--repo"):
+            repo = nxt; i += 2; continue
+        if w.startswith("--repo="):
+            repo = w.split("=", 1)[1]
+        elif w == "--match-head-commit":
+            sha = nxt; i += 2; continue
+        elif w.startswith("--match-head-commit="):
+            sha = w.split("=", 1)[1]
+        elif w == "--auto":
+            auto = True
+        elif w == "--disable-auto":
+            disable = True
+        elif w in ("-h", "--help"):
+            helpw = True
+        elif w in ("-b", "--body", "-F", "--body-file", "-t", "--subject", "-A", "--author-email"):
+            i += 2; continue
+        elif w in ("pr", "merge") or w.startswith("-"):
+            pass
+        elif sel is None:
+            sel = w
+        i += 1
+    if helpw or disable:
+        return
+    if sel:
+        m = re.match(r"https://github\.com/([^/]+/[^/]+)/pull/(\d+)", sel)
+        if m:
+            repo = repo or m.group(1)
+    form = ("gh pr merge <number> --repo <owner/repo> --match-head-commit <reviewed-sha> "
+            "--squash (or the repo's merge style)")
+    if auto:
+        raise Refuse("`--auto` merges whatever head is current when checks pass, "
+                     f"not the reviewed one. Wait for the checks, then run: {form}")
+    if not sel or not repo or not sha:
+        missing = [n for n, v in (("the PR number", sel), ("--repo", repo),
+                                  ("--match-head-commit <sha>", sha)) if not v]
+        raise Refuse(f"the merge does not name {', '.join(missing)}. The review gate "
+                     f"merges only a pinned, reviewed head: {form}")
+    if not SHA.match(sha):
+        raise Refuse(f"--match-head-commit {sha} is not a full 40-character SHA.")
+    repo = repo.lower()
+    if not os.path.exists(os.path.join(ROOT, repo, sha)):
+        raise Refuse(
+            f"{repo} {sha[:12]} has no recorded review.\n"
+            f"Run /cs:review on this head (a fresh agent, the `review` skill), answer every "
+            f"finding, and when its verdict is merge, record it:\n"
+            f"  bash {RECORD} {repo} {sha} merge \"<summary>\"\n"
+            f"A commit pushed after the review is a new head and needs its own. For a change "
+            f"with nothing to review, and only if the user agrees:\n"
+            f"  bash {RECORD} {repo} {sha} --waive \"<reason>\"")
+
+
+def check(cmd, depth=0):
+    cmd = strip_heredocs(cmd)
+    # The quick filter sees the words as the shell will: `m\erge` and `"merge"`
+    # are merge.
+    if not MAYBE.search(re.sub(r"[\\'\"]", "", cmd)):
+        return
+    if depth < 4:
+        for m in SUBST.finditer(cmd):
+            check(m.group(1) or m.group(2) or "", depth + 1)
     try:
-        commands = words_by_command(cmd)
+        commands = simple_commands(cmd)
     except ValueError:
-        return None
-    found = []
+        raise Refuse("this command mentions a merge and does not tokenise (unbalanced "
+                     "quotes?). Run the merge as its own plain command.")
     for words in commands:
-        # A merge run by a shell or eval is in the next word: `bash -c "..."`.
-        # A merge merely mentioned in an argument (`echo "... gh pr merge"`)
-        # is not followed.
         for k, w in enumerate(words[:-1]):
-            if depth < 3 and ((w == "-c" and k > 0 and os.path.basename(words[k - 1]) in SHELLS)
-                              or w == "eval") and MERGE.search(words[k + 1]):
-                inner = invocations(words[k + 1], depth + 1)
-                if inner is None:
-                    return None
-                found.extend(inner)
-        for i in range(len(words) - 2):
-            if os.path.basename(words[i]) != "gh" or words[i + 1:i + 3] != ["pr", "merge"]:
+            base = os.path.basename(words[k - 1]) if k > 0 else ""
+            if depth < 4 and ((base in SHELLS and re.match(r"^-[a-z]*c[a-z]*$", w)) or w == "eval"):
+                check(words[k + 1], depth + 1)
+        for i, w in enumerate(words):
+            if os.path.basename(w) != "gh":
                 continue
-            sel, repo, rest = None, None, words[i + 3:]
-            j = 0
-            while j < len(rest):
-                w = rest[j]
-                if w in ("-R", "--repo") and j + 1 < len(rest):
-                    repo = rest[j + 1]; j += 2; continue
-                if w.startswith("--repo="):
-                    repo = w.split("=", 1)[1]
-                elif w in ("-h", "--help"):
-                    break
-                elif w in ("-b", "--body", "-F", "--body-file", "-t", "--subject",
-                           "-A", "--author-email", "--match-head-commit"):
-                    j += 2; continue
-                elif not w.startswith("-") and sel is None:
-                    sel = w
-                j += 1
-            else:
-                found.append((sel, repo))
-    return found
-
-
-def head_of(sel, repo, cwd):
-    args = ["gh", "pr", "view"] + ([sel] if sel else []) + (["--repo", repo] if repo else [])
-    out = subprocess.run(args + ["--json", "headRefOid,url,number"],
-                         capture_output=True, text=True, timeout=30, cwd=cwd or None)
-    if out.returncode != 0:
-        raise LookupError(out.stderr.strip() or "gh pr view failed")
-    d = json.loads(out.stdout)
-    m = re.match(r"https://github\.com/([^/]+/[^/]+)/pull/\d+", d["url"])
-    return m.group(1).lower(), d["headRefOid"], d["number"]
+            rest = words[i + 1:]
+            if "api" in rest[:3] and any(API_MERGE.search(x) for x in rest):
+                raise Refuse("merging through `gh api` bypasses the review gate's pin. Use: "
+                             "gh pr merge <number> --repo <owner/repo> --match-head-commit "
+                             "<reviewed-sha>")
+            if "pr" in rest and "merge" in rest and rest.index("pr") < rest.index("merge"):
+                check_pr_merge(rest)
 
 
 def main():
@@ -113,38 +166,17 @@ def main():
         if data.get("tool_name") != "Bash":
             return 0
         cmd = (data.get("tool_input") or {}).get("command", "")
-        if not MERGE.search(cmd):
+        if not cmd:
             return 0
-        cwd = data.get("cwd")
-        merges = invocations(cmd)
     except Exception:
         return 0
-
-    if merges is None:
-        print("BLOCKED: this command runs `gh pr merge` in a form the review gate "
-              "cannot parse. Run the merge as a plain `gh pr merge <pr> --repo "
-              "<owner/repo> ...` command.", file=sys.stderr)
+    try:
+        check(cmd)
+    except Refuse as r:
+        print(f"BLOCKED by the review gate: {r}", file=sys.stderr)
         return 2
-
-    for sel, repo in merges:
-        try:
-            full, sha, number = head_of(sel, repo, cwd)
-        except Exception as e:
-            print(f"BLOCKED: the review gate could not resolve the PR to merge "
-                  f"({sel or 'current branch'}{' in ' + repo if repo else ''}): {e}. "
-                  f"Name the PR and --repo explicitly.", file=sys.stderr)
-            return 2
-        if os.path.exists(os.path.join(ROOT, full, sha)):
-            continue
-        print(f"BLOCKED: {full}#{number} head {sha[:12]} has no recorded review.\n"
-              f"Run /cs:review on this head (a fresh agent, the `review` skill), "
-              f"answer its findings, then record it:\n"
-              f"  {RECORD} {full} {sha} \"<verdict>\"\n"
-              f"A commit pushed after a review is a new head and needs its own. "
-              f"For a change with nothing to review, and only if the user agrees:\n"
-              f"  {RECORD} {full} {sha} --waive \"<reason>\"",
-              file=sys.stderr)
-        return 2
+    except Exception:
+        return 0
     return 0
 
 

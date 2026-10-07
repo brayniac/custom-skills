@@ -121,25 +121,29 @@ waiting on the user.
 
 ## 8. Review the head that will merge, then merge
 
-Before `gh pr merge`, run `review` on the PR's current head and answer its
-findings; record it as that skill says. The plugin's merge gate refuses
-`gh pr merge` of a head with no record, and a commit pushed after the review
-is a new head. Then confirm the head did not move and merge:
+Before merging, run `review` on the PR's current head, answer its findings,
+and record it (`review` step 8). The plugin's merge gate refuses a merge that
+is not pinned to a recorded head, so merge with `--match-head-commit`; GitHub
+then refuses the merge if anyone pushed after the review:
 
 ```sh
-gh pr view <pr> --json headRefOid -q .headRefOid   # the head that was reviewed
-gh pr merge <pr> --repo <owner/repo> --squash       # or the repo's convention
-gh pr view <pr> --json state,mergedAt,baseRefName
+sha=$(gh pr view <pr> --repo <owner/repo> --json headRefOid -q .headRefOid)  # must be the reviewed head
+gh pr merge <pr> --repo <owner/repo> --match-head-commit "$sha" --squash   # or the repo's convention
+gh pr view <pr> --repo <owner/repo> --json state,mergedAt,baseRefName
 ```
+
+Do not use `--auto`: it merges whatever head is current when the checks
+pass, and the gate refuses it.
 
 For a stack, merge bottom-up. After a squash merge, the next PR's branch
 still carries the parent's commits. Move only its own commits onto the new
-base: cherry-pick the PR's commits (`gh pr view <pr> --json commits`), or
-`git rebase --onto origin/main <base> <branch>` where `<base>` is the commit
-the branch was built on. If the parent branch was rebased after this one was
-cut, its current tip is not that commit, and the rebase replays the parent's
-old commits into a conflict. Check `git diff` against the PR's original
-change, push, retarget, and review the new head before merging it.
+base: `git log --oneline <parent-tip>..<branch>` lists them, where
+`<parent-tip>` is the parent branch's commit this branch was built on (from
+`git merge-base <branch> <parent-branch>`, taken before the parent was
+rebased or deleted). Cherry-pick those onto the new base. Do not take the list
+from `gh pr view --json commits` after GitHub retargets the PR: it then
+includes the parent's original commits. Check `git diff` against the PR's
+original change, push, retarget, and review the new head before merging it.
 
 ## Never
 

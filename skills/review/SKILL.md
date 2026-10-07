@@ -12,6 +12,10 @@ argued for it all session, cannot: a removed capability no caller in the tree
 exercised, a doc claim the code contradicts, a PR that would undo one merged
 the day before, a rebase that replayed someone else's commits.
 
+Answering findings someone else made (a person, Copilot, another agent): go to
+step 7. A change whose gates are still red is not ready for review; fix those
+first (`verify-change`).
+
 ## 1. Dispatch a fresh agent, not a fork
 
 A fork inherits the context that produced the change and argues for it. Start
@@ -36,8 +40,9 @@ In this order:
    docs, `rust-conventions`, `write-technical-prose`, `~/.claude/CLAUDE.md`.
 6. **The output shape**: findings ranked most severe first, each with
    `file:line`, the offending text quoted, the concrete failure scenario, a
-   replacement, and **confirmed** (ran it, read the code path) or
-   **plausible**. Unsubstantiated findings are dropped, not listed. Then the
+   concrete replacement (findings you have to interpret get half-applied),
+   and **confirmed** (ran it, read the code path) or **plausible**.
+   Unsubstantiated findings are dropped, not listed. Then the
    commands run and what they returned, what could not be checked, and a
    one-line verdict (merge, fix first, rebase, close as superseded).
 7. **Permission to say a section is fine**, or the reviewer pads.
@@ -75,47 +80,69 @@ In this order:
 
 Ask for every instance of:
 
-- metaphor, personification, rhetorical questions, emphasis mid-sentence;
+- metaphor, personification, idiom, imagery;
+- rhetorical questions, asides, argument aimed at a reader, emphasis
+  mid-sentence;
+- long sentences where plain declarative ones would do;
 - history instead of behaviour: what it used to be, why the old shape was
-  wrong;
+  wrong. The most common finding of this mandate is a doc comment written as
+  the justification of the change;
 - references a reader at HEAD cannot resolve (a plan section, a review thread,
   "the new approach");
 - a claim of absence, equivalence or who-does-what not checked by a grep
   (`open-pr`'s comment sweep,
   `${CLAUDE_SKILL_DIR}/../open-pr/references/sweep-comments.md` step 5).
 
-Reference documentation describes the result; the argument goes in the
-CHANGELOG, the PR or the journal. Exclude registers meant to differ: a journal
+A comment can be well worded and false, so each claim is checked against the
+code. Reference documentation describes the result; the argument goes in the
+CHANGELOG, the PR or the journal. Name conventions to keep (issue-number
+references, for example), and exclude registers meant to differ: a journal
 entry is not reference documentation.
 
-## 6. Check the findings, then record the review
+## 6. Check the findings
 
 - **Reproduce a blocking finding before acting on it**: compile the misuse,
   run the input, read the code path. Do not apply what you have not
   reproduced, and say when you disagree.
-- **Design findings go to the owner** before implementation.
-- Record the review of the exact head the reviewer read, so the merge gate
-  (a PreToolUse hook on `gh pr merge`) lets it through:
-
-  ```sh
-bash ${CLAUDE_SKILL_DIR}/references/record-review.sh <owner/repo> <head-sha>
-"<verdict line>"
-  ```
-
-  A commit pushed after the review is unreviewed code; the gate refuses it
-  until its head is reviewed and recorded. For a change with nothing to
-  review (a version bump, a lockfile refresh) and only when the user agrees:
-  `record-review.sh <owner/repo> <sha> --waive "<reason>"`.
+- **Design findings go to the owner** before implementation; a reviewer can
+  show a capability was lost, only the owner decides whether to restore it.
+- After applying a prose replacement, **check the old text is gone**
+  (`rewrite-mechanically` step 5): a correction appended to a stale paragraph
+  leaves documentation that says both things.
+- **Re-run the full gate list** afterwards (`verify-change`); doc comments are
+  compiled by doctests and checked by the intra-doc link lint.
 
 ## 7. Answer every finding
 
 One disposition each: **fixed** (the commit), **disputed** (the evidence),
 or **deferred** (why, where tracked, what reopens it). Reply where the finding
-was made, list changes nobody asked for, and review the new head: fix commits
-have not been reviewed. The full procedure, including answering a person's or
-Copilot's review, is `${CLAUDE_SKILL_DIR}/references/answering.md`. Report the
-findings to the user with the dispositions; an empty list means nothing
-actionable was found, not that the change is correct.
+was made and list changes nobody asked for. The full procedure, including
+answering a person's or Copilot's review, is
+`${CLAUDE_SKILL_DIR}/references/answering.md`. Report the findings to the user
+with the dispositions; an empty list means nothing actionable was found, not
+that the change is correct.
+
+Fix commits have not been reviewed. Review the new head again unless every
+fix is mechanical (a typo, a wrapped line, a renamed reference), and say which
+you decided.
+
+## 8. Record the review
+
+When every finding has a disposition and none that blocks the merge is open,
+record the head the last review read, so the merge gate (a PreToolUse hook)
+lets a merge pinned to it through:
+
+```sh
+bash ${CLAUDE_SKILL_DIR}/references/record-review.sh <owner/repo> <head-sha> merge "<summary>"
+```
+
+The merge must then pin that head: `gh pr merge <n> --repo <owner/repo>
+--match-head-commit <head-sha>`, so GitHub refuses it if the head moved. A
+review whose verdict is "fix first" is not recorded. For a change with nothing
+to review (a version bump, a lockfile refresh), and only when the user agrees,
+record `--waive "<reason>"` in place of `merge "<summary>"`. The record does
+not cover the base: if the base branch moved after the review, check the PR
+still merges and re-review when the base change touches the same files.
 
 ## Never
 
@@ -124,6 +151,7 @@ actionable was found, not that the change is correct.
   the one reviewed.
 - **Never apply a finding you have not reproduced** when it claims a failure,
   or implement a design finding without the owner's decision.
-- **Never record a review you did not run**, or waive one without the user.
+- **Never record a review you did not run**, a review with a blocking finding
+  open, or a waiver without the user.
 - **Never ask for "illustrative examples"** of problems; ask for every
   instance.
