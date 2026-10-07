@@ -1,6 +1,6 @@
 ---
 name: vm-job
-description: Run work inside an ephemeral VM on the lab hypervisors (hv01/hv02) through a SystemsLab job using the anvil-vm action. Use when something must run on a whole machine, a specific kernel or distro (Debian, Rocky/RHEL), a GPU, or simply on Linux when the workstation is a Mac; when asked to test, build, benchmark or probe "in a VM", "on the rack", "on hv01", or "on Rocky"; and before touching hv01/hv02 in any other way.
+description: Run work inside an ephemeral VM on the lab hypervisors (hv01, hv02, delta) or the Raspberry Pis through a SystemsLab job using the anvil-vm action, and pick the guest image for it. Use when something must run on a whole machine, a specific kernel or distro (Debian, Ubuntu, Rocky/RHEL, Amazon Linux, Alpine/musl), a kernel with sched_ext or a mainline release candidate, a GPU (CUDA 12 or 13), guest hardware counters, or simply on Linux when the workstation is a Mac; when asked to test, build, benchmark or probe "in a VM", "on the rack", "on hv01", "on a Pi", or "on Ubuntu/Rocky/Alpine"; and before touching a hypervisor in any other way.
 ---
 
 # VM job
@@ -16,31 +16,96 @@ about three minutes. Treat "run it on distro X" as routine, not an expedition.
 
 ## 1. Pick image, shape, tags
 
-| Need | image | notes |
-| --- | --- | --- |
-| build / test Rust | `spool/images/debian-13-ci@golden` | both hosts. rustup, gcc, git, warm crates index; kernel 6.12, `io_uring_disabled=0`. `debian-13-base` has **no** toolchain |
-| RHEL-family behaviour (io_uring refused, SELinux, dnf) | `spool/images/rocky-10@golden` | both hosts now (also `rocky-10-base`); install toolchain in payload (recipes); `io_uring_disabled=2` |
-| measurement tooling only | `spool/images/debian-13-base@golden` | both hosts. rezolus, slipway, stressapptest |
-| GPU | `spool/images/debian-13-gpu@golden` | both hosts; shape `z2.g` (hv01) or `z1.g` (hv02), one RTX 4090 each; only if the payload uses the card |
+| Need | image | where | notes |
+| --- | --- | --- | --- |
+| build / test Rust | `debian-13-ci` | x86, Pis | rustup, gcc, git, warm crates index; kernel 6.12. `debian-13-base` has **no** toolchain |
+| measurement tooling only | `debian-13-base` | x86, Pis | rezolus, slipway's remote, bubblewrap, stressapptest |
+| newer kernel, io_uring after 6.14 | `debian-13-ci-bpo` | x86, Pis | `debian-13-ci` on trixie-backports 7.1.13 |
+| a release candidate or kernel tree | `debian-13-mainline` | x86 | `debian-13-base` on a kernel.org build (7.3.0-rc6 on 2026-10-06); infra's `jobs/build-kernel-mainline` moves it |
+| Ubuntu | `ubuntu-24.04-base`, `ubuntu-26.04-base` | x86 | rezolus, bubblewrap, stressapptest; no internal apt repo or slipway (its packages are built on trixie) |
+| RHEL-family behaviour (io_uring refused, SELinux, dnf) | `rocky-10-base` | x86, Pis | rezolus; install a toolchain in the payload (recipes); `io_uring_disabled=2` |
+| Amazon Linux | `al2023-i40e` | x86 | kernel 6.12, can drive the passthrough ports. Stock `al2023` needs `ports = 0` |
+| Amazon Linux 2, only if the question is AL2 | `al2` | hv01, hv02 | stock, out of support since 2026-06-30; no python3, `ports = 0`, start payloads with `export PATH=$PATH:/sbin:/usr/sbin` |
+| musl, OpenRC | `alpine-3.24` | x86, Pis | busybox userland; no rezolus (recipes, "Alpine") |
+| GPU, CUDA 12 | `debian-13-gpu` | hv01, hv02 | driver 550, CUDA 12.4 toolkit; shape `z2.g` (hv01) or `z1.g` (hv02), one RTX 4090 each |
+| GPU, CUDA 13 | `debian-13-gpu-cu13` | hv01, hv02 | NVIDIA's 595 driver, no toolkit (for pip wheels such as vLLM) |
 
-The authoritative per-host image lists are `infra/fleet/hosts/hv01.toml` and
-`hv02.toml`.
+Name the family (`debian-13-base`), not `spool/images/<x>@golden`: the family
+resolves to its current build on whichever host the job lands on. Pin a build
+(`spool/images/debian-13-base-20260912.3@golden`, or the `.qcow2` name on a
+Pi) only when the exact image is part of the result. Stock images
+(`debian-13`, `ubuntu-24.04`, `rocky-10`, `al2023`) exist as sources for the
+builds; a job rarely wants one. Ubuntu 26.04's stock image in particular can
+bring its data NIC up as `enp2s0` instead of `data`.
+
+**Choosing between them.**
+
+- The distribution is part of the question only sometimes. When it is not,
+  use Debian: `debian-13-ci` to build or test, `debian-13-base` to measure.
+  Every other family exists because some result depends on the distribution.
+- `-base` against `-ci`: `-ci` adds the Rust toolchain and a warm crates
+  index. A job that compiles nothing uses `-base`. Only Debian has a `-ci`; on
+  Ubuntu, Rocky and Alpine a build installs its toolchain in the payload
+  (recipes).
+- Debian against Ubuntu: Ubuntu when the workload's production fleet runs
+  Ubuntu, or for Ubuntu's kernel. `ubuntu-24.04-base` is what is deployed
+  widely today (kernel 6.8); `ubuntu-26.04-base` is the next LTS (kernel 7.0,
+  sched_ext). Packages from infra's internal repo are built on Debian trixie
+  (glibc 2.41), and a binary that needs 2.41 does not run on 24.04 (2.39):
+  rezolus is the known case, so `ubuntu-*-base` takes rezolus's own Ubuntu
+  build.
+- Rocky when RHEL behaviour is the question: SELinux enforcing,
+  `io_uring_disabled=2`, dnf, an EL kernel. `al2023-i40e` when Amazon Linux
+  is; it is x86 only.
+- `alpine-3.24` for musl and its allocator, or a small busybox userland.
+- A newer kernel, in order of preference: `debian-13-ci-bpo` (Debian's
+  backports kernel, 7.1.13: packaged, stable, sched_ext), then
+  `ubuntu-26.04-base` (7.0), then `debian-13-mainline` (a release
+  candidate, or a tree with patches no release has). Mainline is the one
+  whose kernel changes when someone rebuilds it; record its
+  `/etc/anvil-image.json` with the result.
+- GPU: `debian-13-gpu` for CUDA 12 and for anything that compiles CUDA
+  (it has nvcc); `debian-13-gpu-cu13` for CUDA 13 wheels. A result measured on
+  one is not comparable with the other: the driver differs.
+- Pis against x86: a Pi when the question is the A72 or there are many small
+  independent cells to run (twenty Pis, one job each); x86 for anything that
+  needs more than 3 vCPU and ~3 GiB, the passthrough NICs, or a GPU.
+
+**sched_ext** needs it compiled in, and Debian's 6.12 leaves it out. It is in
+`debian-13-ci-bpo`, `debian-13-mainline`, `ubuntu-26.04*` and `rocky-10*`; not
+in the other Debian images, `ubuntu-24.04*` or `alpine-3.24`. infra's
+docs/guides/vm-jobs.md keeps the table. A guest's scheduler places threads on
+vCPUs and the host's still decides when the vCPUs run, so a guest shows a
+policy's effect, not bare-metal latency.
+
+**Hardware counters in a guest** on a Pi: `vpmu = false` on the step and
+the `guest-pmc-dkms` package; infra's docs/examples/guest-pmc.toml is a
+working job. With a vPMU (the default) every counter read traps to the host,
+about 2.5 us on a Pi.
+
+The authoritative per-host image lists are `infra/fleet/hosts/<host>.toml`.
+Not available, and why, so nobody spends an afternoon on it: Amazon Linux
+2023 on the Pis (its arm64 build requires Armv8.2 with crypto; the Pi 4 is
+Armv8.0), and Ubuntu on the Pis (its arm64 images stopped in the UEFI firmware
+in 3 of 6 boots on pi10, unexplained).
 
 Shape is `{generation}.{class}`, and **the default is `auto`**: since anvil
 0.8.6, `auto.c` and `auto.g` resolve the generation against the host the guest
 is actually built on, so `tags = ["hypervisor", "x86_64"]` with `shape =
 "auto.c"` lands on either hypervisor and works. The `x86_64` is not optional
 since 2026-09-28: the Raspberry Pis run guests too and carry `hypervisor`, so
-`["hypervisor"]` alone also matches eighteen Pis, where an x86 image, a 16 GiB
-guest or a GPU does not exist. `["hypervisor", "aarch64"]` is a Pi guest
-(shape `a72.c` or `auto.c`, image `debian-13-base` or `debian-13-ci`, two
-cores and 2 GiB by default; see infra's docs/guides/vm-jobs.md, "Guests on a
-Pi"). Pin a generation — `z2.c` with
-`["z2.baremetal"]` (hv01, Zen2, 56 vCPU / ~224 GiB) or `z1.c` with
-`["z1.baremetal"]` (hv02, Zen1, 24 vCPU / ~96 GiB) — only when the silicon is
-part of the question. **A pinned shape whose generation disagrees with the
-tags fails at instance creation**, and pinning by habit is what held every CI
-check on one hypervisor for five days. Class `c` compute, `g` gpu, `n`
+`["hypervisor"]` alone also matches twenty Pis, where an x86 image, a 16 GiB
+guest or a GPU does not exist. `["hypervisor", "aarch64"]` is a Pi guest (shape
+`a72.c` or `auto.c`, an image the table marks "Pis"; see infra's
+docs/guides/vm-jobs.md, "Guests on a Pi"). delta (`["validation"]`) runs guests
+too, from a pool of 40 1G hugepages of which its resident systemslab and plex
+VMs hold 32: a guest there gets at most 8 GiB, so say `memory_gib = 8` (and
+`slots = 1`); a whole-host `auto.c` asks for 64 GiB and fails at creation. Pin a
+generation — `z2.c` with `["z2.baremetal"]` (hv01, Zen2, 56 vCPU / ~224 GiB) or
+`z1.c` with `["z1.baremetal"]` (hv02, Zen1, 24 vCPU / ~96 GiB) — only when the
+silicon is part of the question. **A pinned shape whose generation disagrees
+with the tags fails at instance creation**, and pinning by habit is what held
+every CI check on one hypervisor for five days. Class `c` compute, `g` gpu, `n`
 network.
 
 **Tags are ANDed** (a job runs where its tags are a subset of the host's):
@@ -243,9 +308,15 @@ out of date. Do not add retry loops.
 
 ## 8. Persistent state on the rack
 
-A new image (`zfs create` + `qemu-img convert` + `@golden`) or any other host
-change is done as a `shell` job pinned to that host (`systemslab-agent` has
-`sudo`), never over ssh. It must then be added to the `images = [...]` list in
+A new image or any other host change is done as a job pinned to that host
+(`systemslab-agent` has `sudo`), never over ssh. For images that is infra's
+tooling, run from an infra checkout: `host-setup/import-zvol-image` puts a
+stock cloud image on a hypervisor (a job; checksum-checked; `--prepare` for a
+distribution anvil cannot log in to as shipped), and
+`host-setup/build-guest-image-job` builds a family from a recipe in
+`host-setup/guest-images/` (a job); docs/guides/guest-images.md is the
+procedure. On the Pis `host-setup/import-qcow2-image` still works over ssh:
+drain the Pi first. It must then be added to the `images = [...]` list in
 `~/workspace/brayniac/infra/fleet/hosts/<host>.toml` (drift tooling only sees
 declared images), and the rack owner (Brian, in the recap) told; if a session
 named `infra-*` is live (`ListAgents`), it is editing those files and should
