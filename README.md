@@ -19,31 +19,43 @@ Both commands run without prompts, so they work when provisioning a VM. Start a
 new session, or run `/reload-plugins` in one that is open, and the skills are
 listed as `cs:*`.
 
-To pick up merged changes:
+Turn on auto-update, so each machine picks up every merge:
 
 ```sh
-claude plugin update custom-skills@custom-skills
+python3 - <<'PY'
+import json, os
+p = os.path.join(os.environ.get("CLAUDE_CONFIG_DIR", os.path.expanduser("~/.claude")), "settings.json")
+d = json.load(open(p))
+m = d.setdefault("extraKnownMarketplaces", {}).setdefault("custom-skills", {})
+m["source"] = {"source": "github", "repo": "brayniac/custom-skills"}
+m["autoUpdate"] = True
+json.dump(d, open(p, "w"), indent=2)
+PY
 ```
 
-The plugin sets no `version`, so its version is the commit it was installed
-from and every merge is an update. To have Claude Code update it in the
-background instead, turn on **Enable auto-update** for the `custom-skills`
-marketplace under `/plugin` → **Marketplaces**.
+or toggle **Enable auto-update** for the marketplace under `/plugin` →
+**Marketplaces**. Claude Code reads the flag from user settings, under
+`extraKnownMarketplaces`. Without it, run
+`claude plugin update custom-skills@custom-skills` after a merge. The plugin
+sets no `version`, so its version is the commit it was installed from and every
+merge is an update.
 
-### On a machine with the repository checked out
+Every install, including one from a local checkout, runs from a copy Claude
+Code takes at install time (`plugins/cache/custom-skills/custom-skills/<commit>`
+in the config directory): an edit to a checkout, or a merge, reaches sessions
+only after an update. `claude plugin list` shows the commit a config directory
+runs.
 
-Add the checkout instead of GitHub, and the plugin loads in place from it: an
-edit takes effect at the next session start or after `/reload-plugins`, with
-nothing to update.
+Each Claude Code config directory (`CLAUDE_CONFIG_DIR`, such as `~/.claude`
+and a second profile directory) has its own marketplaces, plugins and settings,
+so install and turn on auto-update in each, with `CLAUDE_CONFIG_DIR` set for
+the commands above. The `brayniac/infra` repository declares and checks this
+for its Macs (`[claude]` in `fleet/hosts`, `host-setup/sync-claude-config`).
 
-```sh
-claude plugin marketplace add ~/workspace/brayniac/custom-skills
-claude plugin install --scope user custom-skills@custom-skills
-```
+### Testing a change before it merges
 
-A marketplace name is registered once per user, so remove the GitHub one first
-(`claude plugin marketplace remove custom-skills`) if it is already added. For a
-single session without installing, `claude --plugin-dir <checkout>` loads it.
+`claude --plugin-dir <checkout>` loads a checkout for one session, without
+touching the installed copy. Installed copies stay on `main`.
 
 ### Moving from the MCP server
 
