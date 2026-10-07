@@ -22,6 +22,7 @@ if [[ $# -lt 4 ]]; then
 fi
 REPO=$1 SHA=$2 KIND=$3; shift 3
 [[ $REPO =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] || { echo "error: $REPO is not owner/repo" >&2; exit 2; }
+[[ ! $REPO =~ (^|/)\.\.?(/|$) ]] || { echo "error: $REPO is not owner/repo" >&2; exit 2; }
 [[ $SHA =~ ^[0-9a-f]{40}$ ]] || { echo "error: $SHA is not a full 40-character commit SHA" >&2; exit 2; }
 case $KIND in
     merge) KIND=reviewed ;;

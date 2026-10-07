@@ -127,10 +127,15 @@ is not pinned to a recorded head, so merge with `--match-head-commit`; GitHub
 then refuses the merge if anyone pushed after the review:
 
 ```sh
-sha=$(gh pr view <pr> --repo <owner/repo> --json headRefOid -q .headRefOid)  # must be the reviewed head
-gh pr merge <pr> --repo <owner/repo> --match-head-commit "$sha" --squash   # or the repo's convention
+gh pr view <pr> --repo <owner/repo> --json headRefOid -q .headRefOid   # must print <head-sha>
+gh pr merge <pr> --repo <owner/repo> --match-head-commit <head-sha> --squash
 gh pr view <pr> --repo <owner/repo> --json state,mergedAt,baseRefName
 ```
+
+`<head-sha>` is the SHA recorded in `review` step 8, written out in full: the
+gate reads the command before the shell expands a variable, and a SHA taken
+from the PR at merge time pins whatever the head is now, not what was
+reviewed. Use the repo's merge style in place of `--squash`.
 
 Do not use `--auto`: it merges whatever head is current when the checks
 pass, and the gate refuses it.

@@ -89,6 +89,8 @@ Ask for every instance of:
   the justification of the change;
 - references a reader at HEAD cannot resolve (a plan section, a review thread,
   "the new approach");
+- wording against `write-technical-prose` (the reader, modality, one name per
+  thing);
 - a claim of absence, equivalence or who-does-what not checked by a grep
   (`open-pr`'s comment sweep,
   `${CLAUDE_SKILL_DIR}/../open-pr/references/sweep-comments.md` step 5).
@@ -124,13 +126,15 @@ that the change is correct.
 
 Fix commits have not been reviewed. Review the new head again unless every
 fix is mechanical (a typo, a wrapped line, a renamed reference), and say which
-you decided.
+you decided and why.
 
 ## 8. Record the review
 
 When every finding has a disposition and none that blocks the merge is open,
-record the head the last review read, so the merge gate (a PreToolUse hook)
-lets a merge pinned to it through:
+record the head, so the merge gate (a PreToolUse hook) lets a merge pinned to
+it through. That is the head the last review read, or, when only mechanical
+fixes (step 7) followed that review, the head with those fixes; then the
+summary names the reviewed SHA and the fixes.
 
 ```sh
 bash ${CLAUDE_SKILL_DIR}/references/record-review.sh <owner/repo> <head-sha> merge "<summary>"

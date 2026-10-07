@@ -11,9 +11,8 @@ and when to stop are `drive-pr-to-green` itself.
 The GraphQL is in `copilot_review.py`, beside this file; `drive-pr-to-green`'s
 SKILL.md gives its full path. Set `H` to it in the same Bash call as each
 command below (shell variables do not persist between calls), and run it in
-place. Use it rather than writing the queries
-each round; the pagination and the reply-then-resolve pair are easy to get
-wrong.
+place. Use it rather than writing the queries each round; the pagination and the
+reply-then-resolve pair are easy to get wrong.
 
 ```sh
 H=<path from drive-pr-to-green>; R=owner/repo; N=<pr>
@@ -53,8 +52,8 @@ A resolve without a reply loses the record of why.
 
 ## 3. Push every fix, then re-request once
 
-Commit and push all fixes from the round (`open-pr` step 5 for staging and
-attribution), then:
+Commit and push all fixes from the round (`open-pr` steps 3 and 5 for
+attribution and staging), then:
 
 ```sh
 python3 $H $R $N rerequest

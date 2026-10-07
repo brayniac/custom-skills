@@ -76,7 +76,9 @@ with `publishing-findings`; a reply on a public repository is public.
 ## 5. Ask for review of the new head
 
 Fix commits are new code that nobody has reviewed. Request a review of the
-head you pushed, once per batch of fixes. The round closes when the reviewer's
+head you pushed, once per batch of fixes; for the author's own `review`, a
+batch that is only mechanical (a typo, a wrapped line) is recorded without
+another round (`review` steps 7 and 8). The round closes when the reviewer's
 review of the current head adds no findings and no open questions. The
 reviewer decides that; if you believe the thread is done, say so and leave it
 open.

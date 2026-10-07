@@ -76,7 +76,7 @@ error. That is why `check-skills` exists; keep it failing on those cases.
   when a skill needs one Claude Code supports.
 - **The description listing has a budget.** Claude Code allots about 1% of the
   context window to all skill descriptions and drops the least-used past that.
-  `check-skills` prints the total (19,762 characters for 34 skills on
+  `check-skills` prints the total (19,794 characters for 34 skills on
   2026-10-07; at about 21,700 for 38, every description was listed under
   Sonnet 5.5 and Opus 5.5). If it grows a lot, check `/context` in a session.
 

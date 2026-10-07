@@ -67,10 +67,19 @@ gh pr merge <n> --repo <owner/repo> --match-head-commit <sha> --squash
 `/cs:review` reviews a change with a fresh agent and, once its findings are
 answered and its verdict is merge, records the head it read; `open-pr` and
 `drive-pr-to-green` run it before opening and merging. `--match-head-commit`
-makes GitHub refuse the merge if the head moved after the review. The gate
-refuses `--auto` and merges through `gh api`; it does not see a gh alias or gh
-run from another language, and it does not check the base branch. It is a
-backstop for an agent that skipped the review, not an access control.
+makes GitHub refuse the merge if the head moved after the review. The SHA has
+to be written out: the gate reads the command before the shell expands a
+variable.
+
+The gate reads the command as the shell would: across newlines and `;`, `&&`
+and `|`, inside `bash -c`, `eval`, `$( )` and backticks, and in a heredoc a
+shell reads. It refuses `--auto`, a pipe into a shell in a command that
+mentions a merge, and `gh api` merges (the pull merge and repository `merges`
+endpoints, and the merge, auto-merge and merge-queue mutations). It does not
+see a gh alias or gh run from another language, it does not check the base
+branch, and whether GitHub re-checks the pinned head when a merge queue or
+auto-merge completes is untested. It is a backstop for an agent that skipped
+the review, not an access control.
 
 When the gate refuses a merge, it prints the command that records a review.
 For a change with nothing to review, the same command takes
@@ -116,10 +125,11 @@ cargo run --quiet                 # check skills/
 cargo fmt --all -- --check
 cargo clippy --all-targets --locked -- -D warnings
 cargo test --locked
+python3 hooks/test_review_gate.py  # the review gate, offline
 claude plugin validate .          # manifests; a missing-version warning is expected
 ```
 
-rack-ci runs the first four (`.rack-ci.toml`).
+rack-ci runs all but the last (`.rack-ci.toml`).
 
 ## Layout
 
