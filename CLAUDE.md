@@ -111,9 +111,10 @@ Conventions the existing skills follow:
 
 ### Iterating
 
-On this machine the plugin is installed from the checkout as a local-directory
-marketplace, so it loads in place: an edit takes effect at the next session or
-after `/reload-plugins`. For a one-off session, `claude --plugin-dir .`.
+A plugin installed from the checkout as a local-directory marketplace loads in
+place: an edit takes effect at the next session or after `/reload-plugins`. One
+installed from GitHub runs from a cached copy and changes only on update. For
+a one-off session, `claude --plugin-dir .`.
 
 ## Layout
 

@@ -19,31 +19,60 @@ Both commands run without prompts, so they work when provisioning a VM. Start a
 new session, or run `/reload-plugins` in one that is open, and the skills are
 listed as `cs:*`.
 
-To pick up merged changes:
+Turn on auto-update, so each machine picks up every merge:
 
 ```sh
-claude plugin update custom-skills@custom-skills
+python3 - <<'PY'
+import json, os
+cfg = os.environ.get("CLAUDE_CONFIG_DIR") or os.path.expanduser("~/.claude")
+p = os.path.join(cfg, "settings.json")
+d = json.load(open(p))
+m = d.setdefault("extraKnownMarketplaces", {}).setdefault("custom-skills", {})
+m.setdefault("source", {"source": "github", "repo": "brayniac/custom-skills"})
+m["autoUpdate"] = True
+json.dump(d, open(p, "w"), indent=2)
+PY
 ```
 
-The plugin sets no `version`, so its version is the commit it was installed
-from and every merge is an update. To have Claude Code update it in the
-background instead, turn on **Enable auto-update** for the `custom-skills`
-marketplace under `/plugin` → **Marketplaces**.
+Toggling **Enable auto-update** for the marketplace under `/plugin` →
+**Marketplaces** does the same. A value in settings overrides the one `/plugin`
+stores in `known_marketplaces.json`; with neither, a third-party marketplace
+does not auto-update. Without auto-update, run
+`claude plugin update custom-skills@custom-skills` after a merge. The plugin
+sets no `version`, so its version is the commit it was installed from and every
+merge is an update.
+
+An install from GitHub runs from a copy Claude Code takes at install time
+(`plugins/cache/custom-skills/custom-skills/<commit>` in the config directory),
+so a merge reaches sessions only after an update. `claude plugin list` shows
+the commit a config directory runs.
+
+Each Claude Code config directory (`CLAUDE_CONFIG_DIR`, such as `~/.claude`
+and a second profile directory) has its own marketplaces, plugins and settings,
+so install and turn on auto-update in each, with `CLAUDE_CONFIG_DIR` set for
+the commands above.
 
 ### On a machine with the repository checked out
 
 Add the checkout instead of GitHub, and the plugin loads in place from it: an
 edit takes effect at the next session start or after `/reload-plugins`, with
-nothing to update.
+nothing to update. `claude plugin list` shows `Read from: <checkout>`.
 
 ```sh
 claude plugin marketplace add ~/workspace/brayniac/custom-skills
 claude plugin install --scope user custom-skills@custom-skills
 ```
 
-A marketplace name is registered once per user, so remove the GitHub one first
-(`claude plugin marketplace remove custom-skills`) if it is already added. For a
-single session without installing, `claude --plugin-dir <checkout>` loads it.
+A marketplace name is registered once per config directory, so remove the GitHub
+one first (`claude plugin marketplace remove custom-skills`) if it is already
+added.
+
+### Testing a change before it merges
+
+`claude --plugin-dir <checkout>` loads a checkout for one session, without
+touching the installed copy. A GitHub install stays on the commit it last
+updated to. A checkout install follows the branch checked out in it, so test a
+branch in a separate worktree or clone.
 
 ### Moving from the MCP server
 
