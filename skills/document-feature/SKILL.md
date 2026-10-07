@@ -75,7 +75,7 @@ design problem: stop and raise it.
   link.
 
 Word choice is `write-technical-prose`; doc comments on the code are
-`sweep-comments`.
+`open-pr`'s comment sweep (step 4).
 
 ## 4. Check deterministically
 

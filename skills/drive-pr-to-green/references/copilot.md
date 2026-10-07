@@ -1,25 +1,21 @@
----
-name: drive-copilot-review
-description: Drive a GitHub pull request to a clean GitHub Copilot review — fix or answer every unresolved thread, reply then resolve, push all fixes, re-request once, wait for the new review, and repeat until a review of the current head adds no threads. Carries the traps that make "clean" a false reading — thread pagination past 100, the `[bot]` suffix on the re-request, re-raised findings as new outdated threads, and fix commits that were never themselves reviewed. Use when asked to iterate with Copilot on a PR, resolve the Copilot threads, re-request Copilot until it is satisfied, or drive a PR's automated review to clean.
----
-
-# Drive a Copilot review to clean
+# Copilot review rounds
 
 Copilot reviews in rounds: it comments, you fix and resolve, you re-request,
 it reviews again. The loop ends only when **a Copilot review of the current
 head commit adds no threads**. Resolving every thread does not end it: a fix
 commit is new code that has not been reviewed.
 
-This covers Copilot's review rounds only. For the PR's checks, other
-reviewers, and when to stop, use `drive-pr-to-green`; run both when asked to
-land a PR that Copilot reviews.
+This covers Copilot's review rounds only; the PR's checks, other reviewers
+and when to stop are `drive-pr-to-green` itself.
 
-The GraphQL is in `${CLAUDE_SKILL_DIR}/references/copilot_review.py`; run it
-in place. Use it rather than writing the queries each round; the
-pagination and the reply-then-resolve pair are easy to get wrong.
+The GraphQL is in `copilot_review.py`, beside this file; `drive-pr-to-green`'s
+SKILL.md gives its full path. Set `H` to it in the same Bash call as each
+command below (shell variables do not persist between calls), and run it in
+place. Use it rather than writing the queries each round; the pagination and the
+reply-then-resolve pair are easy to get wrong.
 
 ```sh
-H=${CLAUDE_SKILL_DIR}/references/copilot_review.py; R=owner/repo; N=<pr>
+H=<path from drive-pr-to-green>; R=owner/repo; N=<pr>
 ```
 
 ## 1. Baseline
@@ -43,8 +39,8 @@ Follow the repository's own review conventions if it has them. Otherwise:
 - **Style or a minor improvement off the critical path**: open an issue (or add
   to an existing one), reply with its link and what would reopen it, resolve.
 
-`answer-review` has the full disposition rules; this skill adds the
-Copilot-specific mechanics.
+`review` (its `references/answering.md`) has the full disposition rules; this
+adds the Copilot-specific mechanics.
 
 Then reply and resolve, which the helper does as two mutations and checks:
 
@@ -56,8 +52,8 @@ A resolve without a reply loses the record of why.
 
 ## 3. Push every fix, then re-request once
 
-Commit and push all fixes from the round (`open-pr` step 5 for staging and
-attribution), then:
+Commit and push all fixes from the round (`open-pr` steps 3 and 5 for
+attribution and staging), then:
 
 ```sh
 python3 $H $R $N rerequest
@@ -94,8 +90,8 @@ usually costs less than another round.
 ## Getting ahead of it on a large PR
 
 Copilot reports one to three findings per round, so a large PR can take twenty
-rounds. Before the first request, run your own review (`adversarial-review`
-and the repository's linters), fix what is real, and file the rest as issues.
+rounds. Before the first request, run your own review (`review` and the
+repository's linters), fix what is real, and file the rest as issues.
 If the review quality drops as the diff grows — vague findings, obvious misses
 — the PR is too large: merge the reviewed core and move the rest to a
 follow-up PR.

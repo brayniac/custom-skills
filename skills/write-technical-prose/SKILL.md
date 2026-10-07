@@ -10,10 +10,10 @@ metaphor, aphorisms, reframes, drumroll fragments or stock phrases. This skill
 does not restate them. It adds what those rules do not cover: who the reader
 is, which words change the claim, and how much material to write.
 
-Comment placement and form belong to `sweep-comments`, which allows a comment
-to be a fragment. That is a label under a declaration, not the dramatic-beat
-fragment `CLAUDE.md` bans. This skill rules on words and on how many claims a
-sentence carries; the calling skill rules on sentence shape.
+Comment placement and form belong to `open-pr`'s comment sweep (step 4), which
+allows a comment to be a fragment. That is a label under a declaration, not the
+dramatic-beat fragment `CLAUDE.md` bans. This skill rules on words and on how
+many claims a sentence carries; the calling skill rules on sentence shape.
 
 ## 1. Name the reader before changing a word
 

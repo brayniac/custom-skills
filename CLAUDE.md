@@ -26,11 +26,13 @@ cargo test --locked
 claude plugin validate .                           # manifests only
 ```
 
-rack-ci runs the first four (`.rack-ci.toml`); the repository is on its
-allowlist and every PR gets `rack-ci/check`, `rack-ci/lint` and `rack-ci/test`
-statuses. `claude plugin validate` needs Claude Code, which the CI guests do not
-have, so run it locally when a manifest changes. Its "No version specified"
-warning is expected: see Invariants.
+Changing `hooks/`, also run `python3 hooks/test_review_gate.py`.
+
+rack-ci runs the first four and the hook test (`.rack-ci.toml`); the repository
+is on its allowlist and every PR gets `rack-ci/check`, `rack-ci/lint` and
+`rack-ci/test` statuses. `claude plugin validate` needs Claude Code, which the
+CI guests do not have, so run it locally when a manifest changes. Its "No
+version specified" warning is expected: see Invariants.
 
 `claude plugin validate` does not look inside skills. It passed a copy of this
 repository with a skill whose frontmatter was not valid YAML, a skill whose
@@ -49,10 +51,20 @@ error. That is why `check-skills` exists; keep it failing on those cases.
   `references/<file>` resolves against the session's working directory. Another
   skill's file is `${CLAUDE_SKILL_DIR}/../<other>/references/<file>`.
   `check-skills` fails on a path that names no file; a path containing `<` is a
-  placeholder and is skipped.
+  placeholder and is skipped. The substitution happens only in a `SKILL.md`
+  body: a file under `references/` names a sibling as "`<file>`, beside this
+  file", and another skill's file by that skill's name and relative path, and
+  `check-skills` does not check those names.
 - **Skills do not act when loaded.** A skill returns instructions; a script
   beside it runs only when the body tells the agent to run it. Do not add hooks,
   monitors, or MCP servers to the plugin without deciding that deliberately.
+  The plugin has one hook, `hooks/review_gate.py`: a PreToolUse hook on Bash
+  that refuses a PR merge unless it is pinned with `--match-head-commit` to a
+  head `review`'s `record-review.sh` recorded. It backs up `open-pr` and
+  `drive-pr-to-green`, which run `review`; it is not the review, and it does
+  not see a gh alias or gh run from another language.
+  `python3 hooks/test_review_gate.py` tests it offline (rack-ci's `test` check
+  runs it).
 - **No `version` in `plugin.json`.** Without it, an install's version is the
   commit SHA, so `claude plugin update` and auto-update pick up every merge. A
   pinned version would hold every host on the old copy until someone changed
@@ -64,9 +76,9 @@ error. That is why `check-skills` exists; keep it failing on those cases.
   when a skill needs one Claude Code supports.
 - **The description listing has a budget.** Claude Code allots about 1% of the
   context window to all skill descriptions and drops the least-used past that.
-  `check-skills` prints the total (about 21,500 characters for 38 skills on
-  2026-09-30, all listed under Sonnet 5.5 and Opus 5.5). If it grows a lot,
-  check `/context` in a session.
+  `check-skills` prints the total (19,794 characters for 34 skills on
+  2026-10-07; at about 21,700 for 38, every description was listed under
+  Sonnet 5.5 and Opus 5.5). If it grows a lot, check `/context` in a session.
 
 ## Adding or changing a skill
 
@@ -110,6 +122,7 @@ after `/reload-plugins`. For a one-off session, `claude --plugin-dir .`.
 | `.claude-plugin/plugin.json` | Plugin manifest |
 | `.claude-plugin/marketplace.json` | The `custom-skills` marketplace, with this repository as its one plugin (`"source": "./"`) |
 | `skills/` | The skills |
+| `hooks/` | `hooks.json` and the review gate (`review_gate.py`, its test) |
 | `src/skill.rs` | The rules `check-skills` enforces, and their tests |
 | `src/main.rs` | The `check-skills` command |
 

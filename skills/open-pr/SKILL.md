@@ -1,6 +1,6 @@
 ---
 name: open-pr
-description: Open a pull request from local work in any of these repositories — find the upstream and fork remotes, branch if on main, stage files by name, follow the repo's own commit convention and per-repo PR steps, run its gates, push, and create the PR against the right repository with the attribution the harness specifies. Use when asked to open, create, submit, or send a PR; when uncommitted changes or unpushed commits need to become a PR; and before trusting a repo-local `pr` skill, several of which point at the wrong repository.
+description: Open a pull request from local work in any of these repositories — find the upstream and fork remotes, branch if on main, sweep the comments the change touches (where each fact lives, every claim of absence or equivalence checked by a grep), run the repo's gates, stage files by name, follow its commit convention and per-repo PR steps, run a `review` of the commits and answer it, push, and write the body as a guide for the reviewer (why, the decisions, where to look, what the tests ran and do not cover). Use when asked to open, create, submit, or send a PR; when uncommitted changes or unpushed commits need to become a PR; when asked to write or update a PR description, or to add, document, sweep, clean up or check the comments in a change, in any language; and before trusting a repo-local `pr` skill, several of which point at the wrong repository.
 ---
 
 # Open a PR
@@ -58,11 +58,18 @@ and the "Commits" / "Pull requests" section of `CLAUDE.md` if there is one.
   this session. Do not copy a model name from an old commit or from a repo
   skill; several hard-code one that is out of date.
 
-## 4. Verify before committing
+## 4. Sweep the comments, then verify
 
-Run the repository's declared gates with `verify-change`. If a gate fails, fix
-it or stop and report; do not open a PR on a red gate without saying so in the
-body.
+Sweep every comment and doc comment the change touches with
+`${CLAUDE_SKILL_DIR}/references/sweep-comments.md`: where each fact lives,
+what a reader derives from the code and so is deleted, every surviving claim
+of absence, equivalence or who-does-what checked with a grep, and text written
+from the session's vantage removed. It reports one line per comment touched.
+Run it alone (mode `audit`) when asked to check a change's comments.
+
+Then run the repository's declared gates with `verify-change`. If a gate fails,
+fix it or stop and report; do not open a PR on a red gate without saying so in
+the body.
 
 ## 5. Stage and commit
 
@@ -72,7 +79,15 @@ body.
 - Write the message with a heredoc so it is not mangled by the shell.
 - Do not amend or force-push commits that are already on the remote.
 
-## 6. Push and create the PR
+## 6. Review the commits
+
+Run `review` on the commits (a fresh agent; its mandates for what breaks, and
+for API and docs when they changed). Answer every finding before pushing:
+fix, dispute with evidence, or defer with the user. Fix commits are part of
+what goes up; if the fixes are more than mechanical, review again. Skip only
+when the user says to, and say so in the PR body.
+
+## 7. Push and create the PR
 
 ```sh
 git push -u origin <branch>
@@ -80,26 +95,30 @@ gh pr create --repo <owner/repo> --head <head> --base main \
   --title "<subject>" --body-file <file>
 ```
 
-Write the body with `write-pr-body`: why the change exists, the decisions
-that want the reviewer, where to look more closely, what the tests ran and do
-not cover (the per-gate lines from `verify-change`), and what only production
-can show. For an API change, state what a caller can no longer do, not only
-what was added. Keep engagement or client detail out of public repositories
-(`publishing-findings`; a hook enforces the literal terms).
+Write the body with `${CLAUDE_SKILL_DIR}/references/pr-body.md`: why the change
+exists, the decisions that want the reviewer, where to look more closely, what
+the tests ran and do not cover (the per-gate lines from `verify-change`), and
+what only production can show. Say what `review` found and how each finding was
+answered. Use the same file to update a body after new commits, or when asked to
+write a PR description. For an API change, state what a caller can no longer do,
+not only what was added. Keep engagement or client detail out of public
+repositories (`publishing-findings`; a hook enforces the literal terms).
 
 If a PR already exists for the branch, report its URL instead of creating
 another.
 
-## 7. Confirm and report
+## 8. Record the review, confirm and report
 
 ```sh
 git rev-parse HEAD origin/<branch>     # must match
-gh pr view --json url,state,isDraft
+gh pr view --json url,state,isDraft,headRefOid
 ```
 
-Report the URL. If CI has started, give its state; on repos with rack-ci, read
-the `rack-ci/*` statuses (`use-rack-ci`). When review arrives, answer it with
-`answer-review`.
+Record the step 6 review against that head (`review` step 8) if its verdict was
+merge and nothing but the mechanical fixes that step allows landed after it; the
+merge gate refuses an unrecorded head. Report the URL and what the review found.
+If CI has started, give its state; on repos with rack-ci, read the `rack-ci/*`
+statuses (`use-rack-ci`). When a reviewer answers, reply with `review` step 7.
 
 ## Never
 

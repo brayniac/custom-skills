@@ -6,9 +6,9 @@
 # host, and each step runs even after an earlier one fails -- stopping at the
 # first problem costs another push and another host to find the second.
 #
-# Everything is pure cargo, so everything runs on a pi, where there are twenty
-# and no contention. `claude plugin validate` is not here: the guests have no
-# Claude Code, and it checks only the manifests.
+# Everything is cargo plus one Python test, so everything runs on a pi, where
+# there are twenty and no contention. `claude plugin validate` is not here: the
+# guests have no Claude Code, and it checks only the manifests.
 
 [checks.check]
 target = "pi"
@@ -25,4 +25,9 @@ exit $bad
 
 [checks.test]
 target = "pi"
-run = "cargo test --locked"
+run = """
+bad=0
+cargo test --locked || bad=1
+python3 hooks/test_review_gate.py || bad=1
+exit $bad
+"""

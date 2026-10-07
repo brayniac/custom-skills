@@ -1,6 +1,6 @@
 ---
 name: drive-pr-to-green
-description: Watch an open pull request's CI and reviews until it is green, reviewed and mergeable, or blocked — one snapshot per poll covering GitHub check runs and rack-ci commit statuses, each failure classified before acting (billing, infrastructure, caused by the branch, flaky), fixes pushed only for failures the branch caused, at most one rerun per infrastructure failure per commit, flakes recorded instead of rerun until green, human review comments answered only with the user's approval, and a heartbeat and deadline on the wait. Use when asked to babysit, watch, shepherd or land a PR, to "get CI green", or to keep an eye on a PR's checks and comments; and after pushing to a PR whose checks you are responsible for.
+description: Watch an open pull request's CI and reviews until it is green, reviewed and mergeable, or blocked, and merge it when asked — one snapshot per poll covering GitHub check runs and rack-ci commit statuses, each failure classified before acting (billing, infrastructure, caused by the branch, flaky), fixes pushed only for failures the branch caused, at most one rerun per infrastructure failure per commit, flakes recorded instead of rerun until green, human review comments answered only with the user's approval, Copilot review rounds driven until a review of the current head adds no threads, a `review` of the exact head before any merge, and a heartbeat and deadline on the wait. Use when asked to babysit, watch, shepherd, land or merge a PR, to "get CI green", to iterate with or resolve Copilot's review, or to keep an eye on a PR's checks and comments; and after pushing to a PR whose checks you are responsible for.
 ---
 
 # Drive a PR to green
@@ -11,8 +11,10 @@ seconds is billing, not code: `custom-skills` PRs #1–#3 each show one failed
 `check` run of 2–3 s with zero steps and no runner. Rerunning it cannot pass,
 and editing code to fix it changes nothing. `use-rack-ci` has the full table.
 
-For Copilot review rounds, use `drive-copilot-review`; this skill covers the
-checks and the other reviewers.
+Copilot review rounds have their own mechanics (thread pagination, the
+`[bot]` re-request, re-raised findings); they are in
+`${CLAUDE_SKILL_DIR}/references/copilot.md`, which drives its GraphQL helper
+as `H=${CLAUDE_SKILL_DIR}/references/copilot_review.py`.
 
 ## Inputs
 
@@ -89,7 +91,9 @@ before pushing, so one round of checks covers both.
   (step 3) and reply with the commit. If it needs a written answer, a
   disagreement, or a product decision, draft the reply and show it to the
   user; post only what they approve.
-- A bot's comment: triage as `drive-copilot-review` step 2 does.
+- A bot's comment: triage as `${CLAUDE_SKILL_DIR}/references/copilot.md`
+  step 2 does. On a PR Copilot reviews, run its rounds from that file until a
+  review of the current head adds no threads.
 - Resolve a thread only after replying to it.
 
 ## 6. Wait with a heartbeat and a deadline
@@ -105,8 +109,7 @@ Stop and report when one of these holds:
 
 - **ready**: `VERDICT green`, `mergeable=MERGEABLE`, no unanswered review
   comment, and `reviewDecision` not `CHANGES_REQUESTED` or `REVIEW_REQUIRED`.
-  Merge only if the user asked; confirm afterwards with
-  `gh pr view --json state,mergedAt,baseRefName`.
+  Merge only if the user asked, and only after step 8.
 - **merged or closed** by someone else.
 - **blocked**: billing, a repeated infrastructure failure, a flake awaiting
   the user's decision, a comment awaiting an approved reply, a merge conflict
@@ -115,6 +118,37 @@ Stop and report when one of these holds:
 The report: head commit, the final `VERDICT` line, what was fixed with
 commits, what was rerun and why, flakes recorded with links, and anything
 waiting on the user.
+
+## 8. Review the head that will merge, then merge
+
+Before merging, run `review` on the PR's current head, answer its findings,
+and record it (`review` step 8). The plugin's merge gate refuses a merge that
+is not pinned to a recorded head, so merge with `--match-head-commit`; GitHub
+then refuses the merge if anyone pushed after the review:
+
+```sh
+gh pr view <pr> --repo <owner/repo> --json headRefOid -q .headRefOid   # must print <head-sha>
+gh pr merge <pr> --repo <owner/repo> --match-head-commit <head-sha> --squash
+gh pr view <pr> --repo <owner/repo> --json state,mergedAt,baseRefName
+```
+
+`<head-sha>` is the SHA recorded in `review` step 8, written out in full: the
+gate reads the command before the shell expands a variable, and a SHA taken
+from the PR at merge time pins whatever the head is now, not what was
+reviewed. Use the repo's merge style in place of `--squash`.
+
+Do not use `--auto`: it merges whatever head is current when the checks
+pass, and the gate refuses it.
+
+For a stack, merge bottom-up. After a squash merge, the next PR's branch
+still carries the parent's commits. Move only its own commits onto the new
+base: `git log --oneline <parent-tip>..<branch>` lists them, where
+`<parent-tip>` is the parent branch's commit this branch was built on (from
+`git merge-base <branch> <parent-branch>`, taken before the parent was
+rebased or deleted). Cherry-pick those onto the new base. Do not take the list
+from `gh pr view --json commits` after GitHub retargets the PR: it then
+includes the parent's original commits. Check `git diff` against the PR's
+original change, push, retarget, and review the new head before merging it.
 
 ## Never
 
@@ -126,4 +160,5 @@ waiting on the user.
   without recording the flake.
 - **Never post a reply to a person's review comment** without the user's
   approval of the text.
-- **Never merge unless the user asked.**
+- **Never merge unless the user asked**, or merge a head that was not the
+  one reviewed.
