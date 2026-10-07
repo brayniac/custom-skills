@@ -36,10 +36,11 @@ while until ! { } time` are skipped; after a wrapper (`command`, `exec`, `env`,
 `$( )` and backtick substitutions outside single quotes are checked too, also
 inside a heredoc with an unquoted delimiter; other heredoc bodies and
 single-quoted text are text. Nesting deeper than four levels around a merge is
-refused. `--auto` is refused; `--disable-auto` and `--help` pass. Not seen: a
-gh alias, gh run from another language
-(`python3 -c "subprocess.run(['gh', ...])"`), or shell syntax outside these
-forms (`case`, functions, arithmetic). This is a backstop for an agent
+refused. A command `ssh` runs on another host is checked. `--auto` is
+refused; `--disable-auto` and `--help` pass. Not seen: a gh alias, gh run from
+another language (`python3 -c "subprocess.run(['gh', ...])"`), shell
+functions, and a branch merged locally and pushed to the base
+(`git merge` then `git push origin main`), which is not a PR merge. This is a backstop for an agent
 forgetting the review, not a sandbox.
 
 Blocks with exit 2 and the reason on stderr. A command that mentions a merge
@@ -61,9 +62,13 @@ WRAPPERS = {"command", "exec", "env", "nohup", "time", "nice", "sudo"}
 SEPARATORS = set(";&|()<>\n")
 KEYWORDS = {"if", "then", "else", "elif", "do", "while", "until", "!", "{", "}", "time"}
 RUNNERS = WRAPPERS | {"xargs", "timeout", "stdbuf", "watch", "find"}
+SSH_VALUED = {"-b", "-c", "-D", "-E", "-e", "-F", "-I", "-i", "-J", "-L", "-l", "-m",
+              "-O", "-o", "-p", "-Q", "-R", "-S", "-W", "-w"}
 SHA = re.compile(r"^[0-9a-f]{40}$")
 ASSIGN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
-HEREDOC = re.compile(r"<<-?[ \t]*(['\"]?)([A-Za-z_][A-Za-z0-9_]*)\1[^\n]*\n(.*?)\n[ \t]*\2[ \t]*(?=\n|$)", re.S)
+# Groups: an escaping backslash, a quote, the delimiter, the rest of the
+# operator's line, the body. Either a backslash or a quote makes the body literal.
+HEREDOC = re.compile(r"<<-?[ \t]*(\\?)(['\"]?)([A-Za-z_][A-Za-z0-9_-]*)\2([^\n]*)\n(.*?)\n[ \t]*\3[ \t]*(?=\n|$)", re.S)
 SUBST = re.compile(r"`([^`]*)`|\$\(((?:[^()]|\([^()]*\))*)\)")
 API_MERGE = re.compile(r"pulls/[^/\s]+/merge\b|repos/[^/\s]+/[^/\s]+/merges\b|"
                        r"mergepullrequest|enablepullrequestautomerge|enqueuepullrequest", re.I)
@@ -80,6 +85,12 @@ def mentions_merge(text):
     # As the shell will read the words: `m\erge` and `"merge"` are merge.
     low = re.sub(r"[\\'\"]", "", text).lower()
     return "merge" in low or "enqueuepullrequest" in low
+
+
+def substitutions(text):
+    """SUBST matches in text, ignoring escaped characters: `\\`` and `\\$(` are
+    literal to the shell. The masking keeps offsets, so spans index `text`."""
+    return SUBST.finditer(re.sub(r"\\[\\`$]", "__", text))
 
 
 def single_quoted_spans(cmd):
@@ -302,15 +313,18 @@ def check(cmd, depth=0):
             line = []
         words = line[-1][1] if line else []
         ci, _ = command_word(words)
-        body = m.group(3)
+        body = m.group(5)
         if ci is not None and os.path.basename(words[ci]) in SHELLS | {"ssh"} and \
                 not any(re.match(r"^-[A-Za-z]*c[A-Za-z]*$", w) for w in words[ci + 1:]):
             check(body, depth + 1)
         else:
-            if not m.group(1):
-                for sm in SUBST.finditer(body):
-                    check(sm.group(1) or sm.group(2) or "", depth + 1)
-            hidden_merge = hidden_merge or mentions_merge(body)
+            if not m.group(1) and not m.group(2):
+                for sm in substitutions(body):
+                    check(body[sm.start(1):sm.end(1)] if sm.group(1) is not None
+                          else body[sm.start(2):sm.end(2)], depth + 1)
+            # Text only matters to a shell it is piped into on its own line.
+            if "|" in m.group(4):
+                hidden_merge = hidden_merge or mentions_merge(body)
         return m.group(0).split("\n", 1)[0]
     cmd = HEREDOC.sub(heredoc, cmd)
     cmd = strip_comments(cmd)
@@ -319,10 +333,11 @@ def check(cmd, depth=0):
     # a placeholder in. Inside single quotes they are text.
     quoted = single_quoted_spans(cmd)
     pieces, last = [], 0
-    for m in SUBST.finditer(cmd):
+    for m in substitutions(cmd):
         if any(a <= m.start() < b for a, b in quoted):
             continue
-        check(m.group(1) or m.group(2) or "", depth + 1)
+        check(cmd[m.start(1):m.end(1)] if m.group(1) is not None
+              else cmd[m.start(2):m.end(2)], depth + 1)
         pieces.append(cmd[last:m.start()]); pieces.append(PLACEHOLDER); last = m.end()
     cmd = "".join(pieces) + cmd[last:]
     if not mentions_merge(cmd) and not hidden_merge:
@@ -361,6 +376,13 @@ def check(cmd, depth=0):
                              f"merge. Run the merge as its own plain command: {FORM}")
         elif cw == "eval":
             check(" ".join(rest), depth + 1)
+        elif base == "ssh":
+            # ssh runs the words after the host on the remote host.
+            k = 0
+            while k < len(rest) and rest[k].startswith("-"):
+                k += 2 if rest[k] in SSH_VALUED else 1
+            if k + 1 < len(rest):
+                check(" ".join(rest[k + 1:]), depth + 1)
         elif base == "gh" or cw.startswith("$") or cw == PLACEHOLDER:
             check_gh(rest, env)
         elif base in RUNNERS and any(os.path.basename(x) == "gh" for x in rest):

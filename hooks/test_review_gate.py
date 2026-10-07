@@ -199,6 +199,38 @@ class Gate(unittest.TestCase):
     def test_gh_repo_from_the_environment_is_the_repository_checked(self):
         self.assertTrue(self.blocked(f"GH_REPO=owner/repo gh pr merge 7 --match-head-commit {A}"))
 
+    def test_escaped_backticks_in_messages_are_text(self):
+        for c in ['git commit -m "Rename \\`merge\\` to \\`combine\\`"',
+                  'gh pr create --title x --body "Refactors \\`merge_configs\\` into one pass"',
+                  'gh pr edit 3 --body "Adds \\`--merge\\` to the CLI"',
+                  'gh pr comment 12 --body "Fixes \\`git merge\\` handling. It\'s done"',
+                  f'bash record-review.sh owner/repo {A} merge "gate fixes; \\`gh pr merge\\` pinned"',
+                  'git commit -m "$(cat <<EOF\nFix the \\`merge\\` step\nEOF\n)"']:
+            self.assertFalse(self.blocked(c), c)
+
+    def test_heredoc_text_and_delimiter_forms(self):
+        for c in ["cat > NOTES.md <<'EOF'\nMerge plan: land after review.\nEOF\n"
+                  "curl -fsSL https://sh.rustup.rs | sh -s -- -y",
+                  "cat > a.md <<\\EOF\nthe PR's merge plan\nEOF",
+                  "cat > a.md <<'END-OF-BODY'\nthe PR's merge plan\nEND-OF-BODY"]:
+            self.assertFalse(self.blocked(c), c)
+
+    def test_ssh_remote_commands_and_case_are_checked(self):
+        for c in ["ssh host 'gh pr merge 7 --squash'",
+                  'ssh -p 2222 host "cd repo && gh pr merge 7 --squash"',
+                  "case $x in y) gh pr merge 7 --squash;; esac"]:
+            self.assertTrue(self.blocked(c), c)
+        self.assertFalse(self.blocked("ssh host 'git log --merges -3'"))
+
+    def test_nesting_past_four_is_refused_even_when_pinned_and_recorded(self):
+        self.record("owner/repo", A, "merge", "ok")
+        pinned = f"gh pr merge 7 --repo owner/repo --match-head-commit {A}"
+        self.assertFalse(self.blocked(pinned))
+        cmd = pinned
+        for _ in range(5):
+            cmd = "bash -c " + shlex.quote(cmd)
+        self.assertTrue(self.blocked(cmd))
+
     def test_an_internal_error_lets_the_command_through(self):
         p = subprocess.run([sys.executable, str(GATE)], input="not json",
                            capture_output=True, text=True, env=self.env)

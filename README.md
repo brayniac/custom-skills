@@ -67,27 +67,28 @@ gh pr merge <n> --repo <owner/repo> --match-head-commit <sha> --squash
 `/cs:review` reviews a change with a fresh agent and, once its findings are
 answered and its verdict is merge, records the head it read; `open-pr` and
 `drive-pr-to-green` run it before opening and merging. `--match-head-commit`
-makes GitHub refuse the merge if the head moved after the review. The SHA has
-to be written out: the gate reads the command before the shell expands a
-variable.
+makes GitHub refuse the merge if the head moved after the review. The SHA has to
+be written out: the gate reads the command before the shell expands a variable.
 
 The gate parses common shell forms: line continuations, comments, newlines and
 `;`, `&&` and `|`, `if`/`for`/`while` bodies, wrappers such as `sudo` and
 `xargs`, `bash -c`, `eval`, `$( )` and backticks, and heredocs and here-strings
-a shell reads. `hooks/review_gate.py` lists exactly what it reads. It refuses `--auto`, a pipe into a shell in a command that
-mentions a merge, and `gh api` merges (the pull merge and repository `merges`
-endpoints, and the merge, auto-merge and merge-queue mutations). It does not
-see a gh alias or gh run from another language, it does not check the base
-branch, and whether GitHub re-checks the pinned head when a merge queue or
-auto-merge completes is untested. It is a backstop for an agent that skipped
-the review, not an access control.
+a shell reads, and the command `ssh` runs on another host.
+`hooks/review_gate.py` lists exactly what it reads. It refuses `--auto`, a pipe
+into a shell in a command that mentions a merge, and `gh api` merges (the pull
+merge and repository `merges` endpoints, and the merge, auto-merge and
+merge-queue mutations). It does not see a gh alias, gh run from another
+language, or a branch merged locally and pushed to the base (not a PR merge), it
+does not check the base branch, and whether GitHub re-checks the pinned head
+when a merge queue or auto-merge completes is untested. It is a backstop for an
+agent that skipped the review, not an access control.
 
-When the gate refuses a merge, it prints the command that records a review.
-For a change with nothing to review, the same command takes
-`--waive "<reason>"` in place of the verdict. Records are files under
-`~/.claude/cs-reviews` (`CS_REVIEW_DIR` moves them), so a merge from another
-machine needs its own record there. To turn the gate off, disable the plugin;
-removing `hooks/hooks.json` lasts only until the plugin next updates.
+When the gate refuses a merge, it prints the command that records a review. For
+a change with nothing to review, the same command takes `--waive "<reason>"` in
+place of the verdict. Records are files under `~/.claude/cs-reviews`
+(`CS_REVIEW_DIR` moves them), so a merge from another machine needs its own
+record there. To turn the gate off, disable the plugin; removing
+`hooks/hooks.json` lasts only until the plugin next updates.
 
 ## Add a skill
 
