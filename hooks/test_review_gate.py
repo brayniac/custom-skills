@@ -244,6 +244,15 @@ class Gate(unittest.TestCase):
                   "ssh host", "ssh -i merge_key host 'grep merge /etc/x.conf'"]:
             self.assertFalse(self.blocked(c), c)
 
+    def test_sixth_review_forms(self):
+        for c in ["{ echo start > /tmp/log; cat <<EOF\ngh pr merge 7\nEOF\n} | bash",
+                  "{ cat <<EOF; echo x > /tmp/log\ngh pr merge 7\nEOF\n} | bash",
+                  "{ cat >/dev/stdout <<EOF\ngh pr merge 7\nEOF\n} | bash",
+                  "find /etc/ssh -exec gh pr merge 7 \\;"]:
+            self.assertTrue(self.blocked(c), c)
+        for c in ["cat <<EOF >notes.md\nthe merge plan\nEOF", "cat >notes.md <<EOF\nthe merge plan\nEOF"]:
+            self.assertFalse(self.blocked(c), c)
+
     def test_an_internal_error_lets_the_command_through(self):
         p = subprocess.run([sys.executable, str(GATE)], input="not json",
                            capture_output=True, text=True, env=self.env)

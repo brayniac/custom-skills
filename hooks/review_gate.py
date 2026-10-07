@@ -17,8 +17,9 @@ outside quotes) are dropped; the rest is split at `;`, `&`, `|`, parentheses,
 redirections and newlines, with quotes and backslashes removed. In each simple
 command, leading `VAR=value` assignments and the keywords `if then else elif do
 while until ! { } time` are skipped; after a wrapper (`command`, `exec`, `env`,
-`nohup`, `nice`, `sudo`) or a runner (`xargs`, `timeout`, `stdbuf`, `watch`,
-`find`) any later `gh` word is the command. Then:
+`nohup`, `nice`, `sudo`) any later `gh` word is the command, and after a runner
+(`xargs`, `timeout`, `stdbuf`, `watch`, `find`) every later `gh` or `ssh` word
+is checked as one. Then:
 
 - `gh` (by basename), or a word that is a variable or a `$( )`/backtick
   substitution (`$GH`, `$(which gh)`), followed by `pr merge`: a merge, checked
@@ -31,7 +32,9 @@ while until ! { } time` are skipped; after a wrapper (`command`, `exec`, `env`,
 - a shell (`bash`, `sh`, `zsh`, `dash`, `ksh`) with `-c` among its options, or
   `eval`: its script is checked the same way, as is a here-string or a heredoc
   a shell or `ssh` reads. A shell reading a pipe, in a command that mentions a
-  merge (a piped heredoc's body included), is refused.
+  merge, is refused; a heredoc's body counts as mentioning one unless its own
+  command writes it to a file, so a heredoc that mentions a merge and an
+  unrelated `| sh` in one call are refused together (split the call).
 
 `$( )` and backtick substitutions outside single quotes are checked too, also
 inside a heredoc with an unquoted delimiter; other heredoc bodies and
@@ -39,7 +42,8 @@ single-quoted text are text. Nesting deeper than four levels around a merge is
 refused. The command `ssh` runs on another host is checked, with ssh's options
 before or after the host. `--auto` is refused; `--disable-auto` and `--help`
 pass. Not seen: a gh alias, gh run from another language (`python3 -c
-"subprocess.run(['gh', ...])"`), and a branch merged locally and pushed to the
+"subprocess.run(['gh', ...])"`), a heredoc read by `ssh` behind a runner
+(`timeout 30 ssh host <<EOF`), and a branch merged locally and pushed to the
 base (`git merge` then `git push origin main`), which is not a PR merge. This is
 a backstop for an agent forgetting the review, not a sandbox.
 
@@ -357,8 +361,11 @@ def check(cmd, depth=0):
             # Text counts toward a pipe into a shell unless its command writes
             # it to a file (`cat > NOTES.md <<EOF`); a group (`{ cat <<EOF; } | bash`)
             # pipes it on a later line.
-            opline = cmd[line_start:m.start()] + m.group(4)
-            if "|" in m.group(4) or not re.search(r"(^|[^<>&0-9])1?>", opline):
+            # Only the heredoc's own command: back to the last separator, on to the next.
+            before = re.split(r"[;&|(){}\n]", strip_comments(cmd[line_start:m.start()]))[-1]
+            after = re.split(r"[;&|#]", m.group(4))[0]
+            if "|" in m.group(4) or not re.search(r"(^|[^<>&0-9])1?>\|?[ \t]*(?!&|/dev/stdout|/dev/fd/1\b)[^ \t]",
+                                                  before + after):
                 hidden_merge = hidden_merge or mentions_merge(body)
         return m.group(0).split("\n", 1)[0]
     cmd = HEREDOC.sub(heredoc, cmd)
@@ -416,11 +423,11 @@ def check(cmd, depth=0):
         elif base == "gh" or cw.startswith("$") or cw == PLACEHOLDER:
             check_gh(rest, env)
         elif base in RUNNERS:
-            j = next((j for j, x in enumerate(rest) if os.path.basename(x) in ("gh", "ssh")), None)
-            if j is not None and os.path.basename(rest[j]) == "gh":
-                check_gh(rest[j + 1:], env)
-            elif j is not None:
-                check_ssh(rest[j + 1:], depth)
+            for j, x in enumerate(rest):
+                if os.path.basename(x) == "gh":
+                    check_gh(rest[j + 1:], env)
+                elif os.path.basename(x) == "ssh":
+                    check_ssh(rest[j + 1:], depth)
 
 
 def main():
