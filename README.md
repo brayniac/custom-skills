@@ -24,8 +24,8 @@ Turn on auto-update, so each machine picks up every merge:
 ```sh
 python3 - <<'PY'
 import json, os
-p = os.path.join(os.environ.get("CLAUDE_CONFIG_DIR") or os.path.expanduser("~/.claude"),
-                 "settings.json")
+cfg = os.environ.get("CLAUDE_CONFIG_DIR") or os.path.expanduser("~/.claude")
+p = os.path.join(cfg, "settings.json")
 d = json.load(open(p))
 m = d.setdefault("extraKnownMarketplaces", {}).setdefault("custom-skills", {})
 m.setdefault("source", {"source": "github", "repo": "brayniac/custom-skills"})
@@ -63,13 +63,16 @@ claude plugin marketplace add ~/workspace/brayniac/custom-skills
 claude plugin install --scope user custom-skills@custom-skills
 ```
 
-A marketplace name is registered once per user, so remove the GitHub one first
-(`claude plugin marketplace remove custom-skills`) if it is already added.
+A marketplace name is registered once per config directory, so remove the GitHub
+one first (`claude plugin marketplace remove custom-skills`) if it is already
+added.
 
 ### Testing a change before it merges
 
 `claude --plugin-dir <checkout>` loads a checkout for one session, without
-touching the installed copy. Installed copies stay on `main`.
+touching the installed copy. A GitHub install stays on the commit it last
+updated to. A checkout install follows the branch checked out in it, so test a
+branch in a separate worktree or clone.
 
 ### Moving from the MCP server
 
