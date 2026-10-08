@@ -116,7 +116,8 @@ tests. Check Little's law, the client's busiest CPU and gate 4 by hand, using
 the queries in `${CLAUDE_SKILL_DIR}/references/gates.md`. The script compares
 active connections with the total the client opens, read from
 `--planned-conns`. For a study that holds the per-process count fixed
-(step 3), pass the product, such as `--planned-conns CONNS_PER_PROC*INSTANCES`.
+(step 3), pass the product, quoted so the shell does not expand it:
+`--planned-conns 'CONNS_PER_PROC*INSTANCES'`.
 
 1. **The run measured what was planned.**
    - It finished, with no errors, no failed connections and no dropped

@@ -14,9 +14,9 @@ which a script can parse without matching the summary text.
 
 For a recording downloaded as a file, `rezolus mcp query <file.rez> '<query>'`
 runs the same queries. Both engines take a bare metric name in
-`histogram_quantile`, and both use the same query library, so
-`histogram_quantile(q, irate(...))` is likely a parse error in both. It was
-seen to fail in rezolus.
+`histogram_quantile`. Both use metriken-query, which rejects
+`histogram_quantile(q, irate(...))` with "histogram_quantile second argument
+must be a metric name".
 
 ## Gates
 

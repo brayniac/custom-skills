@@ -17,7 +17,10 @@ recordings, and a verdict:
                  connections, dropped requests, fewer active connections than
                  --min-conns-frac of planned, or no result
   not-finished   the experiment was pending, cancelled or timed out in the queue
-  error          the script could not read the experiment (message on stderr)
+  error          the script could not read the experiment or a gate input
+
+Any cell can also carry a message on stderr: a display-only query that failed,
+or a --planned-conns parameter that is absent.
 
 Not checked here; check by hand: Little's law (gate 1), the client's busiest
 CPU (gate 3, printed as c_maxcpu but not gated, because a pinned polling thread
@@ -166,11 +169,18 @@ def main():
             r = row["result"] = results[0]
             t = float(r.get("throughput", 0))
             planned, absent = 1, []
-            for name in args.planned_conns.split("*"):
-                if name in row["params"]:
-                    planned *= int(row["params"][name])
-                else:
+            names = [n.strip() for n in args.planned_conns.split("*") if n.strip()]
+            if not names:
+                raise RuntimeError("--planned-conns is empty")
+            for name in names:
+                if name not in row["params"]:
                     absent.append(name)
+                    continue
+                try:
+                    planned *= int(float(row["params"][name]))
+                except (TypeError, ValueError):
+                    raise RuntimeError("--planned-conns: parameter %s is %r, not a number"
+                                       % (name, row["params"][name]))
             if absent:
                 notes.append("connections not checked: no parameter %s" % ", ".join(absent))
                 planned = None
@@ -230,10 +240,12 @@ def main():
             else:
                 row["verdict"] = "unclassified"
         except Exception as e:  # one bad experiment must not end the report
-            row["verdict"] = "error"
+            if row.get("verdict") != "loadgen-bound":
+                row["verdict"] = "error"
             notes.append(str(e))
-        if notes:
-            row["message"] = "; ".join(notes)
+        finally:
+            if notes:
+                row["message"] = "; ".join(notes)
         return row
 
     exps = []
