@@ -114,17 +114,19 @@ results. If the sweep has to be smaller, cut cells, not warmup.
 gate 1 (except Little's law), gate 2, and gate 3's run-queue and `net_rx`
 tests. Check Little's law, the client's busiest CPU and gate 4 by hand, using
 the queries in `${CLAUDE_SKILL_DIR}/references/gates.md`. The script compares
-active connections with the planned total the client opens. When the study
-holds the per-process count fixed (step 3), pass the total.
+active connections with the total the client opens, read from
+`--planned-conns`. For a study that holds the per-process count fixed
+(step 3), pass the product, such as `--planned-conns CONNS_PER_PROC*INSTANCES`.
 
 1. **The run measured what was planned.**
    - It finished, with no errors, no failed connections and no dropped
      requests.
    - The active connections at the end match the plan.
    - Little's law closes with the mean latency and connections × pipeline
-     depth (`measure-performance` step 5). It tests the measurement. In a
-     closed loop it holds whether or not the server saturated, so it says
-     nothing about gate 2.
+     depth (`measure-performance` step 5). It checks that throughput,
+     latency and in-flight count agree with each other. In a closed loop it
+     holds whether or not the server saturated, so it says nothing about
+     gate 2.
 2. **A limit of the subject was reached.** One of these holds:
    - **CPU contention.** Run-queue wait summed over the application CPUs is
      well above zero.
@@ -132,16 +134,17 @@ holds the per-process count fixed (step 3), pass the total.
      shows no run-queue wait. For a server that blocks in poll or epoll when
      idle, it shows as poll-family syscalls per request near zero with at
      least one application CPU fully busy: each wait returns many ready
-     requests. The poll-family count includes `epoll_wait`, `epoll_ctl`,
-     `poll` and `select`.
+     requests. The poll-family count includes `epoll_wait`, `epoll_pwait`,
+     `epoll_ctl`, `poll`, `ppoll`, `select` and `pselect6`.
      - A server that calls `epoll_ctl` per request reads 1 or more, so the
        test cannot fire for it.
      - In one sweep the cells at 4 processes had zero run-queue wait and 0.03
        polls per request, with half the host idle. Each process's main thread
        was the limit.
-     - A server that busy-polls or never calls poll (io_uring, a thread per
-       connection) reads near zero at any load. The test does not apply to
-       it; pass `--no-poll-gate` to the script.
+     - A server that never blocks in poll (io_uring, kernel-bypass busy
+       polling, a thread per connection) reads near zero at any load. One
+       that spins on `epoll_wait` with a zero timeout reads high. The test
+       does not apply to either; pass `--no-poll-gate` to the script.
    - **Something else.** A cell where neither fires is not ranked. Classify
      its limit by hand in step 6. A server that parks in futex on a lock or a
      wake handoff gives neither signal. Neither does a server capped by its
@@ -226,8 +229,8 @@ Rerun the top 10–20 cells that passed all four gates in tiers 1 and 2, with a
   Allan deviation is still falling at 30 s, give the leader one run of about
   20 minutes.
 - **Repeats.** Any number quoted as a result needs the interleaved repeats
-  that `measure-performance` step 5 sets. A single run is not enough. Size
-  the repeats from the spread between these extended runs.
+  that `measure-performance` step 5 sets. Size the repeats from the spread
+  between these extended runs.
 - **Burst and baseline.** On hosts with credit-based network or CPU limits, a
   30 s run measures the burst rate and a 5-minute run the baseline. Check the
   allowance counters (`benchmark-validity`) before comparing tier 1 ranks

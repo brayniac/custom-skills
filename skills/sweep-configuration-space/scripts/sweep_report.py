@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Tabulate a SystemsLab sweep with gates 1-3 from SKILL.md step 5.
+"""Tabulate a SystemsLab sweep with the script-checkable parts of gates 1-3
+from SKILL.md step 5.
 
 For every experiment in the given contexts, prints the parameters that vary,
 the load generator's result, the gate signals read from the rezolus
 recordings, and a verdict:
 
-  ranked         passed gates 1-3
+  ranked         passed the gate checks this script makes (listed below)
   unclassified   finished cleanly but no saturation signal fired; classify
                  the limit by hand (SKILL.md step 6). A server that parks in
                  futex on a lock, or one capped by a shared ceiling, lands here
@@ -66,8 +67,9 @@ def main():
     ap.add_argument("--server-job", default="server")
     ap.add_argument("--client-job", default="client")
     ap.add_argument("--app-cpus", required=True, help="server CPUs the subject runs on, e.g. 16-63")
-    ap.add_argument("--connections-param", default="CONNECTIONS",
-                    help="sweep parameter holding the planned total connections the client opens")
+    ap.add_argument("--planned-conns", default="CONNECTIONS",
+                    help="sweep parameter holding the total connections the client opens, or a product of "
+                         "parameters such as CONNS_PER_PROC*INSTANCES for a per-process study")
     ap.add_argument("--min-conns-frac", type=float, default=0.99,
                     help="active connections at the end, as a fraction of planned, below which a cell failed")
     ap.add_argument("--min-rqwait", type=float, default=1.0,
@@ -75,8 +77,8 @@ def main():
     ap.add_argument("--max-poll-per-req", type=float, default=0.1,
                     help="polls per request at or below which a server that does poll counts as "
                          "saturated on its event loop")
-    ap.add_argument("--min-app-busy", type=float, default=1.0,
-                    help="app-CPU cores busy required before the poll test applies")
+    ap.add_argument("--min-busiest-cpu", type=float, default=0.9,
+                    help="busiest app CPU's busy share required before the poll test applies")
     ap.add_argument("--no-poll-gate", action="store_true",
                     help="disable the poll test, for a server that busy-polls or never blocks in poll/epoll")
     ap.add_argument("--max-client-rq99", type=float, default=40.0, help="client run-queue p99 in us")
@@ -109,7 +111,10 @@ def main():
         p = subprocess.run(["systemslab", "--systemslab-url", args.url, "promql", "--experiment", eid,
                             "--job", jid, "--output", "json", expr], capture_output=True, text=True)
         if p.returncode != 0:
-            raise RuntimeError("promql %s: %s" % (expr, (p.stderr or p.stdout).strip()[:200]))
+            err = (p.stderr or p.stdout).strip()
+            if "no metric artifacts found" in err:
+                return {}  # the job has no recording: missing data, not an error
+            raise RuntimeError("promql %s: %s" % (expr, err[:200]))
         try:
             doc = json.loads(p.stdout)
         except ValueError:
@@ -131,6 +136,7 @@ def main():
     def measure(exp):
         eid = exp["experiment_id"]
         row = {"params": exp.get("params", {}), "id": eid, "state": "?"}
+        notes = []
         try:
             x = api(f"/api/v1/experiment/{eid}")
             row["state"] = x["state"]
@@ -158,36 +164,60 @@ def main():
                 row["verdict"] = "failed"
                 return row
             r = row["result"] = results[0]
-            t = r.get("throughput", 0)
-            planned = row["params"].get(args.connections_param)
+            t = float(r.get("throughput", 0))
+            planned, absent = 1, []
+            for name in args.planned_conns.split("*"):
+                if name in row["params"]:
+                    planned *= int(row["params"][name])
+                else:
+                    absent.append(name)
+            if absent:
+                notes.append("connections not checked: no parameter %s" % ", ".join(absent))
+                planned = None
             if (t <= 0 or r.get("errors") or r.get("conns_failed") or r.get("requests_dropped")
                     or (planned is not None and r.get("conns_active") is not None
-                        and int(r["conns_active"]) < args.min_conns_frac * int(planned))):
+                        and int(r["conns_active"]) < args.min_conns_frac * planned)):
                 row["verdict"] = "failed"
                 return row
             s, c = jobs[args.server_job], jobs[args.client_job]
-            busy = by_cpu(eid, s, "sum by (id) (irate(cpu_usage[5s])) / 1e9")
-            rqw = by_cpu(eid, s, "sum by (id) (irate(scheduler_runqueue_wait[5s])) / 1e9")
-            snetrx = by_cpu(eid, s, 'sum by (id) (irate(softirq_time{kind="net_rx"}[5s])) / 1e9')
+
+            def soft(fn, *a):
+                """A query whose failure costs only its own column."""
+                try:
+                    return fn(*a)
+                except RuntimeError as e:
+                    notes.append(str(e))
+                    return {} if fn is by_cpu else NAN
+
+            # Client first: a saturated client is reported as loadgen-bound even
+            # when the server's metrics are missing.
             cnetrx = by_cpu(eid, c, 'sum by (id) (irate(softirq_time{kind="net_rx"}[5s])) / 1e9')
-            cbusy = by_cpu(eid, c, "sum by (id) (irate(cpu_usage[5s])) / 1e9")
             row.update(
-                rqwait=sum(v for k, v in rqw.items() if k in app) if rqw else NAN,
-                app_busy=sum(v for k, v in busy.items() if k in app) if busy else NAN,
-                cpu_us=1e6 * sum(busy.values()) / t if busy else NAN,
-                poll=scalar(eid, s, 'sum(irate(syscall{op="poll"}[5s]))') / t,
-                futex=scalar(eid, s, 'sum(irate(syscall{op="lock"}[5s]))') / t,
-                vcs=scalar(eid, s, 'sum(irate(scheduler_context_switch{kind="voluntary"}[5s]))') / t,
-                migr=scalar(eid, s, 'sum(irate(cpu_migrations{direction="to"}[5s]))'),
-                server_netrx=max(snetrx.values()) if snetrx else NAN,
                 client_rq99=scalar(eid, c, "histogram_quantile(0.99, scheduler_runqueue_latency) / 1000"),
                 client_netrx=max(cnetrx.values()) if cnetrx else NAN,
-                client_maxcpu=max(cbusy.values()) if cbusy else NAN,
-                link_gbps=(r.get("rx_bps", 0) + r.get("tx_bps", 0)) / 1e9,
+                link_gbps=(float(r.get("rx_bps", 0)) + float(r.get("tx_bps", 0))) / 1e9,
             )
-            # A saturated client is reported as such even when other metrics are missing.
             if row["client_rq99"] > args.max_client_rq99 or row["client_netrx"] > args.max_client_netrx:
                 row["verdict"] = "loadgen-bound"
+            busy = by_cpu(eid, s, "sum by (id) (irate(cpu_usage[5s])) / 1e9")
+            rqw = by_cpu(eid, s, "sum by (id) (irate(scheduler_runqueue_wait[5s])) / 1e9")
+            app_busy = [v for k, v in busy.items() if k in app]
+            snetrx = soft(by_cpu, eid, s, 'sum by (id) (irate(softirq_time{kind="net_rx"}[5s])) / 1e9')
+            cbusy = soft(by_cpu, eid, c, "sum by (id) (irate(cpu_usage[5s])) / 1e9")
+            row.update(
+                rqwait=sum(v for k, v in rqw.items() if k in app) if rqw else NAN,
+                app_busy=sum(app_busy) if app_busy else NAN,
+                busiest_app=max(app_busy) if app_busy else NAN,
+                cpu_us=1e6 * sum(busy.values()) / t if busy else NAN,
+                poll=scalar(eid, s, 'sum(irate(syscall{op="poll"}[5s]))') / t,
+                futex=soft(scalar, eid, s, 'sum(irate(syscall{op="lock"}[5s]))') / t,
+                vcs=soft(scalar, eid, s, 'sum(irate(scheduler_context_switch{kind="voluntary"}[5s]))') / t,
+                migr=soft(scalar, eid, s, 'sum(irate(cpu_migrations{direction="to"}[5s]))'),
+                server_netrx=max(snetrx.values()) if snetrx else NAN,
+                client_maxcpu=max(cbusy.values()) if cbusy else NAN,
+            )
+            if row.get("verdict") == "loadgen-bound":
+                pass
             elif any(math.isnan(row[k]) for k in ("client_rq99", "client_netrx", "rqwait", "app_busy")):
                 row["verdict"] = "no-data"
             elif args.link_gbps and row["link_gbps"] >= args.link_frac * args.link_gbps:
@@ -195,13 +225,15 @@ def main():
             elif row["rqwait"] >= args.min_rqwait:
                 row["verdict"] = "ranked"
             elif (not args.no_poll_gate and not math.isnan(row["poll"]) and 0 < row["poll"] <= args.max_poll_per_req
-                    and row["app_busy"] >= args.min_app_busy):
+                    and row["busiest_app"] >= args.min_busiest_cpu):
                 row["verdict"] = "ranked"
             else:
                 row["verdict"] = "unclassified"
         except Exception as e:  # one bad experiment must not end the report
             row["verdict"] = "error"
-            row["message"] = str(e)
+            notes.append(str(e))
+        if notes:
+            row["message"] = "; ".join(notes)
         return row
 
     exps = []

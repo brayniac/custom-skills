@@ -14,15 +14,16 @@ which a script can parse without matching the summary text.
 
 For a recording downloaded as a file, `rezolus mcp query <file.rez> '<query>'`
 runs the same queries. Both engines take a bare metric name in
-`histogram_quantile`. `histogram_quantile(q, irate(...))` is a parse error in
-rezolus.
+`histogram_quantile`, and both use the same query library, so
+`histogram_quantile(q, irate(...))` is likely a parse error in both. It was
+seen to fail in rezolus.
 
 ## Gates
 
 | Gate | Query | Reading |
 | --- | --- | --- |
 | subject saturated | `sum by (id) (irate(scheduler_runqueue_wait[5s])) / 1e9`, summed over the application CPUs | core-equivalents of time spent runnable but not running. Well above 0 means the CPUs are contended. `sweep_report.py`'s default threshold of 1 core admits marginal cells (one ranked on 1.2), so read cells near it by hand |
-| subject saturated, event-loop server | `sum(irate(syscall{op="poll"}[5s]))` / throughput | `op="poll"` counts the poll family: `epoll_wait`, `epoll_ctl`, `poll`, `select`. Near 0 per request, with at least one application CPU fully busy, means each wait returns many ready requests. Only for a server that blocks in poll or epoll when idle: one that busy-polls or never polls reads near 0 at any load |
+| subject saturated, event-loop server | `sum(irate(syscall{op="poll"}[5s]))` / throughput | `op="poll"` counts the poll family, including `epoll_wait`, `epoll_pwait`, `epoll_ctl`, `poll`, `ppoll`, `select` and `pselect6`. Near 0 per request, with the busiest application CPU nearly fully busy, means each wait returns many ready requests. Only for a server that blocks in poll or epoll when idle: one that never blocks in poll reads near 0 at any load, and one that spins on `epoll_wait` with a zero timeout reads high |
 | server-side ceiling | the server's `sum by (id) (irate(softirq_time{kind="net_rx"}[5s])) / 1e9`, max over CPUs, and the load generator's rx + tx bytes/s against the link rate | for cells where neither saturation test fires |
 | load generator headroom | `histogram_quantile(0.99, scheduler_runqueue_latency) / 1000` on the client | µs. Calibrate on your rig. One client read 3–4 µs when pinned away from the IRQ CPUs, 23–26 µs unpinned and still healthy, and 61 µs when one of its queue CPUs was saturated |
 | load generator headroom | `sum by (id) (irate(softirq_time{kind="net_rx"}[5s])) / 1e9` on the client | take the max over CPUs. Near 1.0 means a queue CPU is saturated, whatever the total CPU says |
