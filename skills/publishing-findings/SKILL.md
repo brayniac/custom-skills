@@ -19,7 +19,8 @@ land gently is what furnishes a detail to soften it. That is why the check has
 to be mechanical and attached to the destination, rather than triggered by a
 feeling that something is sensitive.
 
-Whether the numbers themselves are sound is `benchmark-validity`.
+Whether the numbers themselves are sound is `benchmark-validity`; whether the
+numbers being compared are written comparably is `check-compared-numbers`.
 
 ## Check the destination before writing the content
 
