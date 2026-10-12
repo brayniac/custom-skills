@@ -27,8 +27,9 @@ about three minutes. Treat "run it on distro X" as routine, not an expedition.
 | Amazon Linux | `al2023-i40e` | x86 | kernel 6.12, can drive the passthrough ports. Stock `al2023` needs `ports = 0` |
 | Amazon Linux 2, only if the question is AL2 | `al2` | hv01, hv02 | stock, out of support since 2026-06-30; no python3, `ports = 0`, start payloads with `export PATH=$PATH:/sbin:/usr/sbin` |
 | musl, OpenRC | `alpine-3.24` | x86, Pis | busybox userland; no rezolus (recipes, "Alpine") |
-| GPU, CUDA 12 | `debian-13-gpu` | hv01, hv02 | driver 550, CUDA 12.4 toolkit; shape `z2.g` (hv01) or `z1.g` (hv02), one RTX 4090 each |
-| GPU, CUDA 13 | `debian-13-gpu-cu13` | hv01, hv02 | NVIDIA's 595 driver, no toolkit (for pip wheels such as vLLM) |
+| GPU, CUDA 12 | `debian-13-gpu-cu12` | hv01, hv02 | Debian's driver 550 and CUDA 12.4 toolkit, kernel 6.12; shape `z2.g` (hv01) or `z1.g` (hv02), one RTX 4090 each |
+| GPU, CUDA 13 | `debian-13-gpu-cu13` | hv01, hv02 | NVIDIA's 595 driver and CUDA 13.2 toolkit, kernel 6.12; for CUDA 13 wheels such as vLLM |
+| GPU on another kernel or release | `debian-13-{6.12,6.17,6.18}-gpu-cu12`, `debian-13-{6.12,6.17,6.18,7.1,7.2,mainline}-gpu-cu13`, `debian-12-6.1-gpu-cu12`, `debian-12-6.1-gpu-cu13`, `debian-14-7.2-gpu-cu13` | hv01, hv02 | aliases `debian-12-gpu-cu12`, `debian-12-gpu-cu13` (6.1) and `debian-14-gpu-cu13` (7.2) also exist; no other combination does. On bookworm (`debian-12-*`) cu12 is driver 535 (CUDA up to 12.2) and nvcc 11.8. A cu13 driver also runs CUDA 12 code |
 
 Name the family (`debian-13-base`), not `spool/images/<x>@golden`: the family
 resolves to its current build on whichever host the job lands on. Pin a build
@@ -64,9 +65,19 @@ bring its data NIC up as `enp2s0` instead of `data`.
   candidate, or a tree with patches no release has). Mainline is the one
   whose kernel changes when someone rebuilds it; record its
   `/etc/anvil-image.json` with the result.
-- GPU: `debian-13-gpu` for CUDA 12 and for anything that compiles CUDA
-  (it has nvcc); `debian-13-gpu-cu13` for CUDA 13 wheels. A result measured on
-  one is not comparable with the other: the driver differs.
+- GPU: `debian-13-gpu-cu12` for CUDA 12, `debian-13-gpu-cu13` for CUDA 13;
+  both have nvcc. In cu13 images nvcc is `/usr/local/cuda/bin/nvcc` and is on
+  a login shell's PATH only, so a payload adds `/usr/local/cuda/bin` to PATH
+  or calls it by full path. These two are aliases for
+  `debian-13-6.12-gpu-cu12` and `debian-13-6.12-gpu-cu13`; name the family
+  with the kernel series when the kernel is part of the result. An alias
+  moves only when it is re-pointed after its target is promoted, so record
+  `/etc/anvil-image.json` with the result. A result measured on cu12 is not
+  comparable with one on cu13: the driver differs.
+- `debian-13-gpu` is an older cu12 family (Debian's 550.163.01-2 on kernel
+  6.12.107). Use it only to continue a series already measured on it; results
+  on it are not comparable with `debian-13-gpu-cu12`, whose driver package and
+  kernel differ.
 - Pis against x86: a Pi when the question is the A72 or there are many small
   independent cells to run (twenty Pis, one job each); x86 for anything that
   needs more than 3 vCPU and ~3 GiB, the passthrough NICs, or a GPU.
