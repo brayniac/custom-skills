@@ -29,7 +29,7 @@ about three minutes. Treat "run it on distro X" as routine, not an expedition.
 | musl, OpenRC | `alpine-3.24` | x86, Pis | busybox userland; no rezolus (recipes, "Alpine") |
 | GPU, CUDA 12 | `debian-13-gpu-cu12` | hv01, hv02 | Debian's driver 550 and CUDA 12.4 toolkit, kernel 6.12; shape `z2.g` (hv01) or `z1.g` (hv02), one RTX 4090 each |
 | GPU, CUDA 13 | `debian-13-gpu-cu13` | hv01, hv02 | NVIDIA's 595 driver and CUDA 13.2 toolkit, kernel 6.12; for CUDA 13 wheels such as vLLM |
-| GPU on another kernel or release | `debian-13-{6.12,6.17,6.18}-gpu-cu12`, `debian-13-{6.12,6.17,6.18,7.1,7.2,mainline}-gpu-cu13`, `debian-12-6.1-gpu-cu12`, `debian-12-6.1-gpu-cu13`, `debian-14-7.2-gpu-cu13` | hv01, hv02 | no other combination exists. On bookworm (`debian-12-*`) cu12 is driver 535 (CUDA up to 12.2) and nvcc 11.8. A cu13 driver also runs CUDA 12 code |
+| GPU on another kernel or release | `debian-13-{6.12,6.17,6.18}-gpu-cu12`, `debian-13-{6.12,6.17,6.18,7.1,7.2,mainline}-gpu-cu13`, `debian-12-6.1-gpu-cu12`, `debian-12-6.1-gpu-cu13`, `debian-14-7.2-gpu-cu13` | hv01, hv02 | aliases `debian-12-gpu-cu12`, `debian-12-gpu-cu13` (6.1) and `debian-14-gpu-cu13` (7.2) also exist; no other combination does. On bookworm (`debian-12-*`) cu12 is driver 535 (CUDA up to 12.2) and nvcc 11.8. A cu13 driver also runs CUDA 12 code |
 
 Name the family (`debian-13-base`), not `spool/images/<x>@golden`: the family
 resolves to its current build on whichever host the job lands on. Pin a build
@@ -70,9 +70,11 @@ bring its data NIC up as `enp2s0` instead of `data`.
   a login shell's PATH only, so a payload adds `/usr/local/cuda/bin` to PATH
   or calls it by full path. These two are aliases for
   `debian-13-6.12-gpu-cu12` and `debian-13-6.12-gpu-cu13`; name the family
-  with the kernel series when the kernel is part of the result. A result
-  measured on cu12 is not comparable with one on cu13: the driver differs.
-- `debian-13-gpu` is an older cu12 build (Debian's 550.163.01-2 on kernel
+  with the kernel series when the kernel is part of the result. An alias
+  moves only when it is re-pointed after its target is promoted, so record
+  `/etc/anvil-image.json` with the result. A result measured on cu12 is not
+  comparable with one on cu13: the driver differs.
+- `debian-13-gpu` is an older cu12 family (Debian's 550.163.01-2 on kernel
   6.12.107). Use it only to continue a series already measured on it; results
   on it are not comparable with `debian-13-gpu-cu12`, whose driver package and
   kernel differ.
