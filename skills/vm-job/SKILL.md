@@ -21,6 +21,7 @@ about three minutes. Treat "run it on distro X" as routine, not an expedition.
 | build / test Rust | `debian-13-ci` | x86, Pis | rustup, gcc, git, warm crates index; kernel 6.12. `debian-13-base` has **no** toolchain |
 | measurement tooling only | `debian-13-base` | x86, Pis | rezolus, slipway's remote, bubblewrap, stressapptest |
 | newer kernel, io_uring after 6.14 | `debian-13-ci-bpo` | x86, Pis | `debian-13-ci` on trixie-backports 7.1.13 |
+| a specific kernel series | `debian-12-base` (6.1), `debian-12-{6.6,6.9,6.11}`, `debian-13-base` (6.12), `debian-13-{6.17,6.18,7.1,7.2}`, `debian-14-base` (7.2.8, forky userspace) | see notes | `-base` platform on a Debian kernel; Debian 13 families on trixie userspace, Debian 12 on bookworm. hv01 and hv02: `debian-12-base` and the four `debian-13` kernels; `debian-14-base` on hv01 only. Pis: the four `debian-12` families, `debian-13-6.17`, `debian-13-6.18`, `debian-14-base`. Debian never built a 6.8 |
 | a release candidate or kernel tree | `debian-13-mainline` | x86 | `debian-13-base` on a kernel.org build (7.3.0-rc6 on 2026-10-06); infra's `jobs/build-kernel-mainline` moves it |
 | Ubuntu | `ubuntu-24.04-base`, `ubuntu-26.04-base` | x86 | rezolus, bubblewrap, stressapptest; no internal apt repo or slipway (its packages are built on trixie) |
 | RHEL-family behaviour (io_uring refused, SELinux, dnf) | `rocky-10-base` | x86, Pis | rezolus; install a toolchain in the payload (recipes); `io_uring_disabled=2` |
@@ -59,6 +60,10 @@ bring its data NIC up as `enp2s0` instead of `data`.
   `io_uring_disabled=2`, dnf, an EL kernel. `al2023-i40e` when Amazon Linux
   is; it is x86 only.
 - `alpine-3.24` for musl and its allocator, or a small busybox userland.
+- An older kernel than 6.12: `debian-12-base` (6.1) on x86 or the Pis;
+  6.6, 6.9 and 6.11 (`debian-12-6.6` and so on) are on the Pis only. The Pi
+  builds of Debian 12 have no stressapptest (bookworm has no arm64 build);
+  `/etc/anvil-image.json` lists it under `packages_absent`.
 - A newer kernel, in order of preference: `debian-13-ci-bpo` (Debian's
   backports kernel, 7.1.13: packaged, stable, sched_ext), then
   `ubuntu-26.04-base` (7.0), then `debian-13-mainline` (a release
@@ -83,8 +88,9 @@ bring its data NIC up as `enp2s0` instead of `data`.
   needs more than 3 vCPU and ~3 GiB, the passthrough NICs, or a GPU.
 
 **sched_ext** needs it compiled in, and Debian's 6.12 leaves it out. It is in
-`debian-13-ci-bpo`, `debian-13-mainline`, `ubuntu-26.04*` and `rocky-10*`; not
-in the other Debian images, `ubuntu-24.04*` or `alpine-3.24`. infra's
+`debian-13-ci-bpo`, `debian-13-{6.17,6.18,7.1,7.2}`, `debian-14-base`,
+`debian-13-mainline`, `ubuntu-26.04*` and `rocky-10*`; not in Debian images on
+6.12 or older, `ubuntu-24.04*` or `alpine-3.24`. infra's
 docs/guides/vm-jobs.md keeps the table. A guest's scheduler places threads on
 vCPUs and the host's still decides when the vCPUs run, so a guest shows a
 policy's effect, not bare-metal latency.
