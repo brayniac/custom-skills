@@ -144,7 +144,8 @@ is reported as not checked.
    - **A single thread.** A single-thread limit leaves most CPUs idle and
      shows no run-queue wait. For a server that blocks in poll or epoll when
      idle, it shows as poll-family syscalls per request near zero with at
-     least one application CPU fully busy: each wait returns many ready
+     least one application CPU at `--min-busiest-cpu` (0.9 by default) or more
+     after subtracting its `net_rx` share: each wait returns many ready
      requests. The poll-family count includes `epoll_wait`, `epoll_pwait`,
      `epoll_ctl`, `poll`, `ppoll`, `select` and `pselect6`.
      - A server that calls `epoll_ctl` per request reads 1 or more, so the

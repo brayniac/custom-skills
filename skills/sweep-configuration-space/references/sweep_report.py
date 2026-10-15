@@ -24,8 +24,9 @@ Any cell can also carry a message on stderr: a display-only query that failed,
 or a --planned-conns parameter that is absent.
 
 The poll test needs a net_rx series for every app CPU. A recording from rezolus
-older than 5.18.0 can omit CPUs whose net_rx count stayed at zero; the poll
-test then gives no-data with a note.
+older than 5.18.0, or one set to snapshot_format = "v2", can omit CPUs whose
+net_rx count stayed at zero; a cell that could still rank on the poll test is
+then no-data with a note.
 
 Not checked here; check by hand: Little's law (gate 1), the client's busiest
 CPU (gate 3, printed as c_maxcpu but not gated, because a pinned polling thread
@@ -202,7 +203,8 @@ def main():
 
             def soft(fn, *a):
                 """A query whose failure does not stop the row. Display-only except the
-                server net_rx query, whose failure makes a poll-ranked cell no-data."""
+                server net_rx query: its failure makes no-data a cell that could
+                still rank on the poll test."""
                 try:
                     return fn(*a)
                 except RuntimeError as e:
@@ -224,6 +226,10 @@ def main():
             app_busy = [v for k, v in busy.items() if k in app]
             snetrx = soft(by_cpu, eid, s, 'sum by (id) (irate(softirq_time{kind="net_rx"}[5s])) / 1e9')
             cbusy = soft(by_cpu, eid, c, "sum by (id) (irate(cpu_usage[5s])) / 1e9")
+            # The most the poll test's busy figure can be: a CPU with no net_rx
+            # series is taken at its full busy share.
+            busiest_ub = max((v - snetrx.get(k, 0.0) for k, v in busy.items() if k in app), default=NAN)
+            pq = 'sum(irate(syscall{op="poll"}[5s]))'
             row.update(
                 rqwait=sum(v for k, v in rqw.items() if k in app) if rqw else NAN,
                 app_busy=sum(app_busy) if app_busy else NAN,
@@ -233,7 +239,7 @@ def main():
                 busiest_net=(max(v - snetrx[k] for k, v in busy.items() if k in app)
                              if app_busy and all(k in snetrx for k in busy if k in app) else NAN),
                 cpu_us=1e6 * sum(busy.values()) / t if busy else NAN,
-                poll=scalar(eid, s, 'sum(irate(syscall{op="poll"}[5s]))') / t,
+                poll=(soft(scalar, eid, s, pq) if args.no_poll_gate else scalar(eid, s, pq)) / t,
                 futex=soft(scalar, eid, s, 'sum(irate(syscall{op="lock"}[5s]))') / t,
                 vcs=soft(scalar, eid, s, 'sum(irate(scheduler_context_switch{kind="voluntary"}[5s]))') / t,
                 migr=soft(scalar, eid, s, 'sum(irate(cpu_migrations{direction="to"}[5s]))'),
@@ -249,11 +255,11 @@ def main():
             elif row["rqwait"] >= args.min_rqwait:
                 row["verdict"] = "ranked"
             elif (not args.no_poll_gate and math.isnan(row["poll"])
-                    and row["busiest_app"] >= args.min_busiest_cpu):
+                    and busiest_ub >= args.min_busiest_cpu):
                 row["verdict"] = "no-data"
                 notes.append("poll query returned no series")
             elif (not args.no_poll_gate and not math.isnan(row["poll"]) and 0 < row["poll"] <= args.max_poll_per_req
-                    and row["busiest_app"] >= args.min_busiest_cpu and math.isnan(row["busiest_net"])):
+                    and busiest_ub >= args.min_busiest_cpu and math.isnan(row["busiest_net"])):
                 row["verdict"] = "no-data"
                 notes.append("net_rx query returned no series for an app CPU")
             elif (not args.no_poll_gate and not math.isnan(row["poll"]) and 0 < row["poll"] <= args.max_poll_per_req
