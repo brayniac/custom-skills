@@ -11,7 +11,8 @@ recordings, and a verdict:
                  the limit by hand (SKILL.md step 6). A server that parks in
                  futex on a lock, or one capped by a shared ceiling, lands here
   loadgen-bound  the client was out of headroom
-  link-bound     rx+tx reached --link-frac of --link-gbps
+  link-bound     the busier direction, rx or tx, reached --link-frac of
+                 --link-gbps
   no-data        a gate's metrics were missing; nothing was decided
   failed         the experiment ended in failure or error; or errors, failed
                  connections, dropped requests, fewer active connections than
@@ -88,7 +89,8 @@ def main():
     ap.add_argument("--max-client-netrx", type=float, default=0.8,
                     help="busiest client CPU's share of time in net_rx softirq")
     ap.add_argument("--link-gbps", type=float, default=0.0,
-                    help="link rate; with it, rx+tx at --link-frac or more is link-bound")
+                    help="link rate per direction; with it, the busier of rx and tx at --link-frac or more is "
+                         "link-bound")
     ap.add_argument("--link-frac", type=float, default=0.9)
     args = ap.parse_args()
     app = cpu_set(args.app_cpus)
@@ -184,6 +186,8 @@ def main():
             if absent:
                 notes.append("connections not checked: no parameter %s" % ", ".join(absent))
                 planned = None
+            elif r.get("conns_active") is None:
+                notes.append("connections not checked: no conns_active in the result")
             if (t <= 0 or r.get("errors") or r.get("conns_failed") or r.get("requests_dropped")
                     or (planned is not None and r.get("conns_active") is not None
                         and int(r["conns_active"]) < args.min_conns_frac * planned)):
@@ -205,7 +209,7 @@ def main():
             row.update(
                 client_rq99=scalar(eid, c, "histogram_quantile(0.99, scheduler_runqueue_latency) / 1000"),
                 client_netrx=max(cnetrx.values()) if cnetrx else NAN,
-                link_gbps=(float(r.get("rx_bps", 0)) + float(r.get("tx_bps", 0))) / 1e9,
+                link_gbps=max(float(r.get("rx_bps", 0)), float(r.get("tx_bps", 0))) / 1e9,
             )
             if row["client_rq99"] > args.max_client_rq99 or row["client_netrx"] > args.max_client_netrx:
                 row["verdict"] = "loadgen-bound"
@@ -234,6 +238,8 @@ def main():
                 row["verdict"] = "link-bound"
             elif row["rqwait"] >= args.min_rqwait:
                 row["verdict"] = "ranked"
+            elif not args.no_poll_gate and math.isnan(row["poll"]):
+                row["verdict"] = "no-data"
             elif (not args.no_poll_gate and not math.isnan(row["poll"]) and 0 < row["poll"] <= args.max_poll_per_req
                     and row["busiest_app"] >= args.min_busiest_cpu):
                 row["verdict"] = "ranked"

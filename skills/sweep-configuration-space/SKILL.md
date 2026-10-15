@@ -22,8 +22,9 @@ neighbouring skills own the rest:
 - `calibrate-to-source`: thresholds;
 - `systemslab-spec-authoring`: spec mechanics.
 
-Steps 2, 5 and 6 name SystemsLab, rezolus and cachecannon. On another lab,
-keep each check and replace the tool.
+Steps 2, 5 and 6 name SystemsLab and rezolus. `sweep_report.py` (step 5)
+parses cachecannon's JSON result line. On another lab, keep each check and
+replace the tool.
 
 ## 1. Write the question and the fixed resources down first
 
@@ -53,10 +54,11 @@ Record all of this beside the sweep file before submitting anything.
   the next cell starts. A preflight step fails the run if a port is already
   in use.
 - **Bracket the measured window with `systemslab/start-metrics` and
-  `stop-metrics`** (`measure-performance` step 3). Otherwise the recording
-  spans the whole job, and warmup and prefill load enter every per-request
-  rate and gate. A prefill that saturates the server can then pass gate 2 for
-  a window that did not.
+  `stop-metrics`** (`measure-performance` step 3), after a
+  `systemslab/barrier` so the client's and the server's windows match.
+  Otherwise the recording spans the whole job, and warmup and prefill load
+  enter every per-request rate and gate. A prefill that saturates the server
+  can then pass gate 2 for a window that did not.
 - **Every run sets each host knob it depends on, at its start, in both
   directions.** That covers irqbalance on or off, the IRQ affinity of each NIC
   queue, and the CPU set of each process. Print the resulting state at the
@@ -85,9 +87,9 @@ example is "64 connections per process" with process count as the axis.
 
 Size a fixed total for the geometry you expect to have the highest
 throughput. That is often the one with the most processes: it gives each
-process the fewest connections, so it is the hardest to saturate. By Little's law the total must
-be at least that geometry's expected peak throughput × its latency at
-saturation. Confirm in step 5 that it saturated.
+process the fewest connections, so it is the hardest to saturate. By
+Little's law the total must be at least that geometry's expected peak
+throughput × its latency at saturation. Confirm in step 5 that it saturated.
 
 A closed-loop ranking is valid only among cells whose ceiling is the subject.
 Confirm the leaders open-loop or with an SLO search (`measure-performance`
@@ -119,6 +121,9 @@ active connections with the total the client opens, read from
 (step 3), pass the product, quoted so the shell does not expand it:
 `--planned-conns 'CONNS_PER_PROC*INSTANCES'`.
 
+`ranked` means the script's checks passed. Rank a cell only after Little's
+law, the client's busiest CPU and gate 4 also pass by hand.
+
 1. **The run measured what was planned.**
    - It finished, with no errors, no failed connections and no dropped
      requests.
@@ -128,6 +133,9 @@ active connections with the total the client opens, read from
      latency and in-flight count agree with each other. In a closed loop it
      holds whether or not the server saturated, so it says nothing about
      gate 2.
+   - cachecannon's result line reports percentiles and no mean. Take the
+     mean from a latency histogram the client records. If none exists,
+     report Little's law as not checked; do not substitute p50.
 2. **A limit of the subject was reached.** One of these holds:
    - **CPU contention.** Run-queue wait summed over the application CPUs is
      well above zero.
@@ -142,6 +150,9 @@ active connections with the total the client opens, read from
      - In one sweep the cells at 4 processes had zero run-queue wait and 0.03
        polls per request, with half the host idle. Each process's main thread
        was the limit.
+     - The busy test is per CPU. A main thread that migrates spreads its
+       load over several CPUs and does not read as busy, so pin it. The busy
+       figure includes softirq time, so check `s_netrx` on the busiest CPU.
      - A server that never blocks in poll (io_uring, kernel-bypass busy
        polling, a thread per connection) reads near zero at any load. One
        that spins on `epoll_wait` with a zero timeout reads high. The test
@@ -150,7 +161,8 @@ active connections with the total the client opens, read from
      its limit by hand in step 6. A server that parks in futex on a lock or a
      wake handoff gives neither signal. Neither does a server capped by its
      NIC queues or the link. Check the server's busiest `net_rx` CPU and
-     rx + tx against the link rate.
+     the busier of rx and tx against the link rate. The link carries its
+     rate in each direction.
 3. **The load generator had headroom, judged per CPU.**
    - Total client CPU can be low while one client CPU is saturated, so check:
      - the client's run-queue p99;
@@ -247,8 +259,9 @@ For each tier, give:
 - the context ID;
 - a table of every cell, with:
   - the gate result: ranked, unclassified, loadgen-bound, link-bound,
-    no-data, failed, not-finished, error, or state mismatch (gate 4, checked
-    by hand);
+    no-data, failed, not-finished, error, or, from the hand checks,
+    Little's law fails (gate 1), client CPU saturated (gate 3) or state
+    mismatch (gate 4);
   - throughput, p50 and p99;
   - CPU per request;
   - the limit label.
