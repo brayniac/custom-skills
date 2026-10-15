@@ -50,11 +50,11 @@ Divide the per-request rates by the measured throughput.
   them, its means include startup, prefill and shutdown. Report them as
   whole-recording means, and do not trust gate 2 if the prefill could have
   saturated the server.
-- **A filtered or ranked query can return no series or be rejected.** In one
-  sweep `count(expr > 0.9)` and `avg(topk(16, ...))` returned no series when
-  nothing matched; a newer query engine may reject them as unsupported. A
-  script that prints 0 for a missing result reports a value that was never
-  measured.
+- **A filtered or ranked query can return no series.** Through `systemslab
+  promql`, `count(expr > 0.9)` and `avg(topk(16, ...))` return no series,
+  because the server turns a rejected query into an empty result. `rezolus
+  mcp query` rejects both as unsupported. A script that prints 0 for a
+  missing result reports a value that was never measured.
   Fetch the per-id series and filter in the script.
 - **Host-wide metrics.** `syscall`, `syscall_latency`,
   `scheduler_context_switch`, `softirq` and `cpu_usage` cover every process on

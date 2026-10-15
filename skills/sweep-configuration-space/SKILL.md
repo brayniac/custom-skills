@@ -22,7 +22,7 @@ neighbouring skills own the rest:
 - `calibrate-to-source`: thresholds;
 - `systemslab-spec-authoring`: spec mechanics.
 
-Steps 2, 5 and 6 name SystemsLab and rezolus. Steps 2 and 5 also name
+Steps 2, 5 and 6 name SystemsLab and rezolus. Step 5 also names
 cachecannon, whose JSON result line `sweep_report.py` parses. On another lab,
 keep each check and replace the tool.
 
@@ -59,9 +59,6 @@ Record all of this beside the sweep file before submitting anything.
   Otherwise the recording spans the whole job, and warmup and prefill load
   enter every per-request rate and gate. A prefill that saturates the server
   can then pass gate 2 for a window that did not.
-- **Record the client's `response_latency` histogram** with cachecannon's
-  `[admin] parquet` output, or with `rezolus record` against its
-  `[admin] listen` endpoint at `/metrics/binary`. Gate 1 needs its mean.
 - **Every run sets each host knob it depends on, at its start, in both
   directions.** That covers irqbalance on or off, the IRQ affinity of each NIC
   queue, and the CPU set of each process. Print the resulting state at the
@@ -125,8 +122,9 @@ active connections with the total the client opens, read from
 `--planned-conns 'CONNS_PER_PROC*INSTANCES'`.
 
 `ranked` means the script's checks passed. Rank a cell only after the
-client's busiest CPU and gate 4 also pass by hand, and Little's law passes or
-is reported as not checked.
+client's busiest CPU, gate 4 and, for a cell the poll test ranked, the
+`net_rx` correction in gate 2 also pass by hand, and Little's law passes or is
+reported as not checked.
 
 1. **The run measured what was planned.**
    - It finished, with no errors, no failed connections and no dropped
@@ -137,10 +135,10 @@ is reported as not checked.
      latency and in-flight count agree with each other. In a closed loop it
      holds whether or not the server saturated, so it says nothing about
      gate 2.
-   - cachecannon's result line reports percentiles and no mean. Compute the
-     mean from the `response_latency` histogram recorded in step 2. If the
-     run has no histogram, report Little's law as not checked; do not
-     substitute p50.
+   - cachecannon's result line reports percentiles and no mean.
+     cachecannon's `[admin]` metrics include a `response_latency` histogram
+     in nanoseconds; if the run recorded it, take the mean from it. Otherwise
+     report Little's law as not checked; do not substitute p50.
 2. **A limit of the subject was reached.** One of these holds:
    - **CPU contention.** Run-queue wait summed over the application CPUs is
      well above zero.
@@ -156,11 +154,14 @@ is reported as not checked.
        polls per request, with half the host idle. Each process's main thread
        was the limit.
      - The busy test is per CPU. A main thread that migrates spreads its
-       load over several CPUs, so the test can miss it; check `migr/s` and
-       classify such a cell by hand in step 6.
-     - The busy figure includes softirq time. If `s_netrx` is high, query
-       `softirq_time{kind="net_rx"}` per CPU (gates.md) and subtract it from
-       the busiest application CPU before treating that CPU as busy.
+       load over several CPUs, so the test can miss it and the cell reads
+       unclassified.
+     - The busy figure includes softirq time. For a cell the poll test
+       ranked (`rqwait` below `--min-rqwait`), read
+       `softirq_time{kind="net_rx"}` on the busiest application CPU
+       (`${CLAUDE_SKILL_DIR}/references/gates.md`). If that CPU's busy share
+       minus its `net_rx` share is below `--min-busiest-cpu`, the cell is
+       unclassified.
      - A server that never blocks in poll (io_uring, kernel-bypass busy
        polling, a thread per connection) reads near zero at any load. One
        that spins on `epoll_wait` with a zero timeout reads high. The test
@@ -242,8 +243,8 @@ refined ranking until you know why.
 
 ## 8. Tier 3: extended runs of the top 10–20
 
-Rerun the top 10–20 cells that passed all four gates in tiers 1 and 2, with a
-5-minute window. These runs give the chart data and the time series.
+Rerun the top 10–20 ranked cells from tiers 1 and 2, with a 5-minute
+window. These runs give the chart data and the time series.
 
 - **Run length.** A run of length T characterises noise out to an averaging
   time of about T/10 (`analyze-noise`), so 30 s for a 5-minute run. If the
@@ -268,9 +269,11 @@ For each tier, give:
 - a table of every cell, with:
   - the script's verdict: ranked, unclassified, loadgen-bound, link-bound,
     no-data, failed, not-finished or error;
-  - the hand checks: Little's law (gate 1), the client's busiest CPU (gate
-    3) and host state (gate 4), each pass, fail or not checked. A cell is
-    ranked only when the verdict is ranked and no hand check failed;
+  - the hand checks: Little's law (gate 1), the `net_rx` correction for a
+    cell the poll test ranked (gate 2), the client's busiest CPU (gate 3)
+    and host state (gate 4), each pass, fail or not checked. A cell is
+    ranked only when the verdict is ranked, the gate 2, 3 and 4 checks
+    pass, and Little's law passes or is not checked;
   - throughput, p50 and p99;
   - CPU per request;
   - the limit label.
@@ -291,6 +294,7 @@ runs. State each prediction from step 1 and whether the data refuted it.
 - **Never attribute a host-wide metric to the subject** without tying it to
   the subject's threads.
 - **Never shorten the warmup to fit more cells.** Cut cells instead.
-- **Never read an empty query result as zero.** `count(x > 0.9)` and `topk`
-  return no series when nothing matches. `sweep_report.py` reads per-CPU
-  series and filters them in Python for that reason.
+- **Never read an empty query result as zero.** Through `systemslab
+  promql`, `count(x > 0.9)` and `topk` return no series.
+  `sweep_report.py` reads per-CPU series and filters them in Python for that
+  reason.
