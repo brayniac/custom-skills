@@ -71,8 +71,8 @@ bring its data NIC up as `enp2s0` instead of `data`.
   linux-headers-$(uname -r)` fails. `debian-12-5.10` carries rezolus 5.20.0
   on x86 and 5.28.0 on the Pis. On 5.10, rezolus 5.28.0's
   `blockio_requests`, `ext4_alloc` and `ext4_journal` samplers fail on both
-  architectures, `tcp_connect_latency` fails on the Pis, and `cpu_dtlb` does
-  not start on x86; the agent runs without them.
+  architectures and `tcp_connect_latency` fails on the Pis; the agent runs
+  without them. On one hv01 boot `cpu_dtlb` was also not started (PMU budget).
 - A kernel series after 6.12 on trixie userspace: `debian-13-6.17` and
   `debian-13-6.18` on hv01, hv02 and the Pis; `debian-13-7.1` and
   `debian-13-7.2` on hv01 and hv02. `debian-14-base` (forky userspace, 7.2.8)
@@ -115,10 +115,13 @@ vCPUs and the host's still decides when the vCPUs run, so a guest shows a
 policy's effect, not bare-metal latency.
 
 **Hardware counters in a guest** on a Pi: `vpmu = false` on the step and
-the `guest-pmc-dkms` package, which DKMS builds against
-`linux-headers-$(uname -r)`, so not on the Debian 12 kernel-series images
-other than `debian-12-base`; infra's docs/examples/guest-pmc.toml is a
-working job. With a vPMU (the default) every counter read traps to the host,
+the `guest-pmc-dkms` package; infra's docs/examples/guest-pmc.toml is a
+working job. DKMS builds the module against `linux-headers-$(uname -r)`.
+Debian's indexes carry headers only for the kernel each suite currently
+ships, so an image booting any other kernel cannot build it. On 2026-10-15
+that was every `debian-12-<x.y>` image, `debian-13-6.17`, `debian-13-6.18`,
+`debian-13-ci-bpo` and `debian-14-base` (7.2.8; forky had moved to 7.2.9).
+A `-base` image joins the list when its release's kernel moves on. With a vPMU (the default) every counter read traps to the host,
 about 2.5 us on a Pi.
 
 The authoritative per-host image lists are `infra/fleet/hosts/<host>.toml`.
