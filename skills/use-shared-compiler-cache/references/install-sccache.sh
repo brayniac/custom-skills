@@ -116,13 +116,10 @@ set_build_key() {  # key value
     if grep -qE "^\s*$1\s*=" "$CARGO_CONF"; then
         say "$CARGO_CONF already sets $(grep -E "^\s*$1\s*=" "$CARGO_CONF" | head -1)"
     elif grep -qE '^\s*\[build\]\s*$' "$CARGO_CONF"; then
-        python3 - "$CARGO_CONF" "$1" "$2" <<'PY'
-import re, sys
-p, k, v = sys.argv[1:]
-s = open(p).read()
-s = re.sub(r'(^\s*\[build\]\s*$)', lambda m: f'{m.group(1)}\n{k} = {v}', s, count=1, flags=re.M)
-open(p, 'w').write(s)
-PY
+        # awk, not python3: AL2 and Alpine guests have no python3.
+        awk -v line="$1 = $2" '!done && /^[[:space:]]*\[build\][[:space:]]*$/ { print; print line; done = 1; next } { print }' \
+            "$CARGO_CONF" > "$CARGO_CONF.tmp" && cat "$CARGO_CONF.tmp" > "$CARGO_CONF"
+        rm -f "$CARGO_CONF.tmp"
         say "added $1 to [build] in $CARGO_CONF"
     else
         printf '\n[build]\n%s = %s\n' "$1" "$2" >> "$CARGO_CONF"

@@ -11,20 +11,20 @@ hypervisor to build, test, or demo, never create a guest with `virsh` by hand,
 never `rsync` a tree over. Put the work in a job payload. The one sanctioned
 out-of-band action is destroying an orphaned guest after a cancel (step 7).
 
-A whole job — boot, toolchain, clone, cold build, test suite, teardown — is
+A whole job — boot, clone, cold build, test suite, teardown — is
 about three minutes. Treat "run it on distro X" as routine, not an expedition.
 
 ## 1. Pick image, shape, tags
 
 | Need | image | where | notes |
 | --- | --- | --- | --- |
-| build / test Rust | `debian-13-ci` | x86, Pis | rustup, gcc, git, warm crates index; kernel 6.12. `debian-13-base` has **no** toolchain |
+| build / test Rust | `debian-13-ci` | x86, Pis | `debian-13-base` plus what build scripts commonly need (libssl-dev, libelf-dev, zlib1g-dev, clang, cmake) and a warm crates index; kernel 6.12 |
 | measurement tooling only | `debian-13-base` | x86, Pis | rezolus, slipway's remote, bubblewrap, stressapptest |
 | newer kernel, io_uring after 6.14 | `debian-13-ci-bpo` | x86, Pis | `debian-13-ci` on trixie-backports 7.1.13 |
 | a specific kernel series | `debian-12-5.10`, `debian-12-base` (6.1), `debian-12-{6.6,6.9,6.11}`, `debian-13-{6.17,6.18,7.1,7.2}`, `debian-14-base` (7.2.8) | hv01, hv02, Pis; `debian-13-7.1` and `debian-13-7.2` not on the Pis | `-base` platform on a Debian kernel; bookworm userspace for Debian 12, trixie for 13, forky for 14 |
 | a release candidate or kernel tree | `debian-13-mainline` | x86 | `debian-13-base` on a kernel.org build (7.3.0-rc6 on 2026-10-06); infra's `jobs/build-kernel-mainline` moves it |
 | Ubuntu | `ubuntu-24.04-base`, `ubuntu-26.04-base` | x86 | rezolus, bubblewrap, stressapptest; no internal apt repo or slipway (its packages are built on trixie) |
-| RHEL-family behaviour (io_uring refused, SELinux, dnf) | `rocky-10-base` | x86, Pis | rezolus; install a toolchain in the payload (recipes); `io_uring_disabled=2` |
+| RHEL-family behaviour (io_uring refused, SELinux, dnf) | `rocky-10-base` | x86, Pis | rezolus, the Rust toolchain; `io_uring_disabled=2` |
 | Amazon Linux | `al2023-i40e` | x86 | kernel 6.12, can drive the passthrough ports. Stock `al2023` needs `ports = 0` |
 | Amazon Linux 2, only if the question is AL2 | `al2` | hv01, hv02 | stock, out of support since 2026-06-30; no python3, `ports = 0`, start payloads with `export PATH=$PATH:/sbin:/usr/sbin` |
 | musl, OpenRC | `alpine-3.24` | x86, Pis | busybox userland; no rezolus (recipes, "Alpine") |
@@ -45,10 +45,14 @@ bring its data NIC up as `enp2s0` instead of `data`.
 - The distribution is part of the question only sometimes. When it is not,
   use Debian: `debian-13-ci` to build or test, `debian-13-base` to measure.
   Every other family exists because some result depends on the distribution.
-- `-base` against `-ci`: `-ci` adds the Rust toolchain and a warm crates
-  index. A job that compiles nothing uses `-base`. Only Debian has a `-ci`; on
-  Ubuntu, Rocky and Alpine a build installs its toolchain in the payload
-  (recipes).
+- `-base` against `-ci`: every platform image (each `-base`, `al2023-i40e`,
+  and every family built from them) has rustup stable with clippy and
+  rustfmt, a C compiler, and the shared compiler cache. `-ci` adds what
+  build scripts commonly need (libssl-dev, clang, cmake and others) and a
+  warm crates index. A job that compiles nothing uses `-base`. Only Debian
+  has a `-ci`; on Ubuntu and Rocky a build that needs those installs them
+  in the payload. Alpine, the stock images, `debian-13-gpu`, and delta's
+  own `debian-13-gpu` and `debian-13-gpu-cu13` have no toolchain (recipes).
 - Debian against Ubuntu: Ubuntu when the workload's production fleet runs
   Ubuntu, or for Ubuntu's kernel. `ubuntu-24.04-base` is what is deployed
   widely today (kernel 6.8); `ubuntu-26.04-base` is the next LTS (kernel 7.0,
@@ -205,8 +209,22 @@ Rules:
   config) goes in as **base64** (recipes): it is not audited for `{name}`
   collisions or `'''`, and a patch must arrive byte-exact.
 - Payload runs as user `anvil`, passwordless `sudo`, `bash -s` over ssh (no
-  profile sourced; `debian-13-ci` puts cargo on PATH anyway).
+  profile sourced; cargo, rustc and sccache are in `/usr/local/bin` on every
+  platform image).
 - Uncommitted work: do not push a scratch branch. Ship a patch (recipes).
+- **A payload that compiles Rust uses the rack's shared compiler cache.**
+  Every platform image routes cargo's rustc calls through it
+  (`/usr/local/bin/sccache-or-rustc`), and a store that is down makes the
+  build uncached, not failed. Turn it off only for a command whose build is
+  what the job measures (build or test duration, compiler behaviour, a cold
+  build), and say so in the spec: `RUSTC_WRAPPER= cargo build`, with
+  `CARGO_INCREMENTAL=1` for a dev rebuild. A job that builds and then
+  measures something else builds first (`cargo build --release`,
+  `cargo test --no-run`), then runs
+  `sccache --stop-server >/dev/null 2>&1 || true` before the measured
+  window, so the server is not running beside the measurement. It exits 2
+  when no server is running (the store was down, `RUSTC_WRAPPER=` was set,
+  or the server had idled out). On a stock image, recipes.
 
 ## 3. Two jobs that must meet
 

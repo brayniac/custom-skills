@@ -40,17 +40,39 @@ for code that was never applied.
 Generate the spec with a small script rather than pasting 30 KB by hand; keep
 the spec file outside the checkout or it becomes part of the next patch.
 
-## Rust toolchain on a guest that has none (rocky-10, debian-13-base)
+## Rust on a stock image
+
+Every platform image already has the toolchain and the shared compiler cache.
+On a stock image (`debian-13`, `rocky-10`, `ubuntu-24.04`, ...), install the
+toolchain, then ship the `use-shared-compiler-cache` skill's installer in as
+base64 and run it:
 
 ```sh
-sudo dnf install -y -q git gcc make          # Rocky; Debian: sudo apt-get install -y git build-essential
-curl -sSf https://sh.rustup.rs | sh -s -- -y -q --profile minimal --default-toolchain stable
-. "$HOME/.cargo/env"
-rustup component add clippy                  # only if you run clippy
+base64 -i "<use-shared-compiler-cache skill dir>/references/install-sccache.sh" | tr -d '\n' > /tmp/sccache.b64
 ```
 
-About 20 s on Rocky. Guests reach github.com, sh.rustup.rs, crates.io,
-dl.rockylinux.org; `debian-13-ci` already has all of this plus a warm index.
+In the payload:
+
+```sh
+sudo dnf install -y -q git gcc make          # Rocky
+sudo apt-get update -qq && sudo apt-get install -y -qq git build-essential   # Debian, Ubuntu
+curl -sSf https://sh.rustup.rs | sh -s -- -y -q --profile minimal --default-toolchain stable
+. "$HOME/.cargo/env"
+echo "<paste of /tmp/sccache.b64>" | base64 -d > /tmp/install-sccache.sh
+export PATH="$HOME/.local/bin:$PATH"         # where it installs sccache; cargo needs it on PATH
+bash /tmp/install-sccache.sh --no-incremental || echo "sccache not in use: building uncached"
+```
+
+On Debian, `apt-get install` without the `update` finds no `build-essential`,
+and the first crate with a build script then fails to link. The installer
+installs the pinned sccache the platform images use, points cargo at the
+store on delta, and exits non-zero unless a probe build went through the
+cache, so a store that is down at install time leaves cargo unwrapped and
+the build uncached. It writes `rustc-wrapper = "sccache"`, so a server
+started later in the job with the store down fails the build; run
+`RUSTC_WRAPPER= cargo ...` then. Checked 2026-10-15 on `debian-13-base` (x86
+and a Pi) and `rocky-10-base` builds that had no toolchain: it exited 0 on
+each. Not run on a stock image.
 
 ## Numbers to budget with
 
@@ -61,7 +83,7 @@ vCPU and is not slower.
 | step | measured |
 | --- | --- |
 | create -> reachable | 22-31 s (Debian and Rocky alike) |
-| Rocky: dnf + rustup + clone + cold build of one crate's tests | ~35 s |
+| stock Rocky: dnf + rustup + clone + cold build of one crate's tests | ~35 s |
 | cold `cargo test --all`, 12 crates | ~45 s |
 | whole job incl. teardown | 2 min 40 s - 2 min 50 s |
 
