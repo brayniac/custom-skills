@@ -122,9 +122,8 @@ active connections with the total the client opens, read from
 `--planned-conns 'CONNS_PER_PROC*INSTANCES'`.
 
 `ranked` means the script's checks passed. Rank a cell only after the
-client's busiest CPU, gate 4 and, for a cell the poll test ranked, the
-`net_rx` correction in gate 2 also pass by hand, and Little's law passes or is
-reported as not checked.
+client's busiest CPU and gate 4 also pass by hand, and Little's law passes or
+is reported as not checked.
 
 1. **The run measured what was planned.**
    - It finished, with no errors, no failed connections and no dropped
@@ -156,12 +155,9 @@ reported as not checked.
      - The busy test is per CPU. A main thread that migrates spreads its
        load over several CPUs, so the test can miss it and the cell reads
        unclassified.
-     - The busy figure includes softirq time. For a cell the poll test
-       ranked (`rqwait` below `--min-rqwait`), read
-       `softirq_time{kind="net_rx"}` on the busiest application CPU
-       (`${CLAUDE_SKILL_DIR}/references/gates.md`). If that CPU's busy share
-       minus its `net_rx` share is below `--min-busiest-cpu`, the cell is
-       unclassified.
+     - A CPU's busy share includes softirq time. The script subtracts each
+       application CPU's `net_rx` share before taking the busiest, and
+       prints the result as `busiest`.
      - A server that never blocks in poll (io_uring, kernel-bypass busy
        polling, a thread per connection) reads near zero at any load. One
        that spins on `epoll_wait` with a zero timeout reads high. The test
@@ -269,11 +265,10 @@ For each tier, give:
 - a table of every cell, with:
   - the script's verdict: ranked, unclassified, loadgen-bound, link-bound,
     no-data, failed, not-finished or error;
-  - the hand checks: Little's law (gate 1), the `net_rx` correction for a
-    cell the poll test ranked (gate 2), the client's busiest CPU (gate 3)
-    and host state (gate 4), each pass, fail or not checked. A cell is
-    ranked only when the verdict is ranked, the gate 2, 3 and 4 checks
-    pass, and Little's law passes or is not checked;
+  - the hand checks: Little's law (gate 1), the client's busiest CPU (gate
+    3) and host state (gate 4), each pass, fail or not checked. A cell is
+    ranked only when the verdict is ranked, the gate 3 and 4 checks pass,
+    and Little's law passes or is not checked;
   - throughput, p50 and p99;
   - CPU per request;
   - the limit label.

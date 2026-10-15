@@ -82,7 +82,8 @@ def main():
                     help="polls per request at or below which a server that does poll counts as "
                          "saturated on its event loop")
     ap.add_argument("--min-busiest-cpu", type=float, default=0.9,
-                    help="busiest app CPU's busy share required before the poll test applies")
+                    help="busiest app CPU's busy share, net of net_rx softirq, required before the poll "
+                         "test applies")
     ap.add_argument("--no-poll-gate", action="store_true",
                     help="disable the poll test, for a server that busy-polls or never blocks in poll/epoll")
     ap.add_argument("--max-client-rq99", type=float, default=40.0, help="client run-queue p99 in us")
@@ -222,6 +223,10 @@ def main():
                 rqwait=sum(v for k, v in rqw.items() if k in app) if rqw else NAN,
                 app_busy=sum(app_busy) if app_busy else NAN,
                 busiest_app=max(app_busy) if app_busy else NAN,
+                # busy share includes softirq time; net of net_rx it is the
+                # subject's own work. NaN unless every app CPU has a net_rx series.
+                busiest_net=(max(v - snetrx[k] for k, v in busy.items() if k in app)
+                             if app_busy and all(k in snetrx for k in busy if k in app) else NAN),
                 cpu_us=1e6 * sum(busy.values()) / t if busy else NAN,
                 poll=scalar(eid, s, 'sum(irate(syscall{op="poll"}[5s]))') / t,
                 futex=soft(scalar, eid, s, 'sum(irate(syscall{op="lock"}[5s]))') / t,
@@ -243,7 +248,11 @@ def main():
                 row["verdict"] = "no-data"
                 notes.append("poll query returned no series")
             elif (not args.no_poll_gate and not math.isnan(row["poll"]) and 0 < row["poll"] <= args.max_poll_per_req
-                    and row["busiest_app"] >= args.min_busiest_cpu):
+                    and row["busiest_app"] >= args.min_busiest_cpu and math.isnan(row["busiest_net"])):
+                row["verdict"] = "no-data"
+                notes.append("net_rx query returned no series for an app CPU")
+            elif (not args.no_poll_gate and not math.isnan(row["poll"]) and 0 < row["poll"] <= args.max_poll_per_req
+                    and row["busiest_net"] >= args.min_busiest_cpu):
                 row["verdict"] = "ranked"
             else:
                 row["verdict"] = "unclassified"
@@ -272,7 +281,7 @@ def main():
             return 0.0
     rows.sort(key=lambda r: (order.index(r["verdict"]), -throughput(r)))
 
-    head = varying + ["verdict", "state", "req/s", "p50", "p99", "rqwait", "poll/rq", "appC", "cpu_us",
+    head = varying + ["verdict", "state", "req/s", "p50", "p99", "rqwait", "poll/rq", "appC", "busiest", "cpu_us",
                       "futex/rq", "vcs/rq", "migr/s", "s_netrx", "c_rq99", "c_netrx", "c_maxcpu", "Gbps", "experiment"]
     print("\t".join(head))
     for r in rows:
@@ -280,7 +289,7 @@ def main():
         res = r.get("result", {})
         get = res.get("get", {})
         cells += [str(res.get("throughput", "-")), str(get.get("p50_us", "-")), str(get.get("p99_us", "-")),
-                  fmt(r.get("rqwait"), "%.1f"), fmt(r.get("poll"), "%.2f"), fmt(r.get("app_busy"), "%.1f"),
+                  fmt(r.get("rqwait"), "%.1f"), fmt(r.get("poll"), "%.2f"), fmt(r.get("app_busy"), "%.1f"), fmt(r.get("busiest_net"), "%.2f"),
                   fmt(r.get("cpu_us"), "%.1f"), fmt(r.get("futex"), "%.2f"), fmt(r.get("vcs"), "%.2f"),
                   fmt(r.get("migr"), "%.0f"), fmt(r.get("server_netrx"), "%.2f"), fmt(r.get("client_rq99"), "%.1f"),
                   fmt(r.get("client_netrx"), "%.2f"), fmt(r.get("client_maxcpu"), "%.2f"),
