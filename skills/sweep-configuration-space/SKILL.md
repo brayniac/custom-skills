@@ -110,7 +110,7 @@ results. If the sweep has to be smaller, cut cells, not warmup.
 
 ## 5. Gate every cell before ranking it
 
-`${CLAUDE_SKILL_DIR}/scripts/sweep_report.py` prints a verdict per cell from
+`${CLAUDE_SKILL_DIR}/references/sweep_report.py` prints a verdict per cell from
 gate 1 (except Little's law), gate 2, and gate 3's run-queue and `net_rx`
 tests. Check Little's law, the client's busiest CPU and gate 4 by hand, using
 the queries in `${CLAUDE_SKILL_DIR}/references/gates.md`. The script compares
