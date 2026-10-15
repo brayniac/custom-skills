@@ -66,9 +66,13 @@ bring its data NIC up as `enp2s0` instead of `data`.
   x86. There is no `debian-12-6.8`: bookworm-backports had none. The Pi builds
   of Debian 12 have no stressapptest (bookworm has no arm64 build);
   `/etc/anvil-image.json` lists it under `packages_absent`. No apt source in
-  `debian-12-5.10` or the `debian-12-6.x` images carries headers for their
-  kernel. On 5.10, rezolus 5.28.0's `blockio_requests`, `ext4_alloc` and
-  `ext4_journal` samplers fail and the agent runs without them.
+  `debian-12-5.10`, `debian-12-6.6`, `debian-12-6.9` or `debian-12-6.11`
+  carries headers for its kernel, so `apt-get install
+  linux-headers-$(uname -r)` fails. `debian-12-5.10` carries rezolus 5.20.0
+  on x86 and 5.28.0 on the Pis. On 5.10, rezolus 5.28.0's
+  `blockio_requests`, `ext4_alloc` and `ext4_journal` samplers fail on both
+  architectures, `tcp_connect_latency` fails on the Pis, and `cpu_dtlb` does
+  not start on x86; the agent runs without them.
 - A kernel series after 6.12 on trixie userspace: `debian-13-6.17` and
   `debian-13-6.18` on hv01, hv02 and the Pis; `debian-13-7.1` and
   `debian-13-7.2` on hv01 and hv02. `debian-14-base` (forky userspace, 7.2.8)
@@ -111,7 +115,9 @@ vCPUs and the host's still decides when the vCPUs run, so a guest shows a
 policy's effect, not bare-metal latency.
 
 **Hardware counters in a guest** on a Pi: `vpmu = false` on the step and
-the `guest-pmc-dkms` package; infra's docs/examples/guest-pmc.toml is a
+the `guest-pmc-dkms` package, which DKMS builds against
+`linux-headers-$(uname -r)`, so not on the Debian 12 kernel-series images
+other than `debian-12-base`; infra's docs/examples/guest-pmc.toml is a
 working job. With a vPMU (the default) every counter read traps to the host,
 about 2.5 us on a Pi.
 
