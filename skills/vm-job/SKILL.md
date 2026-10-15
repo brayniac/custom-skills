@@ -116,18 +116,12 @@ policy's effect, not bare-metal latency.
 
 **Hardware counters in a guest** on a Pi: `vpmu = false` on the step and
 the `guest-pmc-dkms` package; infra's docs/examples/guest-pmc.toml is a
-working job. DKMS builds the module against `linux-headers-$(uname -r)`,
-which has to be in one of the image's apt sources: its Debian release's
-suites or the internal repo on delta. Those carry headers for the current
-kernel and some recent ones, and none for a pinned backports or bullseye
-kernel once its suite has moved on. On the Pis on 2026-10-15,
-`debian-12-5.10`, `debian-12-6.6`, `debian-12-6.9`, `debian-12-6.11`,
-`debian-13-6.17`, `debian-13-6.18`, `debian-13-ci-bpo` and
-`debian-14-base` (7.2.8; forky had 7.2.9) could not build it;
-`debian-12-base`, `debian-13-base` and `debian-13-ci` could. `apt-cache
-policy linux-headers-$(uname -r)` in the guest shows whether an image
-still can. With a vPMU (the default) every counter read traps to the host,
-about 2.5 us on a Pi.
+working job on `debian-13-base`. DKMS builds the module against
+`linux-headers-$(uname -r)`. Use `debian-13-base` or `debian-13-ci`:
+`guest_pmc.c` uses `BTF_KFUNCS_START` and `asm/arm_pmuv3.h`, which
+bookworm's 6.1 headers lack, and no apt source in an image on a pinned
+backports or bullseye kernel carries headers for it. With a vPMU (the
+default) every counter read traps to the host, about 2.5 us on a Pi.
 
 The authoritative per-host image lists are `infra/fleet/hosts/<host>.toml`.
 Not available, and why, so nobody spends an afternoon on it: Amazon Linux
