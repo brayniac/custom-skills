@@ -238,8 +238,10 @@ def main():
                 row["verdict"] = "link-bound"
             elif row["rqwait"] >= args.min_rqwait:
                 row["verdict"] = "ranked"
-            elif not args.no_poll_gate and math.isnan(row["poll"]):
+            elif (not args.no_poll_gate and math.isnan(row["poll"])
+                    and row["busiest_app"] >= args.min_busiest_cpu):
                 row["verdict"] = "no-data"
+                notes.append("poll query returned no series")
             elif (not args.no_poll_gate and not math.isnan(row["poll"]) and 0 < row["poll"] <= args.max_poll_per_req
                     and row["busiest_app"] >= args.min_busiest_cpu):
                 row["verdict"] = "ranked"
