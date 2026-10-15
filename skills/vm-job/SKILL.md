@@ -21,7 +21,7 @@ about three minutes. Treat "run it on distro X" as routine, not an expedition.
 | build / test Rust | `debian-13-ci` | x86, Pis | rustup, gcc, git, warm crates index; kernel 6.12. `debian-13-base` has **no** toolchain |
 | measurement tooling only | `debian-13-base` | x86, Pis | rezolus, slipway's remote, bubblewrap, stressapptest |
 | newer kernel, io_uring after 6.14 | `debian-13-ci-bpo` | x86, Pis | `debian-13-ci` on trixie-backports 7.1.13 |
-| a specific kernel series | `debian-12-base` (6.1), `debian-12-{6.6,6.9,6.11}`, `debian-13-{6.17,6.18,7.1,7.2}`, `debian-14-base` (7.2.8) | hv01, hv02, Pis; `debian-13-7.1` and `debian-13-7.2` not on the Pis | `-base` platform on a Debian kernel; bookworm userspace for Debian 12, trixie for 13, forky for 14 |
+| a specific kernel series | `debian-12-5.10`, `debian-12-base` (6.1), `debian-12-{6.6,6.9,6.11}`, `debian-13-{6.17,6.18,7.1,7.2}`, `debian-14-base` (7.2.8) | hv01, hv02, Pis; `debian-13-7.1` and `debian-13-7.2` not on the Pis | `-base` platform on a Debian kernel; bookworm userspace for Debian 12, trixie for 13, forky for 14 |
 | a release candidate or kernel tree | `debian-13-mainline` | x86 | `debian-13-base` on a kernel.org build (7.3.0-rc6 on 2026-10-06); infra's `jobs/build-kernel-mainline` moves it |
 | Ubuntu | `ubuntu-24.04-base`, `ubuntu-26.04-base` | x86 | rezolus, bubblewrap, stressapptest; no internal apt repo or slipway (its packages are built on trixie) |
 | RHEL-family behaviour (io_uring refused, SELinux, dnf) | `rocky-10-base` | x86, Pis | rezolus; install a toolchain in the payload (recipes); `io_uring_disabled=2` |
@@ -60,12 +60,15 @@ bring its data NIC up as `enp2s0` instead of `data`.
   `io_uring_disabled=2`, dnf, an EL kernel. `al2023-i40e` when Amazon Linux
   is; it is x86 only.
 - `alpine-3.24` for musl and its allocator, or a small busybox userland.
-- An older kernel than 6.12: `debian-12-base` (6.1), `debian-12-6.6`,
-  `debian-12-6.9` and `debian-12-6.11` on hv01, hv02 and the Pis;
-  `ubuntu-24.04-base` (6.8) on x86. There is no `debian-12-6.8`:
-  bookworm-backports had none. The Pi builds of Debian 12 have no stressapptest
-  (bookworm has no arm64 build); `/etc/anvil-image.json` lists it under
-  `packages_absent`.
+- An older kernel than 6.12: `debian-12-5.10` (bullseye's 5.10.262),
+  `debian-12-base` (6.1), `debian-12-6.6`, `debian-12-6.9` and
+  `debian-12-6.11` on hv01, hv02 and the Pis; `ubuntu-24.04-base` (6.8) on
+  x86. There is no `debian-12-6.8`: bookworm-backports had none. The Pi builds
+  of Debian 12 have no stressapptest (bookworm has no arm64 build);
+  `/etc/anvil-image.json` lists it under `packages_absent`. No apt source in
+  `debian-12-5.10` or the `debian-12-6.x` images carries headers for their
+  kernel. On 5.10, rezolus 5.28.0's `blockio_requests`, `ext4_alloc` and
+  `ext4_journal` samplers fail and the agent runs without them.
 - A kernel series after 6.12 on trixie userspace: `debian-13-6.17` and
   `debian-13-6.18` on hv01, hv02 and the Pis; `debian-13-7.1` and
   `debian-13-7.2` on hv01 and hv02. `debian-14-base` (forky userspace, 7.2.8)
