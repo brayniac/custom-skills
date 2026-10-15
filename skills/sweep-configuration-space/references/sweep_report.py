@@ -23,6 +23,10 @@ recordings, and a verdict:
 Any cell can also carry a message on stderr: a display-only query that failed,
 or a --planned-conns parameter that is absent.
 
+The poll test needs a net_rx series for every app CPU. A recording from rezolus
+older than 5.18.0 can omit CPUs whose net_rx count stayed at zero; the poll
+test then gives no-data with a note.
+
 Not checked here; check by hand: Little's law (gate 1), the client's busiest
 CPU (gate 3, printed as c_maxcpu but not gated, because a pinned polling thread
 reads 100% busy without being saturated), and gate 4 (host state matched the
@@ -82,8 +86,8 @@ def main():
                     help="polls per request at or below which a server that does poll counts as "
                          "saturated on its event loop")
     ap.add_argument("--min-busiest-cpu", type=float, default=0.9,
-                    help="busiest app CPU's busy share, net of net_rx softirq, required before the poll "
-                         "test applies")
+                    help="largest app-CPU busy share after subtracting each CPU's own net_rx softirq share, "
+                         "required before the poll test applies")
     ap.add_argument("--no-poll-gate", action="store_true",
                     help="disable the poll test, for a server that busy-polls or never blocks in poll/epoll")
     ap.add_argument("--max-client-rq99", type=float, default=40.0, help="client run-queue p99 in us")
@@ -197,7 +201,8 @@ def main():
             s, c = jobs[args.server_job], jobs[args.client_job]
 
             def soft(fn, *a):
-                """A query whose failure costs only its own column."""
+                """A query whose failure does not stop the row. Display-only except the
+                server net_rx query, whose failure makes a poll-ranked cell no-data."""
                 try:
                     return fn(*a)
                 except RuntimeError as e:
@@ -289,7 +294,8 @@ def main():
         res = r.get("result", {})
         get = res.get("get", {})
         cells += [str(res.get("throughput", "-")), str(get.get("p50_us", "-")), str(get.get("p99_us", "-")),
-                  fmt(r.get("rqwait"), "%.1f"), fmt(r.get("poll"), "%.2f"), fmt(r.get("app_busy"), "%.1f"), fmt(r.get("busiest_net"), "%.2f"),
+                  fmt(r.get("rqwait"), "%.1f"), fmt(r.get("poll"), "%.2f"), fmt(r.get("app_busy"), "%.1f"),
+                  fmt(r.get("busiest_net"), "%.3f"),
                   fmt(r.get("cpu_us"), "%.1f"), fmt(r.get("futex"), "%.2f"), fmt(r.get("vcs"), "%.2f"),
                   fmt(r.get("migr"), "%.0f"), fmt(r.get("server_netrx"), "%.2f"), fmt(r.get("client_rq99"), "%.1f"),
                   fmt(r.get("client_netrx"), "%.2f"), fmt(r.get("client_maxcpu"), "%.2f"),
