@@ -26,7 +26,8 @@ or a --planned-conns parameter that is absent.
 The poll test needs a net_rx series for every app CPU. A recording from rezolus
 older than 5.18.0, or one set to snapshot_format = "v2", can omit CPUs whose
 net_rx count stayed at zero; a cell that could still rank on the poll test is
-then no-data with a note.
+then no-data with a note. A cell whose poll query returns no series is no-data
+only if it could still rank on the poll test; otherwise it is unclassified.
 
 Not checked here; check by hand: Little's law (gate 1), the client's busiest
 CPU (gate 3, printed as c_maxcpu but not gated, because a pinned polling thread
