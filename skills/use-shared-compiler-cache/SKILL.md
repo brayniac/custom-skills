@@ -9,9 +9,15 @@ sccache wraps every `rustc` call and keys it by compiler, flags and source
 hash, so a crate compiled once on any machine using the store is a cache hit
 everywhere else with the same key. On the rack, that means:
 
-- **Every rack-ci guest already uses it.** The ci images carry sccache 0.18.0,
-  `rustc-wrapper = "sccache"` and `incremental = false`, pointed at
-  `http://delta:8081`. A `.rack-ci.toml` needs nothing.
+- **Every rack guest image built on a platform recipe already uses it**,
+  rack-ci's included. They carry sccache 0.18.0, `incremental = false` and
+  `rustc-wrapper = "/usr/local/bin/sccache-or-rustc"`, which goes through
+  sccache and `http://delta:8081` when the store answers and straight to
+  rustc when it does not. A `.rack-ci.toml` or a vm job payload needs
+  nothing. `debian-13-gpu`, and delta's own `debian-13-gpu` and
+  `debian-13-gpu-cu13`, were built before the toolchain was added and have
+  no toolchain or cache. A vm job on a stock image runs the installer in its payload; the
+  `vm-job` skill's recipes say how.
 - **What it bought**, measured on a Pi guest: slipway's test check 951 s
   populating, 503 s warm with 305 of 307 rustc calls served; anvil 191 s cold,
   69 s warm with 59 of 59. What remains is linking and running tests, which no
@@ -88,8 +94,11 @@ sccache --show-stats | grep -E 'Cache location|Compile requests|Cache hits'
 | zero compile requests | `RUSTC_WRAPPER` in the environment, or another `rustc-wrapper` in a project's `.cargo/config.toml`, overrides the user config | find it: `env | grep -i wrapper`, then `.cargo/config.toml` in the project and each parent directory |
 | two machines never hit each other's entries | different sccache versions or rustc versions change the key. One Mac had a cargo-installed 0.14.0 shadowing brew's 0.18.0 | same sccache (0.18.0) and same toolchain on both; the installer removes a shadowing `~/.cargo/bin/sccache` on macOS |
 
-A store that is down is a cache miss, not a build failure; sccache compiles
-locally and carries on.
+With `rustc-wrapper = "sccache"`, which the installer writes, a store that
+does not answer when the sccache server starts fails every compile
+(`Server startup failed: cache storage failed to read`). Build with
+`RUSTC_WRAPPER=`, or rerun the installer with `--local`. The rack's images
+use `sccache-or-rustc`, which compiles without sccache in that case.
 
 ## 5. Build times depend on the cache
 
@@ -113,10 +122,14 @@ exactly this reason, so every arm compiled cold.
 The server side is the rack owner's: `host-setup/install-sccache-store` in
 the infra repository, run on delta. Facts a user of it needs: nginx WebDAV on
 `10.1.0.0:8081`, `/health` answers `ok`, no credential (reachable on the LAN
-only, as the apt repository is), dataset `spool/sccache` with a 200 GiB quota,
-entries unread for 60 days evicted weekly. Anyone on the LAN can write to it;
-a poisoned entry is a wrong build, which CI exists to find. If `/health`
-fails from every machine, tell the rack owner rather than working around it.
+only, as the apt repository is), dataset `spool/sccache` with a 500 GiB quota,
+evicted daily: entries unread for 14 days, then, if the store is above 85% of
+the quota, the least recently read until it is below 70%. It grows about
+12 GiB a day. When the store is full, every write fails with a 500 and
+builds go on uncached; a second build of the same tree that gets no hits is
+the sign. Anyone on the LAN can write to it; a poisoned entry is a wrong
+build, which CI exists to find. If `/health` fails from every machine, tell
+the rack owner rather than working around it.
 
 ## Never
 

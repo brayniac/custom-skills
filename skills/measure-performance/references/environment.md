@@ -151,8 +151,10 @@ setup — not a co-tenant on the host — is responsible.
 ## Which image to measure in
 
 `debian-13-base@golden` carries **rezolus**, plus slipway and stressapptest. It
-is the measurement image, and it has no Rust toolchain. `debian-13-ci@golden` has
-the toolchain and a warm crates index but is built for building.
+is the measurement image. It also has a Rust toolchain and the shared compiler
+cache, which change nothing a measurement sees until something compiles.
+`debian-13-ci@golden` adds what build scripts commonly need (libssl-dev,
+clang, cmake and others) and a warm crates index, and is built for building.
 
 Two image differences change results outright:
 
