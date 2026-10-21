@@ -175,7 +175,8 @@ rack-ci runs all but the last (`.rack-ci.toml`).
 
 Claude Code loads `skills/<name>/SKILL.md`. A skill in a grouping directory
 (`skills/<group>/<name>/SKILL.md`) loads only when `plugin.json` lists
-`./skills/<group>` under `skills`; `check-skills` fails if it is not listed.
+`./skills/<group>` under `skills`, which adds one level; `check-skills` fails
+on a skill Claude Code would not load.
 
 ## Credit
 

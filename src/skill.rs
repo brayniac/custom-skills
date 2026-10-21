@@ -6,12 +6,10 @@
 //! no error anywhere. [`load`] refuses every such case, so the check that runs
 //! in CI fails where Claude Code would stay quiet.
 //!
-//! Claude Code finds a plugin's skills only in `skills/<name>/SKILL.md` and in
-//! the directories listed under `skills` in `plugin.json`; a skill one level
-//! deeper is not loaded unless its group directory is listed. Checked against
-//! Claude Code 2.1.306 on 2026-10-21 with a `skills/group/<name>` skill: absent
-//! from the listing without the entry, present with `"skills":
-//! ["./skills/group"]`.
+//! Claude Code loads a plugin's skills from `skills/<name>/SKILL.md` and, for
+//! each path `plugin.json` lists under `skills`, from `<path>/SKILL.md` or
+//! `<path>/<name>/SKILL.md`. A skill at any other depth is not loaded. Observed
+//! on Claude Code 2.1.306.
 
 use std::{
     collections::BTreeMap,
@@ -46,11 +44,11 @@ pub struct Skill {
 /// Loads every skill under `root` and checks the whole tree.
 ///
 /// A directory holding a `SKILL.md` is a skill; one holding only directories is
-/// a grouping level, and must be one of `listed` (the directories `plugin.json`
-/// names, from [`listed_skill_dirs`]) or Claude Code will not load the skills
-/// in it. Fails on a skill in an unlisted group, on a directory that is
-/// neither, on frontmatter that
-/// is not valid YAML with exactly `name` and `description`, on a `name` that
+/// a grouping level. `listed` holds the paths `plugin.json` names, from
+/// [`listed_skill_dirs`]. Fails on a skill whose directory is not in `listed`
+/// and whose parent is neither `root` nor in `listed`, on a listed path outside
+/// `root`, on a directory that is neither a skill nor a group, on frontmatter
+/// that is not valid YAML with exactly `name` and `description`, on a `name` that
 /// differs from its directory or uses characters outside `[a-z0-9_-]`, on an
 /// empty or over-long description, on two skills with one name, and on a
 /// `${CLAUDE_SKILL_DIR}` path that names no file inside `root`.
@@ -63,7 +61,7 @@ pub fn load(root: &Path, listed: &[PathBuf]) -> Result<Vec<Skill>> {
     if skills.is_empty() {
         bail!("{} holds no skills", root.display());
     }
-    check_groups_listed(root, listed, &skills)?;
+    check_listed(root, listed, &skills)?;
     let mut by_name: BTreeMap<String, Skill> = BTreeMap::new();
     for skill in skills {
         if let Some(existing) = by_name.get(&skill.name) {
@@ -122,20 +120,48 @@ pub fn listed_skill_dirs(plugin_root: &Path) -> Result<Vec<PathBuf>> {
         .collect()
 }
 
-fn check_groups_listed(root: &Path, listed: &[PathBuf], skills: &[Skill]) -> Result<()> {
+/// The plugin root for a skills directory: the parent of its resolved path,
+/// so `.` run from inside `skills/` and `skills/group/..` both find the
+/// manifest beside `skills/`. A path that does not resolve is used as given,
+/// and [`load`] reports it.
+pub fn plugin_root(skills: &Path) -> PathBuf {
+    let resolved = skills
+        .canonicalize()
+        .unwrap_or_else(|_| skills.to_path_buf());
+    match resolved.parent() {
+        Some(p) if !p.as_os_str().is_empty() => p.to_path_buf(),
+        _ => PathBuf::from("."),
+    }
+}
+
+fn check_listed(root: &Path, listed: &[PathBuf], skills: &[Skill]) -> Result<()> {
     let root = root
         .canonicalize()
         .with_context(|| format!("failed to resolve {}", root.display()))?;
+    // `collect` walks only `root`, so a skill under a listed path elsewhere
+    // would load in Claude Code without being checked.
+    if let Some(outside) = listed.iter().find(|p| !p.starts_with(&root)) {
+        bail!(
+            "plugin.json lists {} under `skills`, which is outside {}; check-skills \
+             checks only skills under {}",
+            outside.display(),
+            root.display(),
+            root.display()
+        );
+    }
     for skill in skills {
-        let parent = skill
+        let dir = skill
             .dir
-            .parent()
-            .and_then(|p| p.canonicalize().ok())
-            .with_context(|| format!("failed to resolve the parent of {}", skill.dir.display()))?;
+            .canonicalize()
+            .with_context(|| format!("failed to resolve {}", skill.dir.display()))?;
+        if listed.contains(&dir) {
+            continue;
+        }
+        let parent = dir.parent().unwrap_or(&dir).to_path_buf();
         if parent != root && !listed.contains(&parent) {
             bail!(
                 "skill {:?} is in {}, which plugin.json does not list under `skills`; \
-                 Claude Code loads only {}/<name> and the listed directories",
+                 Claude Code loads only {}/<name>, a listed directory, and <listed>/<name>",
                 skill.name,
                 parent.display(),
                 root.display()
@@ -301,7 +327,7 @@ mod tests {
     #[test]
     fn the_repository_skills_load() {
         let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("skills");
-        let listed = listed_skill_dirs(Path::new(env!("CARGO_MANIFEST_DIR"))).unwrap();
+        let listed = listed_skill_dirs(&plugin_root(&root)).unwrap();
         let skills = load(&root, &listed).expect("skills/ passes the check");
         assert!(skills.iter().any(|s| s.name == "skill-authoring"));
     }
@@ -322,6 +348,64 @@ mod tests {
         let listed = vec![tmp.path().join("cluster").canonicalize().unwrap()];
         let skills = load(tmp.path(), &listed).unwrap();
         assert!(skills.iter().any(|s| s.name == "nested"));
+    }
+
+    #[test]
+    fn a_listed_skill_directory_loads() {
+        let tmp = TempDir::new().unwrap();
+        ok_skill(&tmp.path().join("cluster"), "direct", "body");
+        let listed = vec![tmp.path().join("cluster/direct").canonicalize().unwrap()];
+        load(tmp.path(), &listed).unwrap();
+    }
+
+    #[test]
+    fn a_skill_two_levels_under_a_listed_group_is_an_error() {
+        let tmp = TempDir::new().unwrap();
+        ok_skill(&tmp.path().join("cluster/sub"), "deep", "body");
+        let listed = vec![tmp.path().join("cluster").canonicalize().unwrap()];
+        let err = format!("{:#}", load(tmp.path(), &listed).unwrap_err());
+        assert!(err.contains("does not list under `skills`"));
+    }
+
+    #[test]
+    fn a_listed_path_outside_the_root_is_an_error() {
+        let tmp = TempDir::new().unwrap();
+        let root = tmp.path().join("skills");
+        ok_skill(&root, "flat", "body");
+        ok_skill(&tmp.path().join("other"), "elsewhere", "body");
+        let listed = vec![tmp.path().join("other").canonicalize().unwrap()];
+        let err = format!("{:#}", load(&root, &listed).unwrap_err());
+        assert!(err.contains("outside"));
+    }
+
+    #[test]
+    fn plugin_root_is_the_parent_of_the_resolved_skills_dir() {
+        let tmp = TempDir::new().unwrap();
+        let plugin = tmp.path().canonicalize().unwrap();
+        fs::create_dir_all(plugin.join("skills/group")).unwrap();
+        assert_eq!(plugin_root(&plugin.join("skills")), plugin);
+        assert_eq!(plugin_root(&plugin.join("skills/")), plugin);
+        assert_eq!(plugin_root(&plugin.join("skills/.")), plugin);
+        assert_eq!(plugin_root(&plugin.join("skills/group/..")), plugin);
+        assert_eq!(plugin_root(Path::new("does-not-exist")), PathBuf::from("."));
+    }
+
+    #[test]
+    fn a_group_listed_in_the_manifest_passes_from_any_skills_path() {
+        let tmp = TempDir::new().unwrap();
+        let plugin = tmp.path().canonicalize().unwrap();
+        fs::create_dir_all(plugin.join(".claude-plugin")).unwrap();
+        fs::write(
+            plugin.join(".claude-plugin/plugin.json"),
+            r#"{"name":"p","skills":["./skills/group"]}"#,
+        )
+        .unwrap();
+        ok_skill(&plugin.join("skills"), "flat", "body");
+        ok_skill(&plugin.join("skills/group"), "nested", "body");
+        for skills in [plugin.join("skills"), plugin.join("skills/group/..")] {
+            let listed = listed_skill_dirs(&plugin_root(&skills)).unwrap();
+            assert_eq!(load(&skills, &listed).unwrap().len(), 2);
+        }
     }
 
     #[test]
