@@ -105,9 +105,11 @@ Conventions the existing skills follow:
   `` `measure-performance` step 5 ``) rather than restating the other skill.
   Keep those references accurate when a skill is renamed or its steps are
   renumbered.
-- `skills/` is a flat list today, but nested directories are legal as grouping
-  levels — a directory with a `SKILL.md` is a skill, one with only directories
-  is a group.
+- `skills/` is a flat list. Claude Code loads `skills/<name>/SKILL.md`, and
+  for each path `plugin.json` lists under `skills` (`"skills":
+  ["./skills/<group>"]`), `<path>/SKILL.md` or `<path>/<name>/SKILL.md`.
+  `check-skills` fails on a skill at any other depth and on a listed path
+  outside `skills/`.
 
 ### Iterating
 

@@ -173,8 +173,10 @@ rack-ci runs all but the last (`.rack-ci.toml`).
 | `src/skill.rs` | The rules `check-skills` enforces, and their tests |
 | `src/main.rs` | The `check-skills` command |
 
-Directories under `skills/` may group skills: a directory holding a `SKILL.md` is
-a skill, one holding only directories is a grouping level.
+Claude Code loads `skills/<name>/SKILL.md`. A skill in a grouping directory
+(`skills/<group>/<name>/SKILL.md`) loads only when `plugin.json` lists
+`./skills/<group>` under `skills`, which adds one level; `check-skills` fails
+on a skill Claude Code would not load.
 
 ## Credit
 
