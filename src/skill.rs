@@ -5,6 +5,13 @@
 //! inside skills, so a misfiled or malformed skill drops out of the listing with
 //! no error anywhere. [`load`] refuses every such case, so the check that runs
 //! in CI fails where Claude Code would stay quiet.
+//!
+//! Claude Code finds a plugin's skills only in `skills/<name>/SKILL.md` and in
+//! the directories listed under `skills` in `plugin.json`; a skill one level
+//! deeper is not loaded unless its group directory is listed. Checked against
+//! Claude Code 2.1.306 on 2026-10-21 with a `skills/group/<name>` skill: absent
+//! from the listing without the entry, present with `"skills":
+//! ["./skills/group"]`.
 
 use std::{
     collections::BTreeMap,
@@ -39,12 +46,15 @@ pub struct Skill {
 /// Loads every skill under `root` and checks the whole tree.
 ///
 /// A directory holding a `SKILL.md` is a skill; one holding only directories is
-/// a grouping level. Fails on a directory that is neither, on frontmatter that
+/// a grouping level, and must be one of `listed` (the directories `plugin.json`
+/// names, from [`listed_skill_dirs`]) or Claude Code will not load the skills
+/// in it. Fails on a skill in an unlisted group, on a directory that is
+/// neither, on frontmatter that
 /// is not valid YAML with exactly `name` and `description`, on a `name` that
 /// differs from its directory or uses characters outside `[a-z0-9_-]`, on an
 /// empty or over-long description, on two skills with one name, and on a
 /// `${CLAUDE_SKILL_DIR}` path that names no file inside `root`.
-pub fn load(root: &Path) -> Result<Vec<Skill>> {
+pub fn load(root: &Path, listed: &[PathBuf]) -> Result<Vec<Skill>> {
     if !root.is_dir() {
         bail!("{} is not a directory", root.display());
     }
@@ -53,6 +63,7 @@ pub fn load(root: &Path) -> Result<Vec<Skill>> {
     if skills.is_empty() {
         bail!("{} holds no skills", root.display());
     }
+    check_groups_listed(root, listed, &skills)?;
     let mut by_name: BTreeMap<String, Skill> = BTreeMap::new();
     for skill in skills {
         if let Some(existing) = by_name.get(&skill.name) {
@@ -72,6 +83,66 @@ pub fn load(root: &Path) -> Result<Vec<Skill>> {
         check_skill_dir_paths(&root, skill)?;
     }
     Ok(by_name.into_values().collect())
+}
+
+/// The skill directories a plugin's `plugin.json` adds through its `skills`
+/// field (a path or a list of paths, relative to the plugin root), resolved.
+/// A plugin with no manifest, or a manifest with no `skills`, adds none.
+pub fn listed_skill_dirs(plugin_root: &Path) -> Result<Vec<PathBuf>> {
+    let manifest = plugin_root.join(".claude-plugin/plugin.json");
+    if !manifest.is_file() {
+        return Ok(Vec::new());
+    }
+    let raw = std::fs::read_to_string(&manifest)
+        .with_context(|| format!("failed to read {}", manifest.display()))?;
+    let json: serde_json::Value = serde_json::from_str(&raw)
+        .with_context(|| format!("{} is not valid JSON", manifest.display()))?;
+    let paths: Vec<&str> = match json.get("skills") {
+        None => Vec::new(),
+        Some(serde_json::Value::String(path)) => vec![path],
+        Some(serde_json::Value::Array(paths)) => paths
+            .iter()
+            .map(|p| p.as_str().context("`skills` entries must be strings"))
+            .collect::<Result<_>>()?,
+        Some(_) => bail!(
+            "`skills` in {} must be a string or a list",
+            manifest.display()
+        ),
+    };
+    paths
+        .into_iter()
+        .map(|path| {
+            plugin_root.join(path).canonicalize().with_context(|| {
+                format!(
+                    "`skills` in {} lists {path}, which does not exist",
+                    manifest.display()
+                )
+            })
+        })
+        .collect()
+}
+
+fn check_groups_listed(root: &Path, listed: &[PathBuf], skills: &[Skill]) -> Result<()> {
+    let root = root
+        .canonicalize()
+        .with_context(|| format!("failed to resolve {}", root.display()))?;
+    for skill in skills {
+        let parent = skill
+            .dir
+            .parent()
+            .and_then(|p| p.canonicalize().ok())
+            .with_context(|| format!("failed to resolve the parent of {}", skill.dir.display()))?;
+        if parent != root && !listed.contains(&parent) {
+            bail!(
+                "skill {:?} is in {}, which plugin.json does not list under `skills`; \
+                 Claude Code loads only {}/<name> and the listed directories",
+                skill.name,
+                parent.display(),
+                root.display()
+            );
+        }
+    }
+    Ok(())
 }
 
 fn collect(dir: &Path, out: &mut Vec<Skill>) -> Result<()> {
@@ -224,13 +295,14 @@ mod tests {
     }
 
     fn load_err(root: &Path) -> String {
-        format!("{:#}", load(root).unwrap_err())
+        format!("{:#}", load(root, &[]).unwrap_err())
     }
 
     #[test]
     fn the_repository_skills_load() {
         let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("skills");
-        let skills = load(&root).expect("skills/ passes the check");
+        let listed = listed_skill_dirs(Path::new(env!("CARGO_MANIFEST_DIR"))).unwrap();
+        let skills = load(&root, &listed).expect("skills/ passes the check");
         assert!(skills.iter().any(|s| s.name == "skill-authoring"));
     }
 
@@ -238,16 +310,48 @@ mod tests {
     fn a_valid_tree_loads_with_bodies() {
         let tmp = TempDir::new().unwrap();
         ok_skill(tmp.path(), "one", "Do the thing.");
-        let skills = load(tmp.path()).unwrap();
+        let skills = load(tmp.path(), &[]).unwrap();
         assert_eq!(skills.len(), 1);
         assert_eq!(skills[0].body, "Do the thing.\n");
     }
 
     #[test]
-    fn nested_directories_group_skills() {
+    fn a_listed_group_directory_loads_its_skills() {
         let tmp = TempDir::new().unwrap();
         ok_skill(&tmp.path().join("cluster"), "nested", "body");
-        assert!(load(tmp.path()).unwrap().iter().any(|s| s.name == "nested"));
+        let listed = vec![tmp.path().join("cluster").canonicalize().unwrap()];
+        let skills = load(tmp.path(), &listed).unwrap();
+        assert!(skills.iter().any(|s| s.name == "nested"));
+    }
+
+    #[test]
+    fn a_skill_in_an_unlisted_group_is_an_error() {
+        let tmp = TempDir::new().unwrap();
+        ok_skill(tmp.path(), "flat", "body");
+        ok_skill(&tmp.path().join("cluster"), "nested", "body");
+        assert!(load_err(tmp.path()).contains("does not list under `skills`"));
+    }
+
+    #[test]
+    fn listed_skill_dirs_reads_a_path_or_a_list() {
+        let tmp = TempDir::new().unwrap();
+        fs::create_dir_all(tmp.path().join(".claude-plugin")).unwrap();
+        fs::create_dir_all(tmp.path().join("skills/a")).unwrap();
+        fs::create_dir_all(tmp.path().join("skills/b")).unwrap();
+        let manifest = tmp.path().join(".claude-plugin/plugin.json");
+        assert!(listed_skill_dirs(tmp.path()).unwrap().is_empty());
+        fs::write(&manifest, r#"{"name":"p"}"#).unwrap();
+        assert!(listed_skill_dirs(tmp.path()).unwrap().is_empty());
+        fs::write(&manifest, r#"{"name":"p","skills":"./skills/a"}"#).unwrap();
+        assert_eq!(listed_skill_dirs(tmp.path()).unwrap().len(), 1);
+        fs::write(
+            &manifest,
+            r#"{"name":"p","skills":["./skills/a","./skills/b"]}"#,
+        )
+        .unwrap();
+        assert_eq!(listed_skill_dirs(tmp.path()).unwrap().len(), 2);
+        fs::write(&manifest, r#"{"name":"p","skills":["./skills/gone"]}"#).unwrap();
+        assert!(listed_skill_dirs(tmp.path()).is_err());
     }
 
     #[test]
@@ -337,7 +441,7 @@ mod tests {
         let tmp = TempDir::new().unwrap();
         let file = tmp.path().join("not-a-dir");
         fs::write(&file, "x").unwrap();
-        assert!(load(&file).is_err());
+        assert!(load(&file, &[]).is_err());
     }
 
     #[test]
@@ -352,7 +456,7 @@ mod tests {
         fs::create_dir_all(dir.join("references")).unwrap();
         fs::write(dir.join("references/table.md"), "t").unwrap();
         fs::write(dir.join("references/run.sh"), "s").unwrap();
-        load(tmp.path()).unwrap();
+        load(tmp.path(), &[]).unwrap();
     }
 
     #[test]
@@ -374,7 +478,7 @@ mod tests {
             "docs",
             "Name each file as `${CLAUDE_SKILL_DIR}/references/<file>`.",
         );
-        load(tmp.path()).unwrap();
+        load(tmp.path(), &[]).unwrap();
     }
 
     #[test]
@@ -388,7 +492,7 @@ mod tests {
             "user",
             "See `${CLAUDE_SKILL_DIR}/../other/references/x.md`.",
         );
-        load(tmp.path()).unwrap();
+        load(tmp.path(), &[]).unwrap();
     }
 
     #[test]
