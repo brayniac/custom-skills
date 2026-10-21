@@ -66,7 +66,7 @@ under `corpus/`, which is generated and usually ignored.
 
 ## 7. Gate and PR
 
-Run the repository's gates (`verify-change`) and open the PR (`open-pr`). The
+Run the repository's gates (`verify-change`) and open the PR (`pr`). The
 PR body names the invariant, every site fixed, and the guard.
 
 ## Never

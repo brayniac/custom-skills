@@ -58,7 +58,7 @@ cargo test --workspace --locked > /tmp/gate-test.log 2>&1; echo "exit=$?"
 - **A log still being written is not a result.** "491 passed, 0 failed" was
   once read from a file a backgrounded `cargo test` was still appending to; the
   finished total was 874 with three failures. Wait for the process to exit.
-  For a job running elsewhere, `watch-long-job` covers reading it.
+  For a job running elsewhere, `watch` covers reading it.
 - **No failure line is not a pass.** `grep -c FAILED` on truncated output
   returns 0, and a missing `test result:` line was a compile error.
 

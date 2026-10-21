@@ -94,8 +94,8 @@ gh pr merge <n> --repo <owner/repo> --match-head-commit <sha> --squash
 ```
 
 `/cs:review` reviews a change with a fresh agent and, once its findings are
-answered and its verdict is merge, records the head it read; `open-pr` and
-`drive-pr-to-green` run it before opening and merging. `--match-head-commit`
+answered and its verdict is merge, records the head it read; `pr` and
+`merge` run it before opening and merging. `--match-head-commit`
 makes GitHub refuse the merge if the head moved after the review. The SHA has to
 be written out: the gate reads the command before the shell expands a variable.
 
@@ -141,8 +141,7 @@ Claude Code truncates it past 1,536 characters. Files beside `SKILL.md` are
 named through `${CLAUDE_SKILL_DIR}`, which Claude Code replaces with the skill's
 absolute directory, so a bundled script runs in place.
 
-The `skill-authoring` skill says the same thing to an agent, with the rest of the
-conventions.
+`cs:skill` says the same thing to an agent, with the rest of the conventions.
 
 ## Checks
 

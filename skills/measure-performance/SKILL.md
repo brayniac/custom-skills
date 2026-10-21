@@ -216,7 +216,7 @@ quiet zero.
   refute it and what you would look at next for each outcome. A delta you did
   not expect is information; one you did expect and got is not confirmation on
   its own. A prediction written after the result is a story fitted to it
-  (`debug-intermittent-failure` step 3).
+  (`debug` step 3).
 - **Carry a control cell shared with the last published run.** One
   configuration every arm repeats from the previous report lets a disturbed
   run be identified rather than argued about: a crossover probe that repeated

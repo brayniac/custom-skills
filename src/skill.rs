@@ -329,7 +329,7 @@ mod tests {
         let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("skills");
         let listed = listed_skill_dirs(&plugin_root(&root)).unwrap();
         let skills = load(&root, &listed).expect("skills/ passes the check");
-        assert!(skills.iter().any(|s| s.name == "skill-authoring"));
+        assert!(skills.iter().any(|s| s.name == "skill"));
     }
 
     #[test]

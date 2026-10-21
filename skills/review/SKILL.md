@@ -1,6 +1,6 @@
 ---
 name: review
-description: Review a change adversarially with a fresh-context agent, then answer the findings. The reviewer tries to break the change — concrete failure scenarios, every factual claim in code comments, docs, commit messages and PR bodies checked against the code or the system, staleness and conflicts against the base branch — plus, when a public interface changed, what a caller can no longer do, and when docs changed, whether they state current behaviour. Findings come back as file:line with a failure scenario, marked confirmed or plausible; blocking ones are reproduced before anything is applied; every finding gets one disposition. Records the reviewed head so the merge gate lets it through. Use before opening a PR (`open-pr` runs it), before merging (`drive-pr-to-green` runs it; a hook refuses `gh pr merge` of an unreviewed head), when asked to review, adversarially review or sanity-check a change or a set of open PRs, and when answering findings from a person, Copilot or another agent.
+description: Review a change adversarially with a fresh-context agent, then answer the findings. The reviewer tries to break the change — concrete failure scenarios, every factual claim in code comments, docs, commit messages and PR bodies checked against the code or the system, staleness and conflicts against the base branch — plus, when a public interface changed, what a caller can no longer do, and when docs changed, whether they state current behaviour. Findings come back as file:line with a failure scenario, marked confirmed or plausible; blocking ones are reproduced before anything is applied; every finding gets one disposition. Records the reviewed head so the merge gate lets it through. Use before opening a PR (`pr` runs it), before merging (`merge` runs it; a hook refuses `gh pr merge` of an unreviewed head), when asked to review, adversarially review or sanity-check a change or a set of open PRs, and when answering findings from a person, Copilot or another agent.
 ---
 
 # Review
@@ -37,7 +37,7 @@ In this order:
    checklist; a checklist invites agreement.
 4. **Where to look**: the PR number or diff command, the files, the base.
 5. **Conventions to check against**, by path: the repo's CLAUDE.md and style
-   docs, `rust-conventions`, `write-technical-prose`, `~/.claude/CLAUDE.md`.
+   docs, `rust`, `prose`, `~/.claude/CLAUDE.md`.
 6. **The output shape**: findings ranked most severe first, each with
    `file:line`, the offending text quoted, the concrete failure scenario, a
    concrete replacement (findings you have to interpret get half-applied),
@@ -89,11 +89,11 @@ Ask for every instance of:
   the justification of the change;
 - references a reader at HEAD cannot resolve (a plan section, a review thread,
   "the new approach");
-- wording against `write-technical-prose` (the reader, modality, one name per
+- wording against `prose` (the reader, modality, one name per
   thing);
 - a claim of absence, equivalence or who-does-what not checked by a grep
-  (`open-pr`'s comment sweep,
-  `${CLAUDE_SKILL_DIR}/../open-pr/references/sweep-comments.md` step 5).
+  (`pr`'s comment sweep,
+  `${CLAUDE_SKILL_DIR}/../pr/references/sweep-comments.md` step 5).
 
 A comment can be well worded and false, so each claim is checked against the
 code. Reference documentation describes the result; the argument goes in the

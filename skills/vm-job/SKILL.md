@@ -288,7 +288,7 @@ is only reported when the step starts.
 
 The experiment's state names, which differ from a run's, and the `submit
 --wait` exit status are in `systemslab-spec-authoring` ("Three things the CLI
-will not tell you"). If you script a wait, follow `watch-long-job`: Monitor's
+will not tell you"). If you script a wait, follow `watch`: Monitor's
 shell is zsh, which does not word-split unquoted variables, and macOS `bash` is
 3.2, which has no `declare -A`. A monitor that has produced no output is
 broken until shown otherwise — 45 minutes of silence read as "still queued"
