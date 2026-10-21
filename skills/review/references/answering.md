@@ -6,14 +6,14 @@ either accepted without a word or dropped, and the next round raised them
 again. Every step below closes one of those gaps.
 
 Copilot's loop, with its thread pagination and re-request traps, is in
-`drive-pr-to-green`'s `references/copilot.md`; use that for the mechanics and
+`merge`'s `references/copilot.md`; use that for the mechanics and
 this for the answers.
 
 ## 1. Collect every finding before answering any
 
 - Every thread on the PR, all pages. `gh pr view --comments` omits inline
   review threads; use the GraphQL `reviewThreads` connection with pagination
-  (`drive-pr-to-green`'s helper `references/copilot_review.py` lists them;
+  (`merge`'s helper `references/copilot_review.py` lists them;
   its SKILL.md gives the full path).
 - Every earlier round, including resolved threads and review summaries, so
   that you do not re-answer a settled point or contradict an earlier reply.
@@ -70,8 +70,8 @@ Then post one summary with:
   them too;
 - the gate results for the new head (`verify-change`).
 
-Write the replies with `write-technical-prose`, and check the destination
-with `publishing-findings`; a reply on a public repository is public.
+Write the replies with `prose`, and check the destination
+with `publish`; a reply on a public repository is public.
 
 ## 5. Ask for review of the new head
 

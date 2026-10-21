@@ -8,7 +8,7 @@ description: Maintain a repository's backlog and NO-GO ledger in the place the r
 A backlog orders possible work; a NO-GO ledger records what was measured dead
 so it is not tried again without new evidence. Both are indexes over the
 journal: the reasoning for each item lives in a journal entry
-(`keep-engineering-journal`), and the backlog points at it.
+(`journal`), and the backlog points at it.
 
 The failure this skill is built from is growth. One repository's roadmap
 reached 3,508 lines, with three dated "Now" blocks kept "as history" and 78
@@ -104,7 +104,7 @@ design` limitations; those stay until their condition changes.
 
 ## 6. Hand off
 
-Take the top `Next` item and open it with `keep-engineering-journal`: scope,
+Take the top `Next` item and open it with `journal`: scope,
 GO/NO-GO criteria, plan. The backlog item then points at that entry.
 
 ## Never

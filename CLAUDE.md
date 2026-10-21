@@ -60,8 +60,8 @@ error. That is why `check-skills` exists; keep it failing on those cases.
   monitors, or MCP servers to the plugin without deciding that deliberately.
   The plugin has one hook, `hooks/review_gate.py`: a PreToolUse hook on Bash
   that refuses a PR merge unless it is pinned with `--match-head-commit` to a
-  head `review`'s `record-review.sh` recorded. It backs up `open-pr` and
-  `drive-pr-to-green`, which run `review`; it is not the review, and it does
+  head `review`'s `record-review.sh` recorded. It backs up `pr` and
+  `merge`, which run `review`; it is not the review, and it does
   not see a gh alias or gh run from another language.
   `python3 hooks/test_review_gate.py` tests it offline (rack-ci's `test` check
   runs it).
@@ -82,11 +82,12 @@ error. That is why `check-skills` exists; keep it failing on those cases.
 
 ## Adding or changing a skill
 
-The `skill-authoring` skill (`skills/skill-authoring/SKILL.md`) is the
-authoritative process; read it before writing one. In short:
+`cs:skill` (`skills/skill/SKILL.md`) is the authoritative process; read it
+before writing one. In short:
 
-1. `skills/<name>/SKILL.md`, verb-first hyphenated name, YAML frontmatter with
-   `name` and `description`.
+1. `skills/<name>/SKILL.md`, named with the word a person types after `/cs:`
+   (a hyphenated phrase only when one word is ambiguous), YAML frontmatter
+   with `name` and `description`.
 2. The `description` is the only text an agent sees when choosing a skill — it
    states what the skill does *and* ends with "Use when …". These run long (a
    few lines); that is deliberate, not sloppy.
