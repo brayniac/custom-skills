@@ -1,6 +1,6 @@
 ---
 name: journal
-description: Open, update, close, and reconcile an in-repo engineering journal entry for a non-trivial effort — find the repository's own convention first, search for prior work and recorded NO-GOs before starting, land intent before building when coordination or a GO/NO-GO probe matters, ground every claim in a commit, path, PR or measured number, keep one of four fixed states in frontmatter, record NO-GOs and ruled-out hypotheses with their mechanism and reopen condition, correct wrong claims in place, and close the entry, the index, and the backlog in the same PR as the work. Use when starting, picking up, handing off, pausing, or closing a feature, investigation, performance probe, refactor, or migration; when about to drop a measured negative result; when a repository has no durable record of decisions and dead ends; when bootstrapping a journal from commit history; and when the journal index or backlog has drifted from the entries.
+description: Open, update, close, and reconcile an in-repo engineering journal entry for a non-trivial effort, and keep the repository's backlog and NO-GO ledger — find the repository's own convention first, search for prior work and recorded NO-GOs before starting, land intent before building when coordination or a GO/NO-GO probe matters, ground every claim in a commit, path, PR or measured number, keep one of four fixed states in frontmatter, record NO-GOs and ruled-out hypotheses with their mechanism and reopen condition, correct wrong claims in place, close the entry, the index, and the backlog in the same PR as the work, give each backlog item its source, state and ordering reason, delete finished items, and never delete a NO-GO. Use when starting, picking up, handing off, pausing, or closing a feature, investigation, performance probe, refactor, or migration; when deciding what to work on next; when someone proposes something that may already have been tried; when about to drop a measured negative result; when a repository has no durable record of decisions and dead ends; when bootstrapping a journal from commit history; when grooming a backlog or roadmap file; and when the journal index or backlog has drifted from the entries.
 ---
 
 # Keep an engineering journal
@@ -16,7 +16,9 @@ checked in, a status line with fifteen spellings across 27 entries, an entry
 closed after a context compaction with a plausible list of what was done, and
 a merged explanation refuted by its own control an hour later.
 
-Deciding *which* effort to work on, and the NO-GO ledger, are `keep-backlog`.
+Deciding *which* effort to work on, checking a proposal against the NO-GO
+ledger, and grooming the backlog follow
+`${CLAUDE_SKILL_DIR}/references/backlog.md`.
 Whether a number is sound is `benchmark-validity`; how to take it is
 `measure-performance`.
 
@@ -62,8 +64,9 @@ grep -rli '<topic words>' docs/journal/
 git log --oneline --all -i --grep='<topic>' | head -20
 ```
 
-Read the backlog's NO-GO ledger if there is one (`keep-backlog` step 2). If an
-entry already covers this effort, continue it. If a terminal entry covers it,
+Read the backlog's NO-GO ledger if there is one (step 2 of
+`${CLAUDE_SKILL_DIR}/references/backlog.md`). If an entry already covers this
+effort, continue it. If a terminal entry covers it,
 open a new entry that links the old one. Do not write a parallel record.
 
 ## 3. Choose the lifecycle and say which
@@ -153,7 +156,8 @@ and the evidence each requires):
   replaces this one.
 
 In the same PR: update `updated`, the index row (state and a one-line result
-with its headline number), the backlog per `keep-backlog` step 4, and any
+with its headline number), the backlog per step 4 of
+`${CLAUDE_SKILL_DIR}/references/backlog.md`, and any
 document the outcome changes. Write the entry after verifying the work
 (`verify`), not from memory of it.
 

@@ -1,14 +1,9 @@
----
-name: keep-backlog
-description: Maintain a repository's backlog and NO-GO ledger in the place the repository already keeps them — check the ledger before starting work or accepting a proposal, answer a re-proposal with the recorded mechanism and reopen condition, give each item its source and state and each ordering its reason, change the backlog in the same PR as the journal entry that changes it, delete finished items instead of marking them done, and never delete a NO-GO. Use when deciding what to work on next; when someone proposes something that may already have been tried; when a journal entry opens, closes, or defers work; when grooming a backlog or roadmap file; and when asked to set up a backlog in a repository that has none.
----
-
-# Keep a backlog
+# Backlog and NO-GO ledger
 
 A backlog orders possible work; a NO-GO ledger records what was measured dead
 so it is not tried again without new evidence. Both are indexes over the
-journal: the reasoning for each item lives in a journal entry
-(`journal`), and the backlog points at it.
+journal: the reasoning for each item lives in a journal entry, and the
+backlog points at it.
 
 The failure this skill is built from is growth. One repository's roadmap
 reached 3,508 lines, with three dated "Now" blocks kept "as history" and 78
@@ -104,8 +99,8 @@ design` limitations; those stay until their condition changes.
 
 ## 6. Hand off
 
-Take the top `Next` item and open it with `journal`: scope,
-GO/NO-GO criteria, plan. The backlog item then points at that entry.
+Take the top `Next` item and open a journal entry for it (`journal` step 4):
+scope, GO/NO-GO criteria, plan. The backlog item then points at that entry.
 
 ## Never
 
