@@ -58,7 +58,8 @@ Merge duplicates. For each finding that claims a failure, reproduce it: a
 test that fails, an input that produces the wrong state, a trace of the code
 path. Mark each **confirmed**, **plausible** (the path is real, the trigger
 is unshown) or **refuted**, with the evidence. Do not carry a reviewer's
-finding forward on its say-so.
+finding forward on its say-so; check its other claims as `evidence` step 4
+does.
 
 Separate **design limitations**: the code does what it was built to do, and
 that breaks an invariant or a property the owner wants (an O(n) eviction scan

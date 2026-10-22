@@ -51,7 +51,8 @@ raw results where a reader can find them (`report`'s method section).
 ## 5. Record every number with its provenance
 
 The command, the commit, the host and its state (idle or not), the
-configuration, the run count, and which part is measured and which inferred.
+configuration, the run count, and which part is measured and which inferred
+(`evidence` step 1 for claims that are not numbers).
 A number written into a test threshold records the distribution it came
 from, applies its bound to every case, and prints the distribution when it
 fails (`${CLAUDE_SKILL_DIR}/references/validity.md`, "Before writing a

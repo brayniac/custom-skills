@@ -47,7 +47,8 @@ text is there; follow the code path or run the input; and mark it
 trigger is not shown), or drop it. A finding about code the PR does not touch
 is out of scope unless the PR makes it reachable. When a finding is one case
 of a kind, grep the PR's files for the same kind and report every instance as
-one finding. Say which findings were dropped and why.
+one finding. Check each factual statement in a finding, and in its suggested
+change, as `evidence` step 4 does. Say which findings were dropped and why.
 
 ## 4. Draft, then hand to the user
 
