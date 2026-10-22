@@ -59,9 +59,10 @@ In this order:
   makes it do the wrong thing. Partial failure, retries, restarts, a cancel
   mid-step, a host that is busy, a second run.
 - **Every factual claim** in comments, docs, the commit message and the PR
-  body, checked against the code or the live system: numbers against the
-  fixture they cite, "X has no Y" by a grep, "Z is gone from upstream" by
-  looking. A false claim in a PR body ends up quoted as fact.
+  body, checked against the code or the live system (`evidence` step 2):
+  numbers against the fixture they cite, "X has no Y" by a grep, "Z is gone
+  from upstream" by looking. A false claim in a PR body ends up quoted as
+  fact.
 - **The branch against the base as it is now**: does it merge, does it undo
   or duplicate something merged since it was opened, does its base still
   exist. A stacked branch rebased onto a squash-merged parent carries the
@@ -112,6 +113,10 @@ entry is not reference documentation.
 - **Reproduce a blocking finding before acting on it**: compile the misuse,
   run the input, read the code path. Do not apply what you have not
   reproduced, and say when you disagree.
+- **Check the findings' own claims** before applying them (`evidence` step
+  4): the quote is at the cited line, each count and behaviour it states is
+  true, and every sentence of a proposed replacement is true. A reviewer's
+  release count once went into a PR body as seven when `git log` gave nine.
 - **Fix the class, not the instance.** When a finding is one case of a kind
   (a stale reference, a missing bound, a wrong unit), grep the files the
   change touches for the same kind and fix every instance before the next
