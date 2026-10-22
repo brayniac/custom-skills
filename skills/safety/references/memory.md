@@ -12,6 +12,7 @@ error: Undefined Behavior: memory access failed: alloc42205 has been freed,
 so this pointer is dangling
 
 RUSTFLAGS=-Zsanitizer=address cargo +nightly test --target aarch64-apple-darwin
+# (a crate with no doctests; see step 2 for RUSTDOCFLAGS)
 ERROR: AddressSanitizer: heap-use-after-free ... lib.rs:5 in read_after_free
 ```
 
@@ -50,8 +51,10 @@ RUSTFLAGS=-Zsanitizer=address RUSTDOCFLAGS=-Zsanitizer=address \
 switch that turns aliasing checks on: code that fails only under the default
 breaks the stricter rules. `RUSTDOCFLAGS` is needed because rustdoc builds the
 doctests and does not read `RUSTFLAGS`; without it, any crate with a doctest
-fails to link. `--target` keeps the sanitizer off build scripts and proc
-macros, which otherwise abort the build. `rustc -vV` prints the host triple.
+fails to link. `--target` keeps the sanitizer off build scripts and proc macros,
+which otherwise abort the build. `rustc -vV` prints the host triple.
+AddressSanitizer aborts the test binary at its first report, so later errors in
+the same binary appear only after the first is fixed and the run repeated.
 
 ## 3. Show the check can fail
 
