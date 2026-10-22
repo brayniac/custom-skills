@@ -11,7 +11,7 @@ frame capture slows decode substantially), so take throughput and latency
 figures from an unprofiled run (`measure-performance`), and use the profile to
 decide what to change.
 
-On the lab rack a GPU is only reachable from inside a VM; `vm-job` covers
+On the lab rack a GPU is only reachable from inside a VM; `lab`'s `vm.md` covers
 getting a GPU guest and pulling artifacts out.
 
 ## CUDA

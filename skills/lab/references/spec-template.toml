@@ -3,7 +3,8 @@
 # artifact inputs, packages, data_address and console capture — so parts of the
 # upload-then-re-raise dance below may now have shorter equivalents. The shape
 # here still runs; it is not necessarily the briefest one.
-# Replace NAME, the image row from the skill's table, and the payload body.
+# Replace NAME, the image row from the table in `vm.md` step 1, and the payload
+# body.
 name = "NAME"
 
 [[jobs]]

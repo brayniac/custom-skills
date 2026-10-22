@@ -44,11 +44,10 @@ the spec file outside the checkout or it becomes part of the next patch.
 
 Every platform image already has the toolchain and the shared compiler cache.
 On a stock image (`debian-13`, `rocky-10`, `ubuntu-24.04`, ...), install the
-toolchain, then ship the `use-shared-compiler-cache` skill's installer in as
-base64 and run it:
+toolchain, then ship `sccache.md`'s installer in as base64 and run it:
 
 ```sh
-base64 -i "<use-shared-compiler-cache skill dir>/references/install-sccache.sh" | tr -d '\n' > /tmp/sccache.b64
+base64 -i "<lab skill dir>/references/install-sccache.sh" | tr -d '\n' > /tmp/sccache.b64
 ```
 
 In the payload:
@@ -114,7 +113,7 @@ indistinguishable from a box that legitimately lacks the package.
 ## Two guests that have to meet
 
 A client/server benchmark across both hypervisors. The barrier is what frees
-the server when the client dies; see skill step 3 for why nothing else does.
+the server when the client dies; see `vm.md` step 3 for why nothing else does.
 Trimmed to the coordination -- the payload bodies are ordinary.
 
 ```toml
@@ -220,7 +219,7 @@ parameter, and worth re-reading rather than recalling):
 - **Host side** — systemslab's `start-metrics`/`stop-metrics` bracketing steps,
   landing as `metrics.rez`. This is the contention view: what the job cost the
   machine. Brackets are host-runner steps, so a guest payload can never reach
-  one (skill step 3).
+  one (`vm.md` step 3).
 
 A recording cannot be sliced by time afterward — `rezolus recording filter`
 trims samplers and metric columns, and the MCP `query` tool has no window

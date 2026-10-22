@@ -124,6 +124,6 @@ The second shuttle line exists because the workspace clippy job runs
 `--all-features`, which enables loom and compiles the shuttle module out.
 
 The loom workflow there allows 120 minutes. On repositories moved to rack-ci
-these become checks in `.rack-ci.toml` (`use-rack-ci`), where a check holds a
-host for its whole run; measure the loom run's duration before choosing its
-target and trigger.
+these become checks in `.rack-ci.toml` (`lab`'s `rack-ci.md`), where a check
+holds a host for its whole run; measure the loom run's duration before choosing
+its target and trigger.

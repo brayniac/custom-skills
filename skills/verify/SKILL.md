@@ -27,8 +27,8 @@ Two rounds of work once went onto a branch whose `get_stream_end_to_end`
 failure predated them, because the local gates were treated as the state of the
 world. A failure you cannot attribute costs a bisect later.
 
-A `rack-ci/*` status of `error` is infrastructure, not code; `use-rack-ci` has
-the table.
+A `rack-ci/*` status of `error` is infrastructure, not code; `lab`'s
+`rack-ci.md` has the table.
 
 ## 2. Build the gate list from the repository, not from memory
 
@@ -201,7 +201,8 @@ git rev-parse HEAD origin/$(git branch --show-current)
 - **Never claim a wider result than the command you ran** — a per-crate pass is
   not a workspace pass.
 - **Never read a `rack-ci` `error` as a code failure**, and never read a GitHub
-  check that failed in four seconds with no steps as one either (`use-rack-ci`).
+  check that failed in four seconds with no steps as one either (`lab`'s
+  `rack-ci.md`).
 - **Never report a check as coverage without having seen it fail** against the
   fault it names.
 - **Never mutate without a backup outside the repository** and a confirmed

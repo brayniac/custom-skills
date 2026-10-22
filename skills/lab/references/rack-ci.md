@@ -1,8 +1,3 @@
----
-name: use-rack-ci
-description: Put a repository on rack-ci — the rack's own CI, which replaced GitHub Actions here — and read its verdicts correctly. Use when a private repo's GitHub check fails in a few seconds with no steps run, when adding or changing a `.rack-ci.toml`, when a build is missing or stuck pending, when a tag needs to publish packages, and before treating any red mark on these repositories as a code failure.
----
-
 # rack-ci
 
 **GitHub's hosted runners do not work on this account's private repositories.**
@@ -14,7 +9,7 @@ running builds on the rack instead:
 GitHub <-- delta polls --> systemslab experiment --> anvil guest --> commit status
 ```
 
-The authority is `docs/guides/ci.md` in `brayniac/infra`; this skill is what you
+The authority is `docs/guides/ci.md` in `brayniac/infra`; this file is what you
 need when that repo is not checked out, and it defers to it wherever they differ.
 
 ## First: is this failure even a build failure?
@@ -66,7 +61,7 @@ Two shape rules that are not style preferences:
   Stopping at the first problem costs another push and another host to find the
   second.
 
-`${CLAUDE_SKILL_DIR}/references/onboarding.md` has the targets table, the full
+`onboarding.md` (beside this file) has the targets table, the full
 config surface, and which steps you cannot do yourself.
 
 ## Step 2 — Pick the target honestly
@@ -122,7 +117,7 @@ repo on delta.
 hand with `rack-ci build --release`, or delete and re-push the tag.
 
 macOS — studio as a runner, and a macOS artifact to ship — is
-`${CLAUDE_SKILL_DIR}/references/macos.md`. The runner is blocked on more than
+`macos.md` (beside this file). The runner is blocked on more than
 setup: the bare-target sandbox is bubblewrap, hardcoded, and Linux-only.
 
 ## Step 6 — Retire the Actions workflow
@@ -151,7 +146,7 @@ is a guaranteed false one.
 - **Never expect a warm target directory.** The guest is destroyed after
   every run, so there is no `rust-cache` equivalent. Compilation is cached
   instead: every ci image routes rustc through sccache against the shared
-  store on delta:8081 (`use-shared-compiler-cache`), so a `.rack-ci.toml`
+  store on delta:8081 (`sccache.md`), so a `.rack-ci.toml`
   needs nothing, a store that is down is a miss rather than a failed check,
   and `sccache --show-stats` at the end of a check prints the hit rate.
   Linking and running tests are not cached: slipway's Pi test check went from

@@ -1,8 +1,3 @@
----
-name: use-shared-compiler-cache
-description: Put a machine's cargo on the rack's shared compiler cache — sccache 0.18.0 against the WebDAV store on delta:8081 that every rack CI guest already uses, or a local disk cache off the LAN — with a bundled installer for macOS and Linux that proves a probe build went through the cache, and diagnose a cache that is silently not being used. Use when setting up a new workstation, VM, or build host; when builds on a machine with many worktrees or target directories are slow; when `sccache --show-stats` shows no hits or a local disk location; when builds hang or crawl after a laptop leaves the LAN; and before quoting any build or test duration.
----
-
 # Use the shared compiler cache
 
 sccache wraps every `rustc` call and keys it by compiler, flags and source
@@ -16,8 +11,16 @@ everywhere else with the same key. On the rack, that means:
   rustc when it does not. A `.rack-ci.toml` or a vm job payload needs
   nothing. `debian-13-gpu`, and delta's own `debian-13-gpu` and
   `debian-13-gpu-cu13`, were built before the toolchain was added and have
-  no toolchain or cache. A vm job on a stock image runs the installer in its payload; the
-  `vm-job` skill's recipes say how.
+  no toolchain or cache. A vm job on a stock image runs the installer in its
+  payload; `recipes.md` (beside this file) says how.
+- **C and C++ in build scripts.** `brayniac/infra` #124 (`d48a201`) sends
+  cc-rs and CMake compiles through the cache on platform images built from
+  it; images built before it cache only rustc, because cc-rs wraps the C
+  compiler only when the wrapper's file name is `sccache`. On a machine set up
+  by this installer (`rustc-wrapper = "sccache"`), cc-rs compiles are cached
+  and CMake ones are not; on a Mac, infra's `host-setup/install-sccache-mac`
+  adds the CMake launchers. sccache keys a C or C++ compile by its absolute
+  path, so it hits only when the build runs in the same directory.
 - **What it bought**, measured on a Pi guest: slipway's test check 951 s
   populating, 503 s warm with 305 of 307 rustc calls served; anvil 191 s cold,
   69 s warm with 59 of 59. What remains is linking and running tests, which no
@@ -27,7 +30,7 @@ everywhere else with the same key. On the rack, that means:
   dependencies from scratch, because cargo shares nothing between them. It
   saves compile time, not disk: objects still land in every target directory.
 
-Everything needed is in this skill; no infra checkout is required on the
+Everything needed is in `lab`; no infra checkout is required on the
 machine being set up.
 
 ## 1. Choose the mode
@@ -46,11 +49,11 @@ cacheable.
 
 ## 2. Run the installer
 
-Run `${CLAUDE_SKILL_DIR}/references/install-sccache.sh` as the user who builds
+Run `install-sccache.sh` (beside this file) as the user who builds
 (not under sudo), with cargo already installed:
 
 ```sh
-S=${CLAUDE_SKILL_DIR}/references/install-sccache.sh
+S=<this file's directory>/install-sccache.sh
 bash $S                     # the store
 bash $S --no-incremental    # the store, for a build-only host
 bash $S --local             # disk cache, off-LAN machine
@@ -92,6 +95,7 @@ sccache --show-stats | grep -E 'Cache location|Compile requests|Cache hits'
 | `Local disk` after starting a build off the LAN | sccache picks its backend when its server starts and keeps it for the server's life; off the LAN it falls back to disk | on the LAN again: `sccache --stop-server`; the next build starts a new server |
 | every compile slow after leaving the LAN | a server started on the LAN waits on a network timeout per compile | `sccache --stop-server`; use `--local` on a machine where this is routine |
 | zero compile requests | `RUSTC_WRAPPER` in the environment, or another `rustc-wrapper` in a project's `.cargo/config.toml`, overrides the user config | find it: `env | grep -i wrapper`, then `.cargo/config.toml` in the project and each parent directory |
+| a build fails with `sccache ... (exit status: 254)` while compiling a crate with many source files | the sccache server ran out of file descriptors (`Too many open files`); seen once on a Mac, compiling `aws-sdk-ec2` | `sccache --stop-server; ulimit -n 65536 && sccache --start-server` in the shell that builds |
 | two machines never hit each other's entries | different sccache versions or rustc versions change the key. One Mac had a cargo-installed 0.14.0 shadowing brew's 0.18.0 | same sccache (0.18.0) and same toolchain on both; the installer removes a shadowing `~/.cargo/bin/sccache` on macOS |
 
 With `rustc-wrapper = "sccache"`, which the installer writes, a store that

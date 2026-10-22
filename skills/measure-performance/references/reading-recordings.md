@@ -40,7 +40,7 @@ tools read it. Each link has a name that has to match the previous one.
    `systemslab api /api/v1/artifact/<id>` to fetch one.
 
    Experiment-scoped listing excludes context-attached artifacts; see
-   `systemslab-spec-authoring` for the query that lists those.
+   `lab`'s `specs.md` for the query that lists those.
 4. **`describe_recording`** with no `recording` argument first, to list what the
    file holds. A `.rez` can carry several recordings; the tools require exactly
    one, selected as `recording: {"source": "redis"}`.

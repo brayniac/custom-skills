@@ -1,8 +1,3 @@
----
-name: systemslab-spec-authoring
-description: Write SystemsLab experiment specs that survive the parameter interpolator, `set -e`, and a fleet that is not one distro. Use when authoring or editing an experiment spec, when a spec fails at submit-evaluation, when a step behaves differently than the same shell does locally, and before copying a pattern out of an existing spec.
----
-
 # SystemsLab spec authoring
 
 A spec is shell inside TOML inside a parameter interpolator, run on whichever
@@ -19,7 +14,7 @@ It renders the substituted spec and catches the first two layers without
 spending a host. It is also how you check what a step actually sends, which
 settles arguments about reserved keys in one command.
 
-**`anvil-vm` and the guests it builds are `vm-job`'s subject**, and that skill
+**`anvil-vm` and the guests it builds are `vm.md`'s subject**, and that file
 is the authority there. This one covers the spec mechanics underneath, which
 apply to every job whether or not it builds a VM.
 
@@ -182,4 +177,4 @@ mismatch rather than failing. Correctness is then independent of scheduling.
 - **Never let a step compute a verdict without `set +e`.**
 - **Never upload an input after `submit`.**
 - **Never read a job's exit status as the work's verdict** when the payload ends
-  `exit 0` — see `vm-job`.
+  `exit 0` — see `vm.md`.

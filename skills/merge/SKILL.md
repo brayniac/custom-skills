@@ -5,11 +5,12 @@ description: Watch an open pull request's CI and reviews until it is green, revi
 
 # Drive a PR to green
 
-The loop is: snapshot, classify, act, wait, repeat. The part that goes wrong
-is classification. On this account a GitHub check that fails in two or three
+The loop is: snapshot, classify, act, wait, repeat. The part that goes wrong is
+classification. On this account a GitHub check that fails in two or three
 seconds is billing, not code: `custom-skills` PRs #1–#3 each show one failed
 `check` run of 2–3 s with zero steps and no runner. Rerunning it cannot pass,
-and editing code to fix it changes nothing. `use-rack-ci` has the full table.
+and editing code to fix it changes nothing. `lab`'s `rack-ci.md` has the full
+table.
 
 Copilot review rounds have their own mechanics (thread pagination, the
 `[bot]` re-request, re-raised findings); they are in
@@ -47,7 +48,7 @@ If the PR is merged or closed, report that and stop.
 | `rack-ci/<name>` `error`, or an Actions runner-provisioning, network, or registry timeout | infrastructure | one rerun for this commit (step 4) |
 | compile, lint, format, or a test that fails the same way on rerun, in code the branch touches | caused by the branch | fix (step 3) |
 | a test that fails on this commit and passes on rerun, or fails on `main` too | flaky or pre-existing | record it (step 4); do not edit the test to pass |
-| no checks at all on a rack-ci repository | nothing triggered | a PR opened on an unmoved head triggers no build (`use-rack-ci` step 3); the next push builds it |
+| no checks at all on a rack-ci repository | nothing triggered | a PR opened on an unmoved head triggers no build (`lab`'s `rack-ci.md` step 3); the next push builds it |
 
 Read the failed job's log before choosing a class. For Actions, a failed job's
 log is available before the whole run finishes:

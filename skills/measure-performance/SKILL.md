@@ -10,10 +10,10 @@ Three systems, one loop: **SystemsLab** picks the machine and runs the work,
 numbers out of. Most wrong numbers here come from the handoffs between them,
 not from the workload.
 
-**Getting work onto the rack is the `vm-job` skill.** It owns shapes, images,
+**Getting work onto the rack is `lab`'s `vm.md`.** It owns shapes, images,
 specs, artifacts, and orphan recovery, and it is the authority whenever the two
 disagree. Spec mechanics that apply to every job — the interpolator, `set -ex`,
-state names, staging files on a context — are `systemslab-spec-authoring`;
+state names, staging files on a context — are `lab`'s `specs.md`;
 Jsonnet syntax is in `systemslab/docs/llm/writing-experiments.md`. This skill
 starts where those leave off: choosing an environment whose numbers mean
 something, and deciding whether a difference between two of them is real.
@@ -60,14 +60,13 @@ differences that change results.
 
 **Exclusivity is already guaranteed: SystemsLab runs one job per host.** If your
 job is running, you have the machine — there is no co-tenant and nothing to
-drain. So `busy` means another job owns the host and you wait for it, and a
-`503 No suitable slots available` is never ordinary contention. It has two causes
-the message does not distinguish: a **generation mismatch in your own spec**
-— check this first, since a generation-specific shape under `tags =
-["hypervisor"]` is a coin flip, which `shape = "auto.c"` now removes — or an
-orphaned guest holding
-slots, which `vm-job`'s "Cancel, timeout, orphan" step (7) recovers. A number
-obtained after retrying around a 503 is not a clean number.
+drain. So `busy` means another job owns the host and you wait for it, and a `503
+No suitable slots available` is never ordinary contention. It has two causes the
+message does not distinguish: a **generation mismatch in your own spec** — check
+this first, since a generation-specific shape under `tags = ["hypervisor"]` is a
+coin flip, which `shape = "auto.c"` now removes — or an orphaned guest holding
+slots, which the "Cancel, timeout, orphan" step (7) of `lab`'s `vm.md` recovers.
+A number obtained after retrying around a 503 is not a clean number.
 
 ## Step 2 — On the hypervisors, measure in a VM, and verify fidelity
 

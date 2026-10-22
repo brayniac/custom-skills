@@ -15,7 +15,7 @@
 #
 # hint=suspect-billing marks a failed check run that finished in under 15 s:
 # on this account's private repos that is GitHub refusing to dispatch the job
-# (use-rack-ci), not a test result. Confirm with `gh run view <id> --json jobs`
+# (lab's rack-ci.md), not a test result. Confirm with `gh run view <id> --json jobs`
 # (no steps) before treating it as such.
 set -euo pipefail
 

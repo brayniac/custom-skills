@@ -1,5 +1,5 @@
 # What rack-ci does with this repository. The rack config on delta defines the
-# targets; this file picks. See the `use-rack-ci` skill, or infra's
+# targets; this file picks. See `lab`'s `references/rack-ci.md`, or infra's
 # docs/guides/ci.md.
 #
 # A check holds a host for the length of its script, so related steps share one

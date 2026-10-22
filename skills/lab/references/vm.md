@@ -1,8 +1,3 @@
----
-name: vm-job
-description: Run work inside an ephemeral VM on the lab hypervisors (hv01, hv02, delta) or the Raspberry Pis through a SystemsLab job using the anvil-vm action, and pick the guest image for it. Use when something must run on a whole machine, a specific kernel or distro (Debian, Ubuntu, Rocky/RHEL, Amazon Linux, Alpine/musl), a kernel with sched_ext or a mainline release candidate, a GPU (CUDA 12 or 13), guest hardware counters, or simply on Linux when the workstation is a Mac; when asked to test, build, benchmark or probe "in a VM", "on the rack", "on hv01", "on a Pi", or "on Ubuntu/Rocky/Alpine"; and before touching a hypervisor in any other way.
----
-
 # VM job
 
 The rack rule: **hv01 and hv02 are only ever used through SystemsLab jobs.** A
@@ -178,7 +173,7 @@ card, so a stray or orphaned guest cannot sit on it. Timeouts are seconds.
 
 ## 2. Write the spec
 
-Read `${CLAUDE_SKILL_DIR}/references/spec-template.toml` and start from it.
+Read `spec-template.toml` (beside this file) and start from it.
 Rules:
 
 - TOML, `uses = "anvil-vm"`. Payload in a `'''` literal string.
@@ -264,7 +259,7 @@ inside that step for the whole run, so nothing can interrupt it.
 - Readiness is not a barrier's job here. The server guest has no moment at
   which it can signal the host, so the client retries the connection.
 
-Worked spec: `${CLAUDE_SKILL_DIR}/references/recipes.md`, "Two guests that have
+Worked spec: `recipes.md` (beside this file), "Two guests that have
 to meet".
 
 ## 4. Submit
@@ -287,7 +282,7 @@ is only reported when the step starts.
 ## 5. Wait and read
 
 The experiment's state names, which differ from a run's, and the `submit
---wait` exit status are in `systemslab-spec-authoring` ("Three things the CLI
+--wait` exit status are in `specs.md` ("Three things the CLI
 will not tell you"). If you script a wait, follow `watch`: Monitor's
 shell is zsh, which does not word-split unquoted variables, and macOS `bash` is
 3.2, which has no `declare -A`. A monitor that has produced no output is

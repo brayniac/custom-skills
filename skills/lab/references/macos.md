@@ -3,8 +3,8 @@
 Two separate things, and the first gates the second: **studio as a rack-ci
 runner**, and **a macOS artifact to distribute**.
 
-Read from `brayniac/infra` at `576bf7c` and not run. No access from here to
-delta, to either Mac, or to the rack.
+Read from `brayniac/infra` at `576bf7c` and not run; the Macs' host state was
+re-read from `fleet/hosts/` on 2026-10-21.
 
 ## studio as a runner: what actually blocks it
 
@@ -31,7 +31,7 @@ moves:
 
 ```toml
 [targets.studio]
-host_tags = ["studio"]
+host_tags = ["macstudio"]
 bare = true
 sandbox = "none"        # "bwrap" (default) | "sandbox-exec" | "none"
 ```
@@ -46,11 +46,13 @@ sandbox = "none"        # "bwrap" (default) | "sandbox-exec" | "none"
   trap removes, and a read-only toolchain get most of the isolation.
 
 **What `none` costs is worth stating before choosing it.** No pid namespace, so
-a build that leaves something running leaves it running. No read-only root, so
-a build can read anything that user can. On a pi that does nothing else, that
-is a small surface. **studio is described in the design as a control point —
-"never managed" — so it is the machine where that surface is least acceptable.**
-If studio is going to run CI, `sandbox-exec` is worth the profile.
+a build that leaves something running leaves it running. No read-only root, so a
+build can read anything that user can. On a pi that does nothing else, that is a
+small surface. On both Macs the agent runs as the owner's own user (a
+LaunchAgent on macbook, a hand-started process on macstudio, per their host
+files), so a build under `none` can read everything that user can. That surface
+is larger than on a Pi; if a Mac is going to run CI, `sandbox-exec` is worth the
+profile.
 
 ### 2. The installer is Debian-only
 
@@ -68,19 +70,14 @@ sibling needs:
 
 So roughly half of it transfers verbatim.
 
-### 3. studio is not a systemslab host yet
+### 3. What studio still needs
 
-`fleet/hosts/` holds delta, forge, hv01, hv02 and pi00–pi19. There is no
-`studio.toml`, and the design calls macstudio a control point, "never managed".
-Before any of the above matters:
-
-- `systemslab-agent` running on studio, registered, with a host tag the target
-  can name;
-- **`sudo` for the agent's user** — the bare payload runs `sudo rm -rf` and
-  `sudo chown -R rack-ci:rack-ci` before dropping privileges;
-- a decision about whether studio becomes a *managed* fleet host or stays
-  unmanaged with rack-ci as the exception. Declaring it in `fleet/` is what
-  makes drift visible; leaving it out means nothing notices when it changes.
+Both Macs are managed fleet hosts: `fleet/hosts/macbook.toml` and
+`macstudio.toml` declare `role = "runner"`, the `systemslab-agent` service, and
+the tags `macbook` and `macstudio`. macstudio's agent is still the hand-started
+binary, deliberately, per the migration note in its host file. Not checked:
+**`sudo` for the agent's user** — the bare payload runs `sudo rm -rf` and `sudo
+chown -R rack-ci:rack-ci` before dropping privileges.
 
 ### What transfers unchanged
 
@@ -190,7 +187,7 @@ shape with a different second half — a `publish-dist-macos.sh` sibling of
    (Metal where relevant), tarball into `dist/`.
 2. **A `mac` target** in the rack config, defined like `pi` — bare host,
    unprivileged user, fetch-fresh-and-remove, warm `CARGO_TARGET_DIR` — tagged
-   `macbook` (and the studio when registered).
+   `macbook` or `macstudio`.
 3. **`jobs/publish-dist-macos.sh`** on delta after a barrier, dropping into
    `/srv/dist/macos/`.
 4. **A separate status context**, `rack-ci/release-macos`, rather than folding
@@ -202,9 +199,5 @@ shape with a different second half — a `publish-dist-macos.sh` sibling of
 
 ### What this has not verified
 
-The Macs are systemslab hosts but
-**not managed fleet hosts** — `fleet/hosts/` has delta, forge, hv01, hv02 and
-pi00–pi19 and no Mac — and the design calls macstudio a "control point only;
-never managed". Whether a `rack-ci` user, a warm target dir, and a
-fetch-and-remove scratch path can be provisioned on a host the fleet does not
-manage is the one thing to settle before building any of this.
+Whether a `rack-ci` user, a warm target dir, and a fetch-and-remove scratch
+path are provisioned on the Macs. Settle that before building any of this.
