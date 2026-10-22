@@ -1,88 +1,106 @@
 ---
 name: sync
-description: Bring a branch up to date with its base — merge or rebase as the repository requires (linear history, a cog or commitlint check, a shared branch), resolve each conflict by reading both sides, re-derive what must not be merged by hand (an -alpha.N bump, Cargo.lock, generated files, sequence numbers), look for the conflicts git resolves silently and wrongly (a CHANGELOG entry under a heading released since, a call to something renamed on the base), check the diff against the base is only the branch's own change, run the gates, and push without force unless the user agrees. Use when a branch or PR is behind or conflicts with main, when asked to sync, update, rebase or merge main into a branch, after a parent PR in a stack merged, and before re-requesting review on a branch whose base moved.
+description: Bring a branch up to date with its base — merge or rebase as the repository requires (its merge methods, a per-commit message check such as cog or commitlint, a shared branch), resolve each conflict by reading both sides, re-derive what must not be merged by hand (an -alpha.N bump, Cargo.lock, generated files, sequence numbers) even when git merged it cleanly, look for the conflicts git resolves silently and wrongly (a CHANGELOG entry under a heading released since, a call to something renamed on the base), check the diff against the base is only the branch's own change, run the gates, and push without force unless the user agrees. Use when a branch or PR is behind or conflicts with its base, when asked to sync, update, rebase or merge main into a branch, after a parent PR in a stack merged, and before re-requesting review on a branch whose base moved.
 ---
 
 # Sync a branch
 
-A clean merge is not a correct one. The failures here came from conflicts git
-resolved without a marker: a CHANGELOG entry that landed under a version
-released since, two migrations with one number, a lockfile merged line by
-line, a version bump computed from a base that had moved.
+Most failures here came from merges git completed without a conflict marker:
+a CHANGELOG entry under a version released since the branch was cut, two
+migrations with one number, a version bump the base had already made, a
+generated file left stale.
 
 ## 1. Read the situation
 
 ```sh
+gh pr view --json number,headRefOid,baseRefName,mergeStateStatus 2>/dev/null
 git fetch <remote>
-git status -sb
-git log --oneline <remote>/main..HEAD        # the branch's own commits
-git log --oneline HEAD..<remote>/main        # what it is missing
-gh pr view --json number,headRefOid,baseRefName,state 2>/dev/null
+git log --oneline <remote>/<base>..HEAD      # the branch's own commits
+git log --oneline HEAD..<remote>/<base>      # what it is missing
 ```
 
-`<remote>` is the one that points at the project (`upstream` in a fork
-checkout). Then find out how this repository wants it done:
+`<remote>` points at the project (`upstream` in a fork checkout); `<base>` is
+the PR's `baseRefName`, which is not always `main`. If the PR is in a merge
+queue, do not sync it unless it conflicts: the queue tests it against the
+base, and a push removes it from the queue.
 
-- **Linear history:** a `required_linear_history` rule (`gh api
-  repos/<owner/repo>/rules/branches/main`), a `cog check` or commitlint
-  step in CI, or a line in `CLAUDE.md` or the contributing guide. One repo's
-  CI rejected a merge commit through `cog check`.
+Then find how the repository merges:
+
+- **Merge methods:** `gh api repos/<owner/repo> --jq
+  '{allow_merge_commit,allow_squash_merge,allow_rebase_merge}'`. A merge
+  commit on the branch matters only when the PR is merged by rebase.
+- **A per-commit check in CI:** `cog check`, commitlint, or a DCO check reads
+  every commit on the branch, and rejects a merge commit or a message it
+  does not accept.
+- **Branch rules,** which may come from a ruleset or classic protection:
+  read both `repos/<owner/repo>/rules/branches/<base>` and
+  `repos/<owner/repo>/branches/<base>/protection`.
 - **Whether the branch is pushed, and whether anyone else commits to it.**
 
 ## 2. Merge or rebase
 
-- Not pushed: rebase onto `<remote>/main`.
-- Pushed, linear history not required: merge `<remote>/main` in. It needs no
-  force-push.
-- Pushed, linear history required: a rebase needs a force-push; ask the user
-  first, then push with `--force-with-lease=<branch>:<sha you observed>`.
+- Not pushed: rebase onto `<remote>/<base>`.
+- Pushed, and the repository squash-merges with no per-commit check: merge
+  `<remote>/<base>` in. It needs no force-push.
+- Pushed, and the repository merges by rebase or checks each commit: a rebase
+  needs a force-push. Ask the user first; if others commit to the branch,
+  tell them before pushing. Push with `--force-with-lease=<branch>:<sha you
+  observed>`.
 - Stacked on a parent that was squash-merged: the branch still carries the
-  parent's commits. `git rebase --onto <remote>/main <old parent tip>` moves
-  only the branch's own commits.
+  parent's commits, and git does not skip them because the squash commit has
+  a different patch. `merge` covers the stacked case: the old parent tip is
+  `git merge-base HEAD <parent head>`, with the parent head from
+  `gh pr view <parent> --json headRefOid`. Check `git log --oneline <old
+  parent tip>..HEAD` lists only this branch's commits, then
+  `git rebase --onto <remote>/<base> <old parent tip>`.
 
 ## 3. Resolve each conflict by reading both sides
 
 For each conflicted file, read what the base changed and what the branch
-changed (`git log -p --merge -- <file>`), and keep both intents. Do not
-resolve a file, or the whole merge, with `-X ours` or `-X theirs`.
+changed, and keep both intents: `git log -p --merge -- <file>` (during a
+rebase on older git, `git show REBASE_HEAD -- <file>` for the branch's side).
+Do not resolve a file, or the whole merge, with `-X ours` or `-X theirs`.
 
-Some files are re-derived, not merged:
+A lockfile or generated file in conflict is re-derived, not merged: take the
+base's copy, then regenerate. The base's side is `--theirs` when merging and
+`--ours` when rebasing. In a rebase, regenerate at each stop so every
+replayed commit builds.
 
-| File | Resolution |
-| --- | --- |
-| `Cargo.lock`, other lockfiles | take the base's, then regenerate (`cargo check`, or the repo's command) |
-| an `-alpha.N` version that every PR bumps | take the base's value and bump it by one again (`pr` step 3) |
-| generated files (docs, schemas, bindings, a version label) | take either side, rerun the generator, commit its output |
-| numbered migrations or other sequences | renumber the branch's after the base's last |
+## 4. Re-derive and check, even with no conflicts
 
-## 4. Look for what git merged silently
+After every sync, whether git reported conflicts or not:
 
-After the merge completes, with no markers left:
-
+- **A per-PR `-alpha.N` bump** (`pr` step 3): the branch's version must be
+  the base's plus one (`git show <remote>/<base>:<manifest> | grep
+  '^version'`). If the base made the same bump, the merge is clean and the
+  branch has silently lost its own.
+- **Lockfiles and generated files** (docs, schemas, bindings, a version
+  label): rerun the command that produces them.
+- **Numbered migrations or other sequences:** two files with one number never
+  conflict. Renumber the branch's after the base's last.
 - **CHANGELOG:** every entry the branch adds is under `Unreleased`, not under
-  a version the base released since the branch was cut.
+  a version the base released since.
 - **Renamed or removed on the base:** grep the branch's changes for each name
-  the base renamed or removed; a call can merge cleanly and fail to build, or
-  build and call the wrong thing.
-- **Docs and comments** the branch wrote that describe code the base has
-  changed since.
+  the base renamed or removed.
+- **Docs and comments** the branch wrote that describe code the base changed.
 
 ## 5. Check the result
 
 ```sh
-git diff <remote>/main...HEAD --stat     # only the branch's own change
+git diff <remote>/<base>...HEAD --stat
 ```
 
-A file here the branch never touched means replayed commits or a wrong
-resolution. Then run the gates with `verify`.
+It should list the branch's own files and the resolutions of step 3. A file
+the branch never touched means replayed commits or a wrong resolution. Then
+run the gates with `verify`.
 
-## 6. Push and say what changed
+## 6. Push and get the new head reviewed
 
-Push (no force unless step 2 agreed it). The head has moved, so a recorded
-review no longer covers it: run `review` again unless every resolution was
-mechanical (taking both sides of a list, a re-bumped version, a regenerated
-lockfile), and say which. List each conflict and how it was resolved in the
-PR or the report.
+Push to the branch's own remote (`origin`, the fork, in a fork checkout), with
+no force unless step 2 agreed it. The head has moved, so a review recorded on
+the old head does not cover it: run `review` on the new head before merging.
+Whether the previous review can be carried over is `review` step 8's
+decision. List each conflict and how it was resolved in the PR or the report.
 
 ## Never
 
