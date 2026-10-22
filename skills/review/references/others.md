@@ -23,7 +23,8 @@ Steps 1 to 5 of the review skill, with these differences in the brief:
 
 - The checkout is the PR's head, detached, in a scratch worktree.
   `pull/<n>/head` exists only on the base repository, so fetch from the
-  remote for `<owner/repo>`, not from a fork:
+  remote for `<owner/repo>`, not from a fork (or from
+  `https://github.com/<owner/repo>.git` when no remote points there):
 
   ```sh
   git fetch <base-remote> pull/<n>/head
@@ -66,6 +67,7 @@ comments, a review with comments, a review requesting changes, or nothing).
   session merge, and whether someone else's PR merges is the user's decision.
   When the user asks this session to merge it, the PR moves to the first row
   of the review skill's table: the author's answers, or the user's waiver of
-  each open finding, take the place of step 7, and the head as it then stands
-  is reviewed and recorded by step 8.
+  each open finding, take the place of step 7, step 6's fixes are the
+  author's to make (check them as in step 3 here), and the head as it then
+  stands is reviewed and recorded by step 8.
 - **Never push to the author's branch**, including a suggested fix.

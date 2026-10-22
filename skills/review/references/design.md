@@ -7,8 +7,9 @@ make the build fail or the result mean nothing, while changing course is
 still cheap.
 
 Dispatch a fresh agent as in steps 1 and 2 of the review skill, read-only,
-with the proposal and the code it would change as item 1 of the brief, and
-these mandates, as separate sections, in place of steps 3 to 5.
+with the proposal and the code it would change as item 1 of the brief, these
+mandates, as separate sections, in place of steps 3 to 5, and the Output
+section below in place of item 6.
 
 ## Mandate: the claims about today
 
