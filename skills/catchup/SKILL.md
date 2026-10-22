@@ -36,8 +36,11 @@ In order:
 2. The last time this checkout was worked in before the current break.
    `git reflog --date=iso -n 30` lists recent moves of `HEAD`; find the newest
    gap of more than about four hours between consecutive entries, and start
-   the window at the older entry. Consecutive entries minutes apart are one
-   session's commits, so the previous entry alone is not the boundary.
+   the window at the older entry. Count the current time as the newest
+   point: if the newest entry is more than about four hours old, the break is
+   ending now and the window starts at that entry. Consecutive entries minutes
+   apart are one session's commits, so the previous entry alone is not the
+   boundary.
 3. The last 7 days on the default branch, widened to at least 10 commits.
 
 State the window at the top of the briefing, with the reason it was chosen.
