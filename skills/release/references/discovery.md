@@ -58,10 +58,11 @@ cadence. Bumping everything to match the tag would silently version-bump crates
 nobody meant to release. **Identify the product set before bumping**, and say
 which members you are leaving alone and why.
 
-For an independent workspace, releasing several crates means running this
-workflow once per crate, lowest in the dependency graph first, so a dependent's
-manifest can point at a version that already exists. Ask which crate if it was
-not named.
+For an independent workspace, release crates lowest in the dependency graph
+first, so a dependent's manifest can point at a version that already exists. A
+crate and the dependents whose requirement on it changes go in one release PR
+where the repo does that (metriken); unrelated crates do not. Ask which crate if
+it was not named.
 
 ## 3. Is `cargo-release` configured?
 
@@ -122,10 +123,23 @@ automates it.
 ### The Actions path
 
 ```sh
-grep -n 'if:' .github/workflows/tag-release.yml
+grep -n 'if:\|uses:\|branches' .github/workflows/tag-release.yml
 ```
 
-The condition is the specification for your commit message. Derive, do not
+**A caller of the shared workflow** (`uses:
+brayniac/rust-workflows/.github/workflows/tag-release.yml@v1`) has no condition
+to read: the gate is a step in the shared workflow. It accepts
+`release: v<version>` and `release: prepare v<version>`, and the merge-commit
+form naming `release/v<version>`, and fails the run when the version named is
+not the manifest's. The caller's `with:` block holds what differs:
+`version-manifest`, `tag-prefix`, `only-repository`, `dev-bump` (`pr`,
+`direct`, `none`, and an expression choosing between them by branch),
+`dev-bump-package`, `dev-bump-style` (`alpha`, `minor-alpha`, `patch`) and
+`dev-bump-automerge`. Read those, and the
+branches under `on.push`.
+
+**A workflow of its own** carries the condition in a job-level `if:`. The
+condition is the specification for your commit message. Derive, do not
 assume — all three of these are in use across these repos:
 
 | Condition | Commit message must be |
@@ -134,35 +148,33 @@ assume — all three of these are in use across these repos:
 | `startsWith(..., 'release: v')` | `release: v1.2.3` |
 | `startsWith(..., 'release: ')` | `release: v1.2.3` (any suffix, but stay consistent with tag history) |
 
-Two further clauses to read out loud before relying on the workflow:
+Two further clauses to read out loud before relying on a workflow of its own:
 
 - `github.repository == '<org>/<repo>'` — the workflow is inert on a fork. If the
   release is being cut from a fork, tagging will not happen and nothing will say
   so.
 - `contains(..., 'release/v')` — some workflows also match the merge-commit form,
   which makes them tolerant of a non-squash merge. Most do not.
-- A version check against `Cargo.toml`. rezolus's workflow fails the run with
-  an error, rather than skipping it, when the squash commit's title names a
-  version other than the manifest's; so a retitled or rebased release PR
-  cannot tag the wrong version, and a red `Verify the commit names this
-  version` step means the title, not the code.
 
-**Release branches.** Some repos cut patch releases from an `X.Y.x` branch
-(thermite/cachecannon: created at the line's first tag, fixes arrive by
-cherry-pick or backport). There the release PR targets the branch it started
-from, the new version must stay on `X.Y`, and the workflow runs on merges to
-that branch as well as `main`. Check `on.push.branches` in `tag-release.yml`
-for an `X.Y.x` pattern.
+**Maintenance branches.** Some repos cut patch releases for an older line from
+a branch: `X.Y.x` (cachecannon), `release/X.Y.x` (ringline), `release/5.x`
+(rezolus). There the release PR targets that branch and the new version stays
+on the line. Whether a merge there tags, and whether it bumps, differs: check
+`on.push.branches` in `tag-release.yml` and the caller's `dev-bump`. Where the
+workflow does not run on the branch (ringline), the merge commit is tagged by
+hand, as the repo's `CLAUDE.md` says. The repo's `CLAUDE.md` also says how the
+release is recorded on `main`.
 
 **Do not tag by hand where a workflow tags.** A tag pushed before the workflow
 runs makes it find the tag already present and skip, so the repo is left on
 the release version with no development bump.
 
 **Prereleases may be a separate path.** In rezolus, a `-alpha.N` / `-rc.N`
-version is released by pushing an annotated `v<version>` tag directly (after
-checking `git ls-remote --tags upstream` for it); `release.yml` marks a tag
-containing `-` as a GitHub pre-release and skips package registries and
-Homebrew. The tag-release commit path is for stable versions only.
+version is released by pushing an annotated `v<version>` tag of the version
+already on `main`, with no release PR; `release.yml` marks a tag containing
+`-` as a GitHub pre-release and skips the package registries and Homebrew. The
+tag-release commit path is for stable versions only. Read what `release.yml`
+does with a `-` tag before cutting one in another repo.
 
 ### The rack path
 
@@ -226,8 +238,8 @@ PR — which means naming the evidence, not just the conclusion:
 > Version: `5.19.0` in root `Cargo.toml` (`[workspace.package]`), matching tag `v5.19.0`.
 > Shared versioning; tags are `vX.Y.Z`.
 > `release.toml` present: `tag = false`, `push = false`, `publish = false`.
-> `tag-release.yml` requires `startsWith(msg, 'release: prepare v')` and is gated
-> to `iopsystems/rezolus`, so the commit will be `release: prepare v5.20.0`.
-> After merge: tag `v5.20.0`, then `release.yml` builds packages and a GitHub
-> release. No crates.io publish.
+> `tag-release.yml` calls the shared workflow, gated to `iopsystems/rezolus`;
+> `pre-release-commit-message` gives `release: prepare v5.20.0`, which it
+> accepts. After merge: tag `v5.20.0`, the next `-alpha.0` pushed to `main`,
+> then `release.yml` builds packages and a GitHub release. No crates.io publish.
 > Checks: `cargo clippy --all-targets -- -D warnings`, `cargo test`.

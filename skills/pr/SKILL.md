@@ -52,8 +52,18 @@ and the "Commits" / "Pull requests" section of `CLAUDE.md` if there is one.
   (`fix(scope): …`), others sentence-case statements of what changed. Match
   the recent history.
 - **Per-repo PR steps live in that repo's `CLAUDE.md`**, for example a docs
-  version sync script, an `-alpha.N` bump rule for non-release PRs, per-crate
-  CHANGELOG subsections, or opening as a draft. Do each one listed.
+  version sync script, per-crate CHANGELOG subsections, or opening as a draft.
+  Do each one listed.
+- **The `-alpha.N` bump.** When the version on the remote development branch
+  (`main`) carries `-alpha.N`, every PR into it other than a release PR bumps
+  `N` by one from that value, docs-only and dependency-only PRs included. A PR
+  into a maintenance branch does not. Read it with `git show
+  <remote>/<base>:<manifest> | grep '^version'`, from the manifest `release`
+  discovery names (a member's in some workspaces). The bump covers every
+  manifest sharing that version, workspace requirements on it, and
+  `Cargo.lock`; `cargo release version <new> --execute --no-confirm`, with
+  `-p <crate>` where only one crate carries it, edits all three. A repo whose
+  version has no `-alpha.N` takes no bump.
 - **Attribution**: use the trailer and PR-body line the harness specifies for
   this session. Do not copy a model name from an old commit or from a repo
   skill; several hard-code one that is out of date.

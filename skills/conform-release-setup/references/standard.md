@@ -31,7 +31,7 @@ standard exists to end.
 
 ## The inputs, and only these
 
-Six, because these are the only differences between repos that mean anything.
+Seven, because these are the only differences between repos that mean anything.
 Anything else that differs is drift, not policy.
 
 | Input | Default | Set it when |
@@ -41,7 +41,8 @@ Anything else that differs is drift, not policy.
 | `dev-bump` | `pr` | `direct` where a bump PR is noise on a repo you release often; `none` where versions are bumped by hand |
 | `only-repository` | *(empty)* | the repo is forked and the fork's `main` must not tag — e.g. `iopsystems/rezolus` |
 | `dev-bump-package` | *(empty)* | `version-manifest` is one member of a hybrid workspace whose other members version on their own cadence — the bump becomes `cargo release version -p <name>` and touches only that manifest and `Cargo.lock`. Without it, the unscoped bump drags every member to the product's version and refuses where that is a downgrade |
-| `dev-bump-style` | `alpha` | `patch` for a bare `MAJOR.MINOR.(PATCH+1)` where the next release finalizes the version in place, or where a path dependency's caret requirement (`version = "0.6"`) would reject a prerelease and leave the bump PR red |
+| `dev-bump-style` | `alpha` | `minor-alpha` for `MAJOR.(MINOR+1).0-alpha.0` where `main` carries the next minor as a prerelease and patch releases come from maintenance branches; `patch` for a bare `MAJOR.MINOR.(PATCH+1)` where the next release finalizes the version in place, or where a path dependency's caret requirement (`version = "0.6"`) would reject a prerelease and leave the bump PR red |
+| `dev-bump-automerge` | *(empty)* | `main` requires pull requests, so `direct` cannot push and a bump PR would sit unmerged — `squash`, `merge` or `rebase` enables auto-merge on it. The repository must allow auto-merge and that method |
 
 ## Fixed here, not negotiable per repo
 
@@ -64,9 +65,9 @@ overrides them locally is non-conforming even if it works.
   `cargo-release` updates every manifest sharing the version and refreshes
   `Cargo.lock`; a single-file `sed` leaves a workspace internally inconsistent
   and the lockfile stale.
-- **Next dev version is `MAJOR.MINOR.(PATCH+1)-alpha.0`,** with any existing
-  prerelease suffix dropped first. A bare `X.Y.Z+1` with no suffix is a
-  hand-edit, not this workflow's output.
+- **The next dev version's shape is the `dev-bump-style` input's** (`alpha` by
+  default), with any existing prerelease suffix dropped first. A version the
+  workflow did not produce is a hand-edit.
 - **`actions/checkout@v5` with `fetch-depth: 0` and the PAT.** v4 and v7 were
   both in use; nothing depended on either.
 - **The gate is a step, not a job-level `if:`.** A job that never runs leaves no
@@ -123,14 +124,14 @@ repo before applying — this table is evidence, not authority.
 | ratelimit | `Cargo.toml` | `pr` | *confirm* |
 | cachecannon | `Cargo.toml` | `pr` | `cachecannon/cachecannon` |
 | crucible | `server/Cargo.toml` | `pr` | *(none — no fork)* |
-| ringline | `ringline/Cargo.toml` | `none` today; `pr` + `dev-bump-package: ringline` + `dev-bump-style: patch` once rust-workflows `v1` carries those inputs | `ringline-rs/ringline` |
+| ringline | `ringline/Cargo.toml` | `pr` + `dev-bump-package: ringline` + `dev-bump-style: minor-alpha` | `ringline-rs/ringline` |
 
 ## Repos this standard does not cover
 
-- **metriken** — five independently versioned crates, tags `<crate>-v<version>`,
-  no automation by choice. One shared version is the wrong model for it. Leave
-  it manual and say so in its own `release.toml` or CLAUDE.md, so "no workflow"
-  reads as a decision rather than an omission.
+- **metriken** — nine independently versioned crates, tags
+  `<crate>-v<version>`, no automation by choice. One shared version is the
+  wrong model for it. Leave it manual and say so in its own `release.toml` or
+  CLAUDE.md, so "no workflow" reads as a decision rather than an omission.
 - **ringline is hybrid, and only its workspace releases are covered.** The
   core crate is tagged `vX.Y.Z` while `ringline-redis`/`-memcache` and the
   `publish = false` tools sit on their own versions, and satellite crates
@@ -138,9 +139,10 @@ repo before applying — this table is evidence, not authority.
   shared gate does not match that commit form, so those are tagged by hand
   after merge and `release.yml` publishes on the tag. Measured 2026-09-09:
   the unscoped dev bump fails there with `cannot downgrade ringline-redis from
-  0.6.3-alpha.0 to 0.7.0`, and a `-alpha.0` core fails the workspace's
-  `ringline = "0.6"` path requirement — which is what `dev-bump-package` and
-  `dev-bump-style: patch` exist for.
+  0.6.3-alpha.0 to 0.7.0`, and a `-alpha.0` core failed the workspace's
+  `ringline = "0.6"` path requirement. That led to `dev-bump-package` and
+  `dev-bump-style: patch`. ringline moved to `minor-alpha` once `main` carried
+  the next minor as `0.7.0-alpha.N` and the workspace requirement matched it.
 - **pelikan**, **forge** — no tag workflow today. Adopting the standard is a
   change in behavior, not a cleanup. Treat as new adoption and confirm first.
   `forge` additionally has `release.toml` with `tag = true, push = true`, so
