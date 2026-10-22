@@ -105,7 +105,7 @@ after it marked skipped. A green run with no gate step never loaded the shared
 workflow.
 
 Then say plainly that the first real release through it is still unproven, and
-that step 4 of the `release` skill is what confirms it.
+that Step 4 of release's SKILL.md (Verify after merge) is what confirms it.
 
 ## Never
 
