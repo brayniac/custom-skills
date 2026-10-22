@@ -50,7 +50,7 @@ AVAR_rwalk(τ)  = σ²_η · τ/(3τ₀)       measured 0.2507 for step variance
 ```
 
 Summing them (Allan variances add) gives the local level model's whole curve, and
-minimising it gives the identity in the skill's step 4:
+minimising it gives the identity in `structural-model.md` step 4:
 
 ```
 AVAR(τ) = σ²_ε·τ₀/τ + σ²_η·τ/(3τ₀)
@@ -94,7 +94,8 @@ fitted variance to three significant figures off a short record.
 The variance components trade off against each other, and the likelihood surface
 is flat along that trade for short series. Symptoms:
 
-- a variance pinned at exactly zero (see the boundary discussion in the skill);
+- a variance pinned at exactly zero (see the boundary discussion in
+  `structural-model.md` step 2);
 - wildly different parameters from different starting values;
 - a fitted `q` that disagrees with the Allan curve's `τ_min`.
 
@@ -113,6 +114,6 @@ sigma2.trend       1.016e-12      <- pinned at the boundary
 ```
 
 The estimator is right and the model is over-specified. What you must not do is
-report "slope variance is zero, therefore there is no slope" — that is a boundary
-artifact, and the test for it is in the skill's step 5 (KPSS for the level case,
-parametric bootstrap in general).
+report "slope variance is zero, therefore there is no slope" — that is a
+boundary artifact, and the test for it is in `structural-model.md` step 5 (KPSS
+for the level case, parametric bootstrap in general).

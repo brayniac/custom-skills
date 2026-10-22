@@ -1,6 +1,6 @@
 ---
 name: interpret
-description: Decide what a set of measurements shows — the color of its noise (white, flicker, random walk, drift, periodic) from an Allan or Hadamard deviation curve and the averaging interval and run length that follow; whether two distributions differ and in location, shape or tail, by Wasserstein distance from recorded histograms; whether a trend or drift is real, with intervals, from a structural time series model; what drives a perturbation, without manufacturing a correlation from autocorrelated data; whether a threshold carries to a new metric or host, derived from A-vs-A runs; and whether a document writes its compared numbers so each comparison reads without conversion and matches its source. Use when repeated measurements disagree by more than they should, when choosing how long to average or how many runs to take, when a standard error looks too tight, when comparing latency between builds or configurations, when a percentile moved but the mean did not, when "it got slower" needs to become a specific claim, when "is there really drift" needs an answer, when a run is anomalous and the cause is unknown, before quoting a cross-metric correlation, before reusing a threshold or detector setting on another source, and before publishing a report, results page or PR body that compares measurements.
+description: Decide what a set of measurements shows — the color of its noise (white, flicker, random walk, drift, periodic) from an Allan or Hadamard deviation curve and the averaging interval and run length that follow; whether two distributions differ and in location, shape or tail, by Wasserstein distance from recorded histograms; whether a trend or drift is real, with intervals, from a structural time series model; what drives a perturbation, without manufacturing a correlation from autocorrelated data; whether a threshold carries to a new metric or host, derived from A-vs-A runs; and whether a document writes its compared numbers so each comparison reads without conversion and matches its source. Use when repeated measurements disagree by more than they should, when choosing how long to average or how many runs to take, when a standard error looks too tight, when comparing latency between builds or configurations, when a percentile moved but the mean did not, when "it got slower" needs to become a specific claim, when "is there really drift" needs an answer, when a run is anomalous and the cause is unknown, before quoting a cross-metric correlation, before reusing a threshold or detector setting on another source, when an offline analysis has to become an online detector, before writing a threshold into a config file, before publishing a report, results page or PR body that compares measurements, and when a reader says two numbers are hard to compare.
 ---
 
 # Interpret
@@ -22,7 +22,7 @@ before computing anything.
 ## Order
 
 1. **Noise first.** The others depend on it: a difference is real only against
-   the noise floor, a correlation between autocorrelated series is not
+   a measured null, a correlation between autocorrelated series is not
    evidence until the noise is characterised, and a model's adequacy check is
    the noise analysis run on its residuals. Run `noise.md` on any series
    before drawing a conclusion from it.

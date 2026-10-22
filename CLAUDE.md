@@ -53,8 +53,9 @@ error. That is why `check-skills` exists; keep it failing on those cases.
   `check-skills` fails on a path that names no file; a path containing `<` is a
   placeholder and is skipped. The substitution happens only in a `SKILL.md`
   body: a file under `references/` names a sibling as "`<file>`, beside this
-  file", and another skill's file by that skill's name and relative path, and
-  `check-skills` does not check those names.
+  file" or "`<file>` (beside this file)", which `check-skills` checks, and
+  another skill's file by that skill's name and relative path, which it does
+  not.
 - **Skills do not act when loaded.** A skill returns instructions; a script
   beside it runs only when the body tells the agent to run it. Do not add hooks,
   monitors, or MCP servers to the plugin without deciding that deliberately.

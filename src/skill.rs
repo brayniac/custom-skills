@@ -50,8 +50,9 @@ pub struct Skill {
 /// `root`, on a directory that is neither a skill nor a group, on frontmatter
 /// that is not valid YAML with exactly `name` and `description`, on a `name` that
 /// differs from its directory or uses characters outside `[a-z0-9_-]`, on an
-/// empty or over-long description, on two skills with one name, and on a
-/// `${CLAUDE_SKILL_DIR}` path that names no file inside `root`.
+/// empty or over-long description, on two skills with one name, on a
+/// `${CLAUDE_SKILL_DIR}` path that names no file inside `root`, and on a name a
+/// `references/*.md` file gives as beside it that is not.
 pub fn load(root: &Path, listed: &[PathBuf]) -> Result<Vec<Skill>> {
     if !root.is_dir() {
         bail!("{} is not a directory", root.display());
@@ -79,6 +80,7 @@ pub fn load(root: &Path, listed: &[PathBuf]) -> Result<Vec<Skill>> {
         .with_context(|| format!("failed to resolve {}", root.display()))?;
     for skill in by_name.values() {
         check_skill_dir_paths(&root, skill)?;
+        check_beside_names(skill)?;
     }
     Ok(by_name.into_values().collect())
 }
@@ -289,6 +291,53 @@ fn check_skill_dir_paths(root: &Path, skill: &Skill) -> Result<()> {
                 skill.name,
                 root.display()
             );
+        }
+    }
+    Ok(())
+}
+
+/// Every name `text` gives in backticks followed by `(beside this file)` or
+/// `, beside this file`, the form a reference file uses for a sibling because
+/// Claude Code substitutes `${CLAUDE_SKILL_DIR}` only in a `SKILL.md` body. The
+/// phrase may break across lines.
+pub fn beside_names(text: &str) -> Vec<String> {
+    let flat = text.split_whitespace().collect::<Vec<_>>().join(" ");
+    let mut names = Vec::new();
+    for suffix in ["` (beside this file)", "`, beside this file"] {
+        for (at, _) in flat.match_indices(suffix) {
+            if let Some(open) = flat[..at].rfind('`') {
+                names.push(flat[open + 1..at].to_owned());
+            }
+        }
+    }
+    names
+}
+
+fn check_beside_names(skill: &Skill) -> Result<()> {
+    let refs = skill.dir.join("references");
+    let Ok(entries) = std::fs::read_dir(&refs) else {
+        return Ok(());
+    };
+    let mut files: Vec<PathBuf> = entries
+        .filter_map(|e| e.ok().map(|e| e.path()))
+        .filter(|p| p.extension().is_some_and(|e| e == "md"))
+        .collect();
+    files.sort();
+    for file in files {
+        let text = std::fs::read_to_string(&file)
+            .with_context(|| format!("failed to read {}", file.display()))?;
+        // `<file>` in instructions about naming is a placeholder.
+        for name in beside_names(&text)
+            .into_iter()
+            .filter(|n| !n.contains(['<', '/', ' ']))
+        {
+            if !refs.join(&name).is_file() {
+                bail!(
+                    "{} names `{name}` as beside it, and {} has no such file",
+                    file.display(),
+                    refs.display()
+                );
+            }
         }
     }
     Ok(())
@@ -591,6 +640,55 @@ mod tests {
             "Read `${CLAUDE_SKILL_DIR}/../../secret.txt`.",
         );
         assert!(load_err(&root).contains("outside"));
+    }
+
+    fn write_reference(skill: &Path, name: &str, text: &str) {
+        let refs = skill.join("references");
+        fs::create_dir_all(&refs).unwrap();
+        fs::write(refs.join(name), text).unwrap();
+    }
+
+    #[test]
+    fn a_beside_name_that_exists_passes() {
+        let tmp = TempDir::new().unwrap();
+        let dir = ok_skill(tmp.path(), "a", "Body.");
+        write_reference(
+            &dir,
+            "x.md",
+            "See `y.md` (beside this file), and `y.md`, beside this file.",
+        );
+        write_reference(&dir, "y.md", "Y.");
+        load(tmp.path(), &[]).unwrap();
+    }
+
+    #[test]
+    fn a_beside_name_that_is_missing_is_an_error() {
+        let tmp = TempDir::new().unwrap();
+        let dir = ok_skill(tmp.path(), "a", "Body.");
+        write_reference(&dir, "x.md", "See `gone.md` (beside this file).");
+        let err = load_err(tmp.path());
+        assert!(err.contains("`gone.md`"), "{err}");
+    }
+
+    #[test]
+    fn a_beside_name_split_across_lines_is_checked() {
+        let tmp = TempDir::new().unwrap();
+        let dir = ok_skill(tmp.path(), "a", "Body.");
+        write_reference(&dir, "x.md", "See `gone.md`, beside\nthis file.");
+        let err = load_err(tmp.path());
+        assert!(err.contains("`gone.md`"), "{err}");
+    }
+
+    #[test]
+    fn a_placeholder_beside_name_is_not_checked() {
+        let tmp = TempDir::new().unwrap();
+        let dir = ok_skill(tmp.path(), "a", "Body.");
+        write_reference(
+            &dir,
+            "x.md",
+            "Name a sibling as `<file>`, beside this file.",
+        );
+        load(tmp.path(), &[]).unwrap();
     }
 
     #[test]

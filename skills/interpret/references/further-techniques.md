@@ -17,7 +17,7 @@ threshold costs to derive, is `calibrate.md`.
 
 A mean-based A/B is blind to a change that moves the shape without the centre —
 which for latency is most of the interesting ones. The Wasserstein row below has
-its own skill now; the rest are still notes.
+its own procedure now (`distributions.md`); the rest are still notes.
 
 | Technique | Answers | Cost |
 | --- | --- | --- |
