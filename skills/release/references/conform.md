@@ -1,8 +1,3 @@
----
-name: conform-release-setup
-description: Bring one repo's release automation onto the shared standard, or report how far off it is. Use when asked to unify, standardize, or migrate release workflows, when a repo's release behaves differently from a sibling's, when setting up releases in a new repo, and before relying on a repo's tag automation you have not checked.
----
-
 # Conform a repo's release setup
 
 **This standard is the GitHub Actions path, and it does not apply to every
@@ -10,15 +5,14 @@ repo.** `brayniac/ferallm` and `brayniac/slipway` release through rack-ci on the
 rack — a tag builds in a guest and publishes to the internal apt repo, with no
 workflow file involved — and Actions is disabled on both. Conforming such a repo
 to a reusable Actions workflow would be conforming it to a mechanism it does not
-use. Establish which path a repo is on first (`release` skill, discovery
-question 4); `${CLAUDE_SKILL_DIR}/../release/references/rack-ci.md` describes
-the other one.
+use. Establish which path a repo is on first (question 4 of the release
+skill's step 1); `rack-ci.md` (beside this file) describes the other one.
 
 The release workflow was copied into every repo and drifted. This replaces each
 copy with a ten-line call to one shared workflow, so the parts that must agree
 are defined once and the parts that legitimately differ are named inputs.
 
-`${CLAUDE_SKILL_DIR}/references/standard.md` is the standard: the caller stub,
+`standard.md` (beside this file) is the standard: the caller stub,
 the six inputs, what is fixed and why, and the per-repo settings derived from
 the current workflows. Read it before proposing a migration. The shared workflow
 itself lives at
@@ -46,8 +40,7 @@ a healthy repo look like a failed release.
 Establish, and write down: the version manifest and current version; whether
 versioning is shared, independent, or hybrid; the commit prefix its workflow
 matches today; how it lands the dev bump; whether it is fork-gated; whether it
-publishes. The `release` skill's
-`${CLAUDE_SKILL_DIR}/../release/references/discovery.md` covers each of these
+publishes. `discovery.md` (beside this file) covers each of these
 in detail — use it rather than re-deriving.
 
 ## Step 2 — Classify the repo
@@ -71,14 +64,15 @@ If the repo is already conforming, say so and stop. There is nothing to do and a
 "cleanup" commit on a correct repo is churn.
 
 **Get explicit approval before editing.** This edits release automation, where a
-mistake is discovered at the next release and not before. Note in the report that
-the repo's PR checks cannot validate the caller — `tag-release.yml` runs on push
-to `main`, so a PR goes green regardless and the first real test is the merge.
+mistake is discovered at the next release and not before. Note in the report
+that the repo's PR checks cannot validate the caller — `tag-release.yml` runs on
+push to `main`, so a PR goes green regardless and the first real test is the
+merge.
 
 ## Step 4 — Migrate
 
 1. Replace `.github/workflows/tag-release.yml` with the caller stub from
-   `${CLAUDE_SKILL_DIR}/references/standard.md`, filling in only the inputs this
+   `standard.md` (beside this file), filling in only the inputs this
    repo needs.
 2. Reconcile `release.toml` if present, per the standard's final section.
 3. Update the repo's `CLAUDE.md` if it documents the old prefix or procedure.
@@ -106,12 +100,12 @@ the evidence the wiring is live.** If no run appears at all, the caller is not
 being triggered and the migration did not take, whatever the PR says.
 
 Read the run's own log rather than its colour. The line to find is the gate
-step's reason — `Head commit is not a release commit` — and the seven steps after
-it marked skipped. A green run with no gate step never loaded the shared
+step's reason — `Head commit is not a release commit` — and the seven steps
+after it marked skipped. A green run with no gate step never loaded the shared
 workflow.
 
 Then say plainly that the first real release through it is still unproven, and
-that step 4 of the `release` skill is what confirms it.
+that Step 4 of release's SKILL.md (Verify after merge) is what confirms it.
 
 ## Never
 
