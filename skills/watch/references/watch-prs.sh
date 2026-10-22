@@ -1,37 +1,55 @@
 #!/bin/bash
-# Wait until no PR in a list has a pending check, then print each PR's checks.
+# Wait until every PR in a list has finished CI or closed, then print each.
 #
 #   watch-prs.sh <list-file> [deadline-minutes]
 #
-# Each line of <list-file> is "<owner/repo> <number>". The file is re-read on
-# every poll, so a PR can be added or removed while it runs. Prints one
-# heartbeat line per poll to stderr, and on exit one line per PR to stdout:
-#   <owner/repo>#<n> head=<sha7> merge=<mergeStateStatus> <check>=<state> ...
-# Exits 0 when nothing is pending, 2 on the deadline (default 90 minutes).
-# Written for bash 3.2 (macOS): no associative arrays.
+# Each line of <list-file> is "<owner/repo> <number>"; blank lines and lines
+# starting with # are skipped. The file is re-read on every poll, so a PR can
+# be added or removed while it runs. Each PR is read with the merge skill's
+# pr_state.sh. A PR is done when it is MERGED or CLOSED, or its VERDICT is
+# green or failing; pending and no-checks (CI has not registered yet) keep
+# the watch going.
+#
+# stderr: one heartbeat per poll, "<time> pending=<n> errors=<n>".
+# stdout, on exit: "<owner/repo>#<n> <PR line> | <VERDICT line>" per PR.
+# Exit 0 when every PR is done; 2 on the deadline (default 90 minutes);
+# 3 when the list cannot be read or names no PR, or a PR cannot be read on
+# the first poll. Written for bash 3.2 (macOS): no associative arrays.
 set -u
-list=$1
+here=$(cd "$(dirname "$0")" && pwd)
+state="$here/../../merge/references/pr_state.sh"
+list=${1:?usage: watch-prs.sh <list-file> [deadline-minutes]}
 deadline=$(( $(date +%s) + ${2:-90} * 60 ))
+first=1
 while :; do
-  pending=0
-  out=""
-  while read -r repo n; do
-    [ -z "$repo" ] && continue
-    s=$(gh pr view "$n" --repo "$repo" \
-      --json headRefOid,statusCheckRollup,mergeStateStatus \
-      -q '"head="+.headRefOid[0:7]+" merge="+.mergeStateStatus+" "+([.statusCheckRollup[] | (.name // .context)+"="+((.conclusion // .state)|tostring)] | join(" "))' 2>&1)
-    if [ $? -ne 0 ]; then
-      s="watcher-error: $s"
-      pending=$((pending + 1))
-    elif printf '%s' "$s" | grep -qE '=(PENDING|IN_PROGRESS|QUEUED|EXPECTED|null)( |$)|= '; then
-      pending=$((pending + 1))
+  [ -r "$list" ] || { echo "watcher-error: cannot read $list"; exit 3; }
+  pending=0 errors=0 count=0 out=""
+  while read -r repo n || [ -n "${repo:-}" ]; do
+    case "${repo:-}" in ''|'#'*) repo=; continue ;; esac
+    count=$((count + 1))
+    if s=$(/bin/bash "$state" "$n" "$repo" 2>&1); then
+      pr=$(printf '%s\n' "$s" | grep '^PR ')
+      v=$(printf '%s\n' "$s" | grep '^VERDICT ')
+      case "$pr $v" in
+        *state=MERGED*|*state=CLOSED*|*'VERDICT green'*|*'VERDICT failing'*) ;;
+        *) pending=$((pending + 1)) ;;
+      esac
+      out="$out$repo#$n $pr | $v"$'\n'
+    else
+      errors=$((errors + 1))
+      out="$out$repo#$n watcher-error: $(printf '%s' "$s" | tail -1)"$'\n'
     fi
-    out="$out$repo#$n $s"$'\n'
+    repo=
   done < "$list"
-  echo "$(date -u +%H:%M:%S) pending=$pending" >&2
-  if [ "$pending" -eq 0 ]; then printf '%s' "$out"; exit 0; fi
+  echo "$(date -u +%H:%M:%S) pending=$pending errors=$errors" >&2
+  if [ "$count" -eq 0 ]; then echo "watcher-error: $list names no PR"; exit 3; fi
+  if [ "$first" -eq 1 ] && [ "$errors" -gt 0 ]; then printf '%s' "$out"; exit 3; fi
+  first=0
+  if [ $((pending + errors)) -eq 0 ]; then printf '%s' "$out"; exit 0; fi
   if [ "$(date +%s)" -gt "$deadline" ]; then
-    printf '%s' "$out"; echo "watcher-timeout pending=$pending"; exit 2
+    printf '%s' "$out"
+    echo "watcher-timeout pending=$pending errors=$errors"
+    exit 2
   fi
   sleep 60
 done

@@ -19,20 +19,21 @@ In Claude Code, a watcher for one outcome ("tell me when it ends") is a Bash
 command run with `run_in_background` that exits when the job ends. The
 harness reports its exit; do not poll its output file. Run the script itself
 in the background, not a line ending in `&` inside a backgrounded command:
-that detaches the script from the task the harness watches, and its exit is
-never reported.
+that shell exits at once, the harness reports that exit (0), and the script's
+own exit is never reported.
 
 The Monitor tool is for a stream of events. Each monitor expires after its
 `timeout_ms` (5 minutes by default, at most 30), so a watch over a longer job
-has to be re-armed on every expiry; one session re-armed monitors for 9
-hours. For a long job, prefer one background command with its own deadline
-(step 5).
+has to be re-armed on every expiry. For a long job, prefer one background
+command with its own deadline (step 5).
 
 For pull requests, `${CLAUDE_SKILL_DIR}/references/watch-prs.sh <list>
-[minutes]` waits until no PR in a list file (one `<owner/repo> <number>` per
-line, re-read every poll) has a pending check, then prints each PR's checks.
-It prints a heartbeat to stderr, reports a PR it cannot read as
-`watcher-error`, and exits 2 on its deadline.
+[minutes]` reads each PR in a list file (one `<owner/repo> <number>` per line,
+re-read every poll) with `merge`'s `pr_state.sh`, and exits 0 when every PR is
+merged, closed, green or failing. A PR whose CI has not registered yet
+(`no-checks`) keeps it waiting. It prints `pending=<n> errors=<n>` to stderr
+each poll, exits 3 when the list or a PR cannot be read on the first poll,
+and exits 2 on its deadline (default 90 minutes).
 
 ## 1. Take the terminal states from the source, not from memory
 
