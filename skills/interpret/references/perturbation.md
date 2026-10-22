@@ -1,11 +1,6 @@
----
-name: attribute-perturbation
-description: Find what is driving a perturbation in a measurement — when it started, whether it is periodic, which other metric moves with it, and at what timescale — without manufacturing a correlation out of autocorrelated data. Use when a run is anomalous and the cause is unknown, when a metric has to be matched against candidate confounders, when a periodic artifact needs identifying, and before quoting any cross-metric correlation or calling one signal stronger than another.
----
-
 # Attributing a perturbation
 
-`analyze-noise` characterizes one series against itself. This one asks the next
+`noise.md` characterizes one series against itself. This one asks the next
 question: **what is it moving with, and on what timescale.** The order below is
 not decoration — each step invalidates the next one if it is skipped, and the
 two most common failures in this work are computing a statistic across a regime
@@ -35,8 +30,8 @@ there is the floor for the one you are investigating.
 
 ## Step 2 — Characterize the target alone first
 
-Run `analyze-noise` on the perturbed series before looking at any other metric.
-It decides how the rest of this skill has to be done:
+Run the `noise.md` analysis on the perturbed series before looking at any other
+metric. It decides how the rest of this procedure has to be done:
 
 | What the curve shows | What it means for the next steps |
 | --- | --- |
@@ -53,12 +48,12 @@ are.
 Use a **multitaper spectrum with Thomson's harmonic F-test**, which gives a
 p-value for a sinusoidal line against the local colored background rather than
 against a flat one. For gapped or unevenly sampled data use **Lomb–Scargle**,
-which is the honest tool where `analyze-noise` tells you to split the series.
+which is the honest tool where `noise.md` tells you to split the series.
 
 A confirmed line is worth more than any correlation you could compute: a period
 usually names the mechanism outright (a scrape interval, a GC cycle, log
 rotation, an autoscaler, a fan or power cycle).
-`${CLAUDE_SKILL_DIR}/references/spectral.md` has the parameters, the test, and
+`spectral.md` (beside this file) has the parameters, the test, and
 the code.
 
 ## Step 4 — Prewhiten before every cross-correlation
@@ -107,7 +102,7 @@ a tendency. Measured on independent white series:
 
 With 8 Welch segments, uncorrelated signals show coherence 0.125. **Never report
 a coherence without saying how many segments produced it**, and never read one
-computed from fewer than about 16. `${CLAUDE_SKILL_DIR}/references/spectral.md`
+computed from fewer than about 16. `spectral.md` (beside this file)
 has the segment-count tradeoff and the null threshold to compare against.
 
 ## Step 6 — Screen many metrics without testing many metrics
@@ -124,7 +119,7 @@ multiple-comparisons machine. Narrow first:
 - **Rank, then test a handful.** Carry at most a few candidates into steps 4–5,
   chosen before you look at their p-values.
 
-`${CLAUDE_SKILL_DIR}/references/coupling.md` has the screening code and the
+`coupling.md` (beside this file) has the screening code and the
 partial-correlation form for controlling a third metric.
 
 ## Step 7 — Stop before causality
@@ -158,5 +153,5 @@ intervention that would confirm it.
 - **Never test every metric in the recording.** Screen, then test a few.
 - **Never let a model's output stand in for a measurement.** A forecast residual
   or an anomaly score points at a metric worth opening; it is not a finding. See
-  `${CLAUDE_SKILL_DIR}/references/further-techniques.md` for where those models
+  `further-techniques.md` (beside this file) for where those models
   earn their place and where they do not.

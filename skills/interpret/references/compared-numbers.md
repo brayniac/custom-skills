@@ -1,8 +1,3 @@
----
-name: check-compared-numbers
-description: Check how a document writes the numbers it compares — side-by-side pairs, before-and-after changes, table rows and columns, and prose that quotes a table — so each comparison can be read without conversion and every quoted figure matches its source. Use before publishing a report, results page, benchmark write-up or PR body that compares measurements, and when a reader says two numbers are hard to compare.
----
-
 # Check compared numbers
 
 Numbers set side by side are read as a comparison. When the two sides differ in

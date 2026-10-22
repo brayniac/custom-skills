@@ -1,19 +1,14 @@
----
-name: compare-distributions
-description: Decide whether two measured distributions differ and in what way — location, shape, or tail — using Wasserstein distance computed straight from recorded histograms. Use when comparing latency between two builds or configurations, when a percentile moved but the mean did not (or the reverse), when "it got slower" needs to become a specific claim, and before reducing two distributions to a single number.
----
-
 # Comparing two distributions
 
 A mean-based A/B is blind to most of what goes wrong with latency, and a p99-based
 one is blind to the rest. **The distribution is the measurement**; a percentile is
 a lossy summary of it chosen before you knew what changed.
 
-This skill is about the comparison itself. Whether the difference is *real* is
-`measure-performance` step 5 (interleave, enough runs, spread that does not cover
-the difference), and whether your samples are independent enough to support any
-error bar is `analyze-noise`. Neither of those changes because the statistic is a
-distance rather than a mean.
+This procedure is about the comparison itself. Whether the difference is *real*
+is `measure-performance` step 5 (interleave, enough runs, spread that does not
+cover the difference), and whether your samples are independent enough to
+support any error bar is `noise.md`. Neither of those changes because the
+statistic is a distance rather than a mean.
 
 ## Step 1 — Work from the histograms, not from quantiles
 
@@ -45,7 +40,7 @@ on the node beside the measurement (see `analysis-placement.md` in
 **W1 comes out in the units of the metric.** "The distribution moved 107 µs of
 mass" is a sentence an engineer can act on, where a KS statistic of 0.32 is not.
 
-`${CLAUDE_SKILL_DIR}/references/histogram-distance.md` has the implementation,
+`histogram-distance.md` (beside this file) has the implementation,
 the log-bucket handling, and the numbers all of this was checked against.
 
 ## Step 3 — Ask whether the CDFs cross
@@ -87,7 +82,7 @@ Identical ratios, unmistakably different regressions. **Mass spread across the
 body is a different mechanism from mass concentrated past p99** — a uniformly
 slower code path versus something that occasionally goes very wrong — and the
 decomposition is what separates them.
-`${CLAUDE_SKILL_DIR}/references/histogram-distance.md` has the implementation.
+`histogram-distance.md` (beside this file) has the implementation.
 
 Report the ratio *and* the band shares. Either alone is ambiguous.
 
@@ -117,7 +112,7 @@ the magnitude.
 ## Step 5 — Get the null from repeated runs, not from resampling
 
 **Do not bootstrap over samples within a run.** Samples inside a run are
-correlated — that is what `analyze-noise` is for — so a resampling null is far too
+correlated — that is what `noise.md` is for — so a resampling null is far too
 tight and will call every comparison significant. Same failure as `1/√N`.
 
 The null you want is **A-vs-A**: compute W1 between interleaved runs of the *same*
@@ -129,7 +124,7 @@ If A-vs-A W1 is comparable to A-vs-B W1, there is no difference yet — report t
 rather than a distance with a confident sign.
 
 How many A-vs-A pairs you need, and how to turn them into a threshold without
-over-buying precision, is `calibrate-to-source`. The short form: the null's scale
+over-buying precision, is `calibrate.md`. The short form: the null's scale
 is source-specific and spans 560× across sources, while its shape stays inside
 1.66–2.02 — so ten pairs and a median get you most of the way.
 
@@ -152,4 +147,4 @@ mechanism.
 - **Never report W1 without `|Δmean|` beside it.** The distance alone does not
   distinguish "slower" from "less consistent", and those have different causes.
 - **Never take a distance as a cause.** It says the shape changed and where; the
-  mechanism is `attribute-perturbation`.
+  mechanism is `perturbation.md`.

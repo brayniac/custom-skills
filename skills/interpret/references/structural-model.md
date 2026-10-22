@@ -1,11 +1,6 @@
----
-name: fit-structural-model
-description: Fit an unobserved-components (structural time series) model so a noise decomposition becomes parameters with confidence intervals — observation noise, level disturbance, slope, seasonal — and test whether a component exists at all. Use when a trend needs an interval rather than a slope, when "is there really drift here" needs an answer, when the series has gaps, when the level must be separated from the noise with uncertainty attached, and when an offline analysis has to become an online detector.
----
-
 # Fitting the decomposition instead of reading it
 
-`analyze-noise` reads a decomposition off the geometry of a curve: a −1/2 segment
+`noise.md` reads a decomposition off the geometry of a curve: a −1/2 segment
 is white, a +1/2 segment is random walk, and the knee is where one takes over.
 That is fast, assumption-light, and gives you no standard errors, no hypothesis
 test, and no estimate of the underlying level.
@@ -32,11 +27,11 @@ noise multiplicative — a log transform first, or a different model.
 ## Step 1 — Start with the smallest model that could be true
 
 Local level → local linear trend → add a seasonal only if you have already
-identified a period (from `attribute-perturbation` step 3, not by assumption).
+identified a period (from `perturbation.md` step 3, not by assumption).
 Every added component costs identifiability, and an over-specified model does not
 announce itself — it quietly splits one real component across two fitted ones.
 
-`${CLAUDE_SKILL_DIR}/references/components.md` has the state space forms and
+`components.md` (beside this file) has the state space forms and
 which noise colour each disturbance produces.
 
 ## Step 2 — Fit, and expect variances to pile up at zero
@@ -51,9 +46,10 @@ is how you actually test it.
 
 ## Step 3 — The innovations must be white
 
-**Run `analyze-noise` on the standardized one-step prediction errors.** This is
-the adequacy check, and it is the tightest one available: a correctly specified
-model converts all the structure into white innovations of unit variance.
+**Run the `noise.md` analysis on the standardized one-step prediction errors.**
+This is the adequacy check, and it is the tightest one available: a correctly
+specified model converts all the structure into white innovations of unit
+variance.
 
 Checked on local level data whose raw ADEV slope is +0.034 — visibly structured —
 the fitted model's innovations come back at slope **−0.501** with variance
@@ -123,7 +119,7 @@ to six decimals, and the EWMA reproduces the filtered state to ~1e-8.
 So the deployment is: fit on a recording (tier 3), ship `K` (tier 1), and watch
 the standardized innovations on the node — CUSUM over them is O(1) and fires
 when the series stops matching the model it was fitted to.
-`${CLAUDE_SKILL_DIR}/references/online-filter.md` has the recursion, what to
+`online-filter.md` (beside this file) has the recursion, what to
 monitor, and when a refit is due.
 
 ## Step 7 — Report
@@ -142,7 +138,7 @@ check is not optional in the write-up** — it is what makes the rest readable.
 - **Never use a naive χ²₁ LR test on a variance component.**
 - **Never add components until the fit looks good.** Each one costs
   identifiability, and an over-specified model splits one real effect in two.
-- **Never fit across a changepoint.** Segment first — `attribute-perturbation`
+- **Never fit across a changepoint.** Segment first — `perturbation.md`
   step 1 — or the model will absorb a step into the level disturbance and report
   drift that is really one jump.
 - **Never let the fitted model's forecasts become a reported measurement.** The

@@ -98,7 +98,7 @@ The table above is usable across sources only because the innovations are
 standardized — a correctly fitted model makes the null universal, which is the
 whole point of monitoring `e` rather than `y`. For any statistic that has *not*
 been studentized that way, the threshold is source-specific and
-`calibrate-to-source` is how to derive it.
+`calibrate.md` is how to derive it.
 
 Both detectors are in the tier-1 table in `measure-performance`'s
 `analysis-placement.md`.
@@ -110,7 +110,7 @@ validity. Refit when:
 
 - the innovation variance drifts away from 1 and stays there — the noise
   amplitude changed, so `q` is stale;
-- the innovations stop being white (run `analyze-noise` on a captured window);
+- the innovations stop being white (run `noise.md` on a captured window);
 - the workload, hardware, or configuration changed. **A model fitted on hv01 does
   not transfer to hv02** for the same reason a measurement does not.
 

@@ -1,16 +1,17 @@
 # The wider toolkit — a working map
 
 Techniques worth knowing that are **not distilled into steps anywhere in this
-library yet**. Each entry says what question it answers and what it costs, so the
-choice to reach for one is deliberate. Treat this as a map, not as instructions:
-anything promoted out of here should get its own steps, traps, and checked
-numbers first, the way `analyze-noise` and this skill's other references did.
+library yet**. Each entry says what question it answers and what it costs, so
+the choice to reach for one is deliberate. Treat this as a map, not as
+instructions: anything promoted out of here should get its own steps, traps, and
+checked numbers first, the way `noise.md` and the other references beside this
+file did.
 
 Licences are noted because they decide whether a tool is usable here. NumPy,
 SciPy, statsmodels and `ruptures` are all BSD; `allantools` is LGPL-3.0.
 
 How far any of this carries to a new metric source, and what a per-source
-threshold costs to derive, is `calibrate-to-source`.
+threshold costs to derive, is `calibrate.md`.
 
 ## Distribution shape, not location
 
@@ -22,7 +23,7 @@ its own skill now; the rest are still notes.
 | --- | --- | --- |
 | ECDF / Q–Q comparison | where in the distribution A and B differ | trivial; the first thing to plot |
 | Anderson–Darling | is the difference real, tail-weighted | prefer over KS when the tail is the product; KS is most sensitive near the median |
-| **Wasserstein distance between histograms** | did the shape change while the mean held | **promoted — this is the `compare-distributions` skill.** O(B) over buckets, no raw samples |
+| **Wasserstein distance between histograms** | did the shape change while the mean held | **promoted — this is `distributions.md`.** O(B) over buckets, no raw samples |
 | Extreme value theory (POT/GPD) | what the worst case looks like | threshold choice is fiddly and it needs a lot of tail data; reach for it last |
 
 ## Variance that moves
@@ -36,10 +37,10 @@ inconsistency rather than slowness.
 ## Decomposition into interpretable parts
 
 - **STL** (seasonal–trend–loess): splits trend / seasonal / remainder, and the
-  remainder is the right input to `analyze-noise` when a known cycle dominates.
+  remainder is the right input to `noise.md` when a known cycle dominates.
   Robust STL if outliers are present. Cheap, interpretable, in statsmodels.
 - **Structural time series / Kalman** (local level + slope + seasonal):
-  **promoted — this is the `fit-structural-model` skill.** Its estimated variances
+  **promoted — this is `structural-model.md`.** Its estimated variances
   *are* the noise decomposition, so the Allan-plot content comes back as
   parameters with intervals you can test, and a fitted model deploys as an O(1)
   streaming detector.
@@ -52,7 +53,7 @@ inconsistency rather than slowness.
 - **DFA** (detrended fluctuation analysis): the Hurst exponent, robust to
   polynomial trends. Popular in physiology; overlaps heavily with Allan but
   handles nonstationarity by construction rather than by the Hadamard trick.
-- **Wavelet variance**: strictly more general than what `analyze-noise` does —
+- **Wavelet variance**: strictly more general than what `noise.md` does —
   **the Allan variance is the Haar wavelet variance up to a constant** (Percival
   & Guttorp). A longer filter (D4, D6) leaks less, which matters for slopes
   steeper than +1 where Haar leakage starts to bite. The natural upgrade path if
@@ -104,11 +105,11 @@ matters more than it sounds.
    explicitly anomaly-contaminated and the models are designed to be robust to
    that — which means smoothing over precisely the perturbation being investigated.
 
-**Where they do earn a place:** zero-shot triage across many metrics at once.
-A recording carries hundreds of series and you cannot hand-fit a model per metric.
+**Where they do earn a place:** zero-shot triage across many metrics at once. A
+recording carries hundreds of series and you cannot hand-fit a model per metric.
 Forecast one step ahead, flag where the actual leaves the predictive interval,
-rank by surprise, open the top few. That is step 6 of this skill with a different
-ranking function — **a search over metrics, never a verdict.**
+rank by surprise, open the top few. That is step 6 of `perturbation.md` with a
+different ranking function — **a search over metrics, never a verdict.**
 
 If trying that, prefer an in-domain model. **Toto** (Datadog) is trained on
 observability telemetry rather than retail and energy data, ships as a family from

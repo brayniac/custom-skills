@@ -80,7 +80,7 @@ innov = res.filter_results.standardized_forecasts_error[0]
 ```
 
 Missing data: pass `np.nan` for gaps. The filter skips them correctly, which is
-the one place this beats every other technique in the library — `analyze-noise`
+the one place this beats every other technique in the library — `noise.md`
 tells you to split the series at a gap, and this does not have to. Checked: 700
 NaNs punched into a 200,000-point series recover `q = 2.996e-4` against a true
 3.0e-4, converging normally.

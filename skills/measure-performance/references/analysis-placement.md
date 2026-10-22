@@ -90,9 +90,9 @@ reaches a steady state, and for a local level model that steady state is an EWMA
 with a closed-form gain — two floats of state, one multiply-add per sample.
 
 So the deployment is tier 3 for the fit, tier 1 for the filter, with the
-standardized innovations as the thing you watch. That is `fit-structural-model`,
-and it is the only entry in this reference that legitimately appears in two
-tiers.
+standardized innovations as the thing you watch. That is `interpret`'s
+`structural-model.md`, and it is the only entry in this reference that
+legitimately appears in two tiers.
 
 ## The rules
 
