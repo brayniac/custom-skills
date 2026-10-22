@@ -6,9 +6,9 @@ description: Check a change before pushing it or saying it works, and show that 
 # Verify
 
 Every failure this skill exists for was green locally. The gates were real;
-what went wrong was which gates ran, how their result was read, and what the
-local platform could not compile. Work through the steps in order and report
-per gate.
+what went wrong was which gates ran, how their result was read, what the local
+platform could not compile, or a new check that could not fail. Work through
+the steps in order and report per gate and per new check.
 
 Steps 1 to 7 check which gates ran and how their result was read. Step 8
 checks that each check the change adds can fail. For a benchmark number, use
@@ -129,7 +129,9 @@ a clean context (a fresh agent, not a fork of this one) asked specifically:
 A test that passes shows nothing about what it would catch. A test that fails
 against the specific fault it was written for shows that it works. Do this for
 each new test, regression test, guard or CI rung, before counting it as
-coverage.
+coverage. Every instance below was green and was not coverage; each was found
+by breaking something on purpose or by reading a count, never by a check going
+red.
 
 1. **Name the fault.** Write down the specific mutation the check exists to
    catch — the reverted fix, the deleted call, the swapped operands — before
@@ -183,7 +185,8 @@ One line per gate: the command, `pass` / `fail` / `not run here`, and for
 `not run here` the reason and the CI job that will run it. One line per new
 check: the mutation applied and the failure observed. Include the prior CI
 state from step 1. Push only when every gate is `pass` or `not run here` with a
-named job; after pushing, confirm the remote has your commit:
+named job, and every new check has been seen to fail; after pushing, confirm
+the remote has your commit:
 
 ```sh
 git rev-parse HEAD origin/$(git branch --show-current)
