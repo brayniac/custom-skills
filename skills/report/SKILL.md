@@ -91,10 +91,11 @@ and the ledger as an appendix.
 ## 6. Correct in place
 
 When a later run or a reader overturns a claim, change the report where the
-claim is, as `publish` and `journal` do for theirs: mark it **does not
-survive**, with the date, what overturned it and what replaces it, and keep
-the original visible. A number withdrawn because its measurement was invalid
-is re-measured, and the old value stays struck through with the reason.
+claim is, as `publish` does: mark it **does not survive**, with the date,
+what overturned it and what replaces it, and keep the original visible. A
+number withdrawn because its measurement was invalid is re-measured, and in
+a report the old value stays struck through with the reason; this differs
+from `journal`, which removes a published number that was invalid.
 
 When the overturned claim is in the result, write the new result above the
 marked original, set the status line to `partly superseded` (or `WITHDRAWN`
@@ -104,7 +105,9 @@ again.
 ## 7. Check before it ships
 
 1. Run `interpret` on every comparison the report makes, if it has not been,
-   and `prose` over the text. Re-check the destination against `publish`.
+   and `prose` over the text. Re-check the destination against `publish`,
+   and that the reader can open every path, URL and run ID the report and
+   its ledger cite; where they cannot, say so beside the citation.
 2. **A claim check by a fresh agent** (not a fork). Give it the report, the
    ledger, and read access to every source the ledger cites (result paths,
    run IDs it can query). Ask it to return one line per factual sentence
@@ -112,7 +115,8 @@ again.
    the problem (no row, a source that does not say it, a number that differs,
    a kind shown wrongly). The report is clean when that list is empty.
 3. Fix every line, then run the check again with a new fresh agent, until a
-   check comes back empty.
+   check comes back empty. If the same sentence fails after three rounds,
+   remove the claim or mark it unknown in the ledger, and tell the owner.
 
 ## Never
 
