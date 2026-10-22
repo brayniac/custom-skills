@@ -36,5 +36,6 @@ finishing it costs a line; if it is not, "etc." dropped content.
 The vocabulary substitutions are adapted under the MIT licence from
 [AminBlg/SimpleEnglish](https://github.com/AminBlg/SimpleEnglish), whose slop
 table is that project's own work. The modality ladder paraphrases the
-vocabulary rules of ASD-STE100 Simplified Technical English; this is not an
-STE compliance tool and is unaffiliated with ASD.
+vocabulary rules of ASD-STE100 Simplified Technical English, except that it
+keeps `may`, `might` and `could` for uncertainty the evidence has not
+resolved; this is not an STE compliance tool and is unaffiliated with ASD.

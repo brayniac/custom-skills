@@ -1,6 +1,6 @@
 ---
 name: prose
-description: Write or revise technical prose for a named reader — name the reader and what they lack, cold-read for phrases that resolve only for someone who was in the session, list every proposition before cutting so a shorter sentence does not become a different claim, keep requirement modality (`must`, `may not`, `never`), replace words that carry no fact with the fact, keep one name per thing, and stop at the least material that carries the fact. Use when asked to tighten, plain-language, de-slop or cold-read a commit body, PR body, README, doc comment, design note, issue or skill; when another skill defers here for wording; and before publishing prose written in the same session as the work it describes.
+description: Write or revise technical prose for a named reader — name the reader and what they lack, cold-read for phrases that resolve only for someone who was in the session, list every proposition before cutting so a shorter sentence does not become a different claim, keep requirement modality (`must`, `may not`, `never`), never strengthen a claim in rewording, replace words that carry no fact with the fact, keep one name per thing, and stop at the least material that carries the fact. Use when asked to tighten, plain-language, de-slop or cold-read a commit body, PR body, README, doc comment, design note, issue or skill; when another skill defers here for wording; and before publishing prose written in the same session as the work it describes.
 ---
 
 # Write technical prose
@@ -59,10 +59,16 @@ For each passage you shorten, write down what it asserts:
 - modality (`must`, `may`, `may not`, `never`);
 - negations, exceptions and scope qualifiers (`only`, `at most`);
 - ownership, side effects, failure behaviour and consequence;
-- provenance (`measured`, `derived`, `given`, as in `publish`).
+- provenance (`measured`, `derived`, `given`, as in `publish`), and who
+  established the fact.
 
-A cut is available only if every one survives. A smaller word count is not
-the goal. Shortenings that changed the claim:
+A rewrite must not strengthen a claim. "The author reports a fix", "the
+regression tests pass" and "an independent review confirmed the fix" have
+different sources (`evidence` step 1). None of them becomes "all issues
+resolved" without evidence for that broader claim.
+
+A cut is available only if every proposition survives. A smaller word count
+is not the goal. Shortenings that changed the claim:
 
 - "exceptions pending migration" cut to "sanctioned exceptions" turned an
   obligation into an endorsement;
@@ -76,21 +82,30 @@ the sentence.
 
 ## 5. Word pass
 
-**Modality.** A requirement written as `should` is a different claim, and a
-reader who treats it as optional has read it correctly.
+**Modality.** Decide which sense a modal has before replacing it. A
+requirement written as `should` is a different claim, and a reader who treats
+it as optional has read it correctly.
 
 | Written | Write |
 | --- | --- |
-| `should` (requirement) | `must` |
-| `should` (recommendation) | state the fact: "X is faster because Y" |
-| `might`, `could`, `may` (possibility) | `can` |
-| `would` (hypothetical) | "If X occurs, Y occurs." |
+| `should` (established requirement) | `must` |
+| `should` (recommendation) | the reason or the condition: "X is faster because Y"; never `must` |
+| `might`, `could`, `may` (known capability or failure mode) | `can` |
+| `might`, `could`, `may` (uncertainty the evidence has not resolved) | keep it, and say what is untested |
+| `would` (hypothetical) | "If X occurs, Y occurs" when the consequence is known; otherwise keep the modal and say what is untested |
 
-`may not` as a prohibition stays. Rewriting "callers may not hold the lock
-across an await" to `cannot` claims the compiler prevents it; to `can`
-inverts it. Obligations and prohibitions keep their modal in every shortened
-form, because without it the sentence describes the present and permits the
-edit it existed to prevent.
+A recommendation promoted to `must` becomes an obligation nobody imposed.
+"The scanner might misclassify this syntax; it has not been tested" rewritten
+as "the scanner can misclassify this syntax" states a hypothesis as a known
+failure mode, and rewritten as "the scanner misclassifies this syntax" states
+it as an observed one. Remove a hedge only when the evidence supports the
+stronger claim (`evidence` steps 2 and 3).
+
+Permission-sense `may` and `may not` stay. Rewriting "callers may not hold
+the lock across an await" to `cannot` claims the compiler prevents it; to
+`can` inverts it. Obligations and prohibitions keep their modal in every
+shortened form, because without it the sentence describes the present and
+permits the edit it existed to prevent.
 
 **Words that carry no fact.** Test: does deleting the word change what the
 reader knows? "Gracefully handles" names a quality of the handling instead of
@@ -126,12 +141,22 @@ the network is slow, raise the timeout").
 Walk this before writing and again when cutting, and stop at the first rung
 that carries the fact with every proposition from step 4 intact:
 
-1. nothing — the named reader already has it, or a nearby sentence says it;
+1. nothing — the fact does not help the named reader understand or do
+   anything, the reader already has it, or a nearby sentence says it;
 2. a word added to an existing sentence;
 3. a clause;
 4. a sentence;
 5. a paragraph;
 6. a section with a heading.
+
+An accurate, unique fact still stops at rung 1 when it helps the named reader
+neither understand nor act, unless the user or the artifact's contract
+requires it. Keep the
+reason for a choice ahead of the history of making it. "Count comments because
+the view measures source a reader must navigate" gives a reason to accept the
+policy; "after two review rounds we settled on this policy" gives none. Keep
+history when the sequence explains a constraint, a failure or the current
+state.
 
 Drift is upward one step at a time, and no single step looks wrong. When a
 paragraph and the example under it say the same thing, cut the paragraph and
@@ -164,6 +189,8 @@ one of these has damaged the evidence it was cleaning.
 - **Never shorten a sentence without listing its propositions first.**
 - **Never rewrite `may not` to `cannot` or `can`**, or drop a modal to fit a
   line.
+- **Never remove a hedge the evidence has not resolved**, rewrite an
+  untested `might` to `can`, or promote a recommendation to `must`.
 - **Never reword a claim you have not checked against the code** it
   describes.
 - **Never edit inside an untouchable** to satisfy a style rule.
