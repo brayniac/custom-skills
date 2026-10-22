@@ -11,6 +11,10 @@ to the author and to automated review. They have not been measured beyond
 that; when one fights the change in front of you, override it and say so in
 the commit that updates this file.
 
+Five later rules rest on less: one body revision (review status), one PR
+(scope growth), and small one-generation comparisons that found a modest gain
+for the commit-message rule only.
+
 ## Inputs
 
 - The base and head: `git diff <base>...HEAD`, and the head SHA the body is
@@ -134,6 +138,16 @@ tests pass across seven binaries; none exercise the publish path" is. Take the
 lines from `verify`. Never state a command ran when it did not; name a
 skipped check and why. No coverage percentages.
 
+Report review status at the strength it has. An author saying a finding is
+fixed, a named check passing at a stated commit, and another reviewer
+confirming the fix on the current head are three claims, and none implies the
+next. "All findings addressed" needs the third for every fix that `review`
+step 7 does not class as mechanical; name the mechanical ones. When no one has
+re-reviewed a fix, say that no re-review has happened; "re-review pending"
+asserts a scheduled review the record does not show. A scenario file or
+fixture that describes what an agent should do is not evidence that an agent
+ran it.
+
 ## 6. Production-only risks
 
 List what cannot show before deployment (scale, real data shape, timing and
@@ -151,6 +165,17 @@ function, flag or path in the summary**; the reviewer cannot resolve a name
 before the model exists. Test: could someone who has not seen the codebase say
 what problem the change solves?
 
+Check every absolute word in the summary ("once", "always", "never", "for its
+lifetime") against the retry, replacement and failure paths in the diff. One
+body's opening made a lifetime claim that its own retry exception contradicted.
+When the detail qualifies the summary, put the qualification in the summary;
+a later paragraph that retracts it is read after the reviewer has believed it.
+
+When the repository's convention keeps the commit messages in the body and a
+later commit replaces what an earlier one says, put a synopsis of the final
+behaviour above them and label them as history. Keep messages the convention
+requires verbatim, and do not rewrite commits to tidy the body.
+
 Close with the ask as its own paragraph, pointing rather than restating:
 "Two decisions want your opinion, one blocking; each is a subsection under
 Decisions." When nothing needs the reviewer, say so. A count must match the
@@ -162,6 +187,17 @@ Run `prose` over the body. Quoted output, paths and
 identifiers are untouchable. When rewriting any section, reread the code
 behind it first; a reader's confusion is evidence the claim may be wrong, and
 editing prose from prose carries the old errors forward.
+
+When later commits widen the change, reread the title, the summary, the
+decisions and the where-to-look list against the final diff, and rebuild the
+body around the final change. A section appended per commit leaves the title and
+summary describing the first scope.
+
+On a rewrite, recheck every dependency and blocker claim against the PR it
+names (`gh pr view <n> --json state,mergedAt`). A merged dependency no longer
+blocks the merge, but its integration or validation can still be unfinished;
+remove the blocker without implying the PR is ready. When the state cannot be
+read, mark the claim unverified rather than repeating it or dropping it.
 
 ## Never
 
