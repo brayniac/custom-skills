@@ -83,7 +83,7 @@ reached the Bonferroni threshold (median smallest p = 7.5e-2).
 
 **Lomb–Scargle** (`scipy.signal.lombscargle`) fits sinusoids by least squares at
 each trial frequency and needs no uniform grid. It is the right answer where
-`analyze-noise` tells you to split at gaps and you would rather not.
+`noise.md` tells you to split at gaps and you would rather not.
 
 Two cautions: pass the normalization explicitly and know which convention you
 asked for, and remember the false-alarm probability depends on the number of

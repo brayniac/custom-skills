@@ -18,8 +18,8 @@ neighbouring skills own the rest:
 - `measure-performance`: producing one number, closed and open loop, Little's
   law, interleaving;
 - `benchmark-validity`: whether one run measured its subject;
-- `analyze-noise`: run length from the noise;
-- `calibrate-to-source`: thresholds;
+- `interpret`'s `noise.md`: run length from the noise;
+- `interpret`'s `calibrate.md`: thresholds;
 - `systemslab-spec-authoring`: spec mechanics.
 
 Steps 2, 5 and 6 name SystemsLab and rezolus. Step 5 also names
@@ -243,10 +243,10 @@ refined ranking until you know why.
 Rerun the top 10–20 ranked cells from tiers 1 and 2, with a 5-minute
 window. These runs give the chart data and the time series.
 
-- **Run length.** A run of length T characterises noise out to an averaging
-  time of about T/10 (`analyze-noise`), so 30 s for a 5-minute run. If the
-  Allan deviation is still falling at 30 s, give the leader one run of about
-  20 minutes.
+- **Run length.** A run of length T characterises noise out to an averaging time
+  of about T/10 (`interpret`'s `noise.md`), so 30 s for a 5-minute run. If the
+  Allan deviation is still falling at 30 s, give the leader one run of about 20
+  minutes.
 - **Repeats.** Any number quoted as a result needs the interleaved repeats
   that `measure-performance` step 5 sets. Size the repeats from the spread
   between these extended runs.

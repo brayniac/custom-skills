@@ -12,7 +12,7 @@ case this skill is built from: a control predicted 0/100 failures and measured
 already been merged.
 
 This is about correctness failures. For a performance difference, use
-`measure-performance` and `attribute-perturbation`.
+`measure-performance` and `interpret`'s `perturbation.md`.
 
 ## 1. Measure the rate and size the sweep from it
 
@@ -129,9 +129,9 @@ and still be the wrong statistic for the question.
 ## 7. Confirm by intervention, then by sweep
 
 Change the one thing the mechanism names and show the failure rate moves as
-predicted (`attribute-perturbation` step 7 covers intervention). Then run the
-fix with its positive control, sized from step 1. If three fixes in a row have
-failed and each exposed a different shared-state problem, stop fixing and
+predicted (`interpret`'s `perturbation.md` step 7 covers intervention). Then run
+the fix with its positive control, sized from step 1. If three fixes in a row
+have failed and each exposed a different shared-state problem, stop fixing and
 question the design with the user.
 
 ## 8. Record what was ruled out

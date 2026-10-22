@@ -48,9 +48,10 @@ e = (y − level) / s          s = √(σ²_ε·(P + 1))      the one-step predi
 ```
 
 Under the model these are white with unit variance — which is exactly the
-property the skill's step 3 verified on the fitted record. So the online test is
-a test of *continued* agreement with the model, and it catches everything the
-model did not predict, rather than only the things you thought to threshold.
+property `structural-model.md` step 3 verified on the fitted record. So the
+online test is a test of *continued* agreement with the model, and it catches
+everything the model did not predict, rather than only the things you thought to
+threshold.
 
 Verified: the recursion above reproduces statsmodels' own standardized
 innovations with a correlation of 1.000000 and variance 1.000, so the closed-form
@@ -98,7 +99,7 @@ The table above is usable across sources only because the innovations are
 standardized — a correctly fitted model makes the null universal, which is the
 whole point of monitoring `e` rather than `y`. For any statistic that has *not*
 been studentized that way, the threshold is source-specific and
-`calibrate-to-source` is how to derive it.
+`calibrate.md` is how to derive it.
 
 Both detectors are in the tier-1 table in `measure-performance`'s
 `analysis-placement.md`.
@@ -110,7 +111,7 @@ validity. Refit when:
 
 - the innovation variance drifts away from 1 and stays there — the noise
   amplitude changed, so `q` is stale;
-- the innovations stop being white (run `analyze-noise` on a captured window);
+- the innovations stop being white (run `noise.md` on a captured window);
 - the workload, hardware, or configuration changed. **A model fitted on hv01 does
   not transfer to hv02** for the same reason a measurement does not.
 
@@ -120,7 +121,7 @@ from a guess.
 
 ## What this does not become
 
-The filter produces a one-step prediction. **That is not a measurement**, and the
-level estimate is not a reported number: it is a model's view of the series, with
-all the assumptions in the skill's step 1 baked in. It points at a window worth
-opening. The number in the report comes from the recording.
+The filter produces a one-step prediction. **That is not a measurement**, and
+the level estimate is not a reported number: it is a model's view of the series,
+with all the assumptions in `structural-model.md` step 1 baked in. It points at
+a window worth opening. The number in the report comes from the recording.

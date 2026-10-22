@@ -38,8 +38,8 @@ The result is the first JSON object with "type": "result" in the client job's
 log, which cachecannon prints with `format = "json"`. Another load generator
 needs this parser changed.
 
-Thresholds are defaults from one rig. Calibrate them (`calibrate-to-source`)
-before trusting a verdict.
+Thresholds are defaults from one rig. Calibrate them (`interpret`'s
+`calibrate.md`) before trusting a verdict.
 
   sweep_report.py --url http://localhost:8080 --app-cpus 16-63 <context-id> [...]
 """

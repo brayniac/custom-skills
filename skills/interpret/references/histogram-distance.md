@@ -132,7 +132,7 @@ feature — it stops you reaching for one that assumes independence.
 configuration; that spread is the floor. A-vs-B has to clear it.
 
 A block bootstrap (moving-block, block length past the correlation time from
-`analyze-noise`) is the fallback when only one run per side exists, and it is
+`noise.md`) is the fallback when only one run per side exists, and it is
 strictly worse: it assumes the single run sampled the run-to-run variation, which
 is exactly the assumption that interleaving exists to avoid. **A plain i.i.d.
 bootstrap over samples within a run is always wrong here** and will report

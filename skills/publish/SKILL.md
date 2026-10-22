@@ -20,7 +20,8 @@ to be mechanical and attached to the destination, rather than triggered by a
 feeling that something is sensitive.
 
 Whether the numbers themselves are sound is `benchmark-validity`; whether the
-numbers being compared are written comparably is `check-compared-numbers`.
+numbers being compared are written comparably is `interpret`'s
+`compared-numbers.md`.
 
 ## Check the destination before writing the content
 

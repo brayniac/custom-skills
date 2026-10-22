@@ -223,11 +223,11 @@ quiet zero.
   the prior run's 8k cell, with two reps agreeing within 0.1 s at every cell,
   let a loaded-machine start (a background malware scan) be dismissed. Start
   each arm from the same state (one server per arm, caches empty).
-- **Keep the same-configuration pairs.** Interleaving produces A-vs-A comparisons
-  as a byproduct — four runs a side gives six — and those pairs are the null
-  distribution for every threshold you will ever set on this source.
-  `calibrate-to-source` turns them into one; most labs compute them and throw
-  them away.
+- **Keep the same-configuration pairs.** Interleaving produces A-vs-A
+  comparisons as a byproduct — four runs a side gives six — and those pairs are
+  the null distribution for every threshold you will ever set on this source.
+  `interpret`'s `calibrate.md` turns them into one; most labs compute them and
+  throw them away.
 - **Close Little's law before believing a closed-loop arm.** `N = X · E[R]` is
   an identity in closed loop, so a violation indicts the *measurement* —
   coordinated omission, mis-counted operations, a stalled arm — not the system.
@@ -252,7 +252,7 @@ quiet zero.
   precisely why they passed a broken gate.
 - **When the spread will not settle, ask what color it is.** If more runs are not
   tightening the interval, the noise is not white and `1/√N` does not apply. The
-  `analyze-noise` skill turns the series into an Allan deviation curve, which
+  `interpret`'s `noise.md` turns the series into an Allan deviation curve, which
   says whether averaging helps at all, how long a run has to be, and what
   timescale the confounder lives on.
 

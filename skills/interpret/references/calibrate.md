@@ -1,8 +1,3 @@
----
-name: calibrate-to-source
-description: Decide whether an analysis carries to a new metric or environment unchanged, and when it does not, derive the threshold it needs from A-vs-A runs you are already producing. Use before reusing any threshold, floor, or detector setting across metrics, hosts, or builds; when an analysis validated on one source is about to be pointed at another; and whenever a number is about to be written into a config file as if it were universal.
----
-
 # Making an analysis portable
 
 A decision procedure needs three things: a statistic, a null distribution for it,
@@ -27,7 +22,7 @@ carry to a new source unchanged and need nothing.
 | prewhitened CCF band | anything with "threshold" in its name |
 
 **If your reading is a slope, a ratio, or a share, stop here.** The
-`${CLAUDE_SKILL_DIR}/references/portability.md` table says what was tested and
+`portability.md` (beside this file) table says what was tested and
 how far it holds.
 
 ## Step 2 — Say what precision the number needs
@@ -92,8 +87,8 @@ outside 1.7–2.0 is itself a finding.** Pareto α=1.5 announces itself at 3.17
 before any other analysis has run.
 
 A `q95/q50` above ~2.5 means: expect unstable magnitudes, expect to need many more
-runs, and prefer the distributional tools (`compare-distributions`) over the
-variance-based ones (`analyze-noise` magnitudes, blocking, structural models).
+runs, and prefer the distributional tools (`distributions.md`) over the
+variance-based ones (`noise.md` magnitudes, blocking, structural models).
 
 ## Step 8 — Know when it goes stale, and record where it came from
 

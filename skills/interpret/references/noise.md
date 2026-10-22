@@ -1,8 +1,3 @@
----
-name: analyze-noise
-description: Identify what color a measurement's noise is — white, flicker, random walk, drift, or a periodic component — from an Allan or Hadamard deviation curve, and read off the averaging interval, the run length, and the timescale a confounder lives on. Use when repeated measurements disagree by more than they should, when choosing how long to average or how many runs to take, when a standard error looks suspiciously tight, and when a perturbation needs its cause narrowed rather than described.
----
-
 # Reading the color of noise
 
 A measurement that varies is not thereby "noisy" in one way. **How the variation
@@ -73,7 +68,7 @@ Add a second estimator when the shape asks for one:
 | **Hadamard (OHDEV)** | ADEV rises toward τ^+1, or you can see drift in the raw series | the three-sample difference cancels linear drift and converges for noise redder than random walk, where Allan just reports the drift |
 | **Modified (MDEV)** | the fast end slopes at τ^-1 | ADEV cannot tell white PM from flicker PM; MDEV splits them (τ^-3/2 vs τ^-1) |
 
-`${CLAUDE_SKILL_DIR}/references/computing.md` has the estimators, the τ grid,
+`computing.md` (beside this file) has the estimators, the τ grid,
 the confidence rule, and a NumPy implementation short enough to paste. Read it
 before writing your own — the off-by-one in the overlapping sum is silent and
 tilts the whole curve.
@@ -115,7 +110,7 @@ paying, which is the opposite of "it's just white noise."
 
 Real curves are several processes summed — Allan *variances* add — so expect
 segments with knees between them, and read each segment separately.
-`${CLAUDE_SKILL_DIR}/references/slopes.md` has the full slope↔spectrum table,
+`slopes.md` (beside this file) has the full slope↔spectrum table,
 the degeneracies, the periodic signature, and the causes worth suspecting per
 color.
 
@@ -143,11 +138,11 @@ color.
 
 Coefficients worth quoting (random walk coefficient, bias instability, ramp
 rate) are read off fitted slope lines at fixed τ;
-`${CLAUDE_SKILL_DIR}/references/slopes.md` gives the five standard readings.
+`slopes.md` (beside this file) gives the five standard readings.
 
 All of this is geometry, and it comes with no standard errors. When a component
 needs an interval, a test, or an estimate of the underlying level — "is that
-really drift" rather than "the slope looks like +1/2" — `fit-structural-model` is
+really drift" rather than "the slope looks like +1/2" — `structural-model.md` is
 the parametric counterpart, and the two must agree: a fitted local level model
 predicts this curve's minimum at `τ₀·√(3/q)`.
 
@@ -168,13 +163,13 @@ what it is, and **they must agree**:
 
 The slope is portable across sources and needs no calibration; **τ_min, the
 floor, and any threshold derived from them are not** — they are magnitudes, and
-magnitudes are properties of the source. `calibrate-to-source` is how you get
+magnitudes are properties of the source. `calibrate.md` is how you get
 one without inventing it.
 
 **Quote `N_eff` beside `N` whenever you report a mean.** "12,000 samples" and
 "12,000 samples, 340 effective" lead to different decisions, and only the second
 is a fact about the system.
-`${CLAUDE_SKILL_DIR}/references/effective-samples.md` has the estimators, the
+`effective-samples.md` (beside this file) has the estimators, the
 windowing rules, and the numbers all three routes were checked against.
 
 ## Step 7 — Compare two curves, not two numbers
@@ -192,7 +187,7 @@ Two ADEV curves on one axis answer questions a pair of means cannot:
   evidence of a cause; it is a place to look. Same rule as `analyze_correlation`.
 
 Chasing that suspect properly — segmenting first, prewhitening, resolving the
-coupling by timescale — is the `attribute-perturbation` skill. Do not skip to a
+coupling by timescale — is `perturbation.md`. Do not skip to a
 correlation from here: two red-noise series correlate strongly with nothing
 between them, and a curve that told you the noise is red just told you that you
 are in exactly that case.
