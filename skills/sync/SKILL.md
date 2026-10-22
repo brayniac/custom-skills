@@ -57,7 +57,8 @@ Then find how the repository merges:
 
   ```sh
   git fetch <remote> pull/<parent>/head
-  old=$(git merge-base HEAD "$(gh pr view <parent> --json headRefOid -q .headRefOid)")
+  head=$(gh pr view <parent> --json headRefOid -q .headRefOid)
+  old=$(git merge-base HEAD "$head")
   git log --oneline "$old"..HEAD
   git rebase --onto <remote>/<base> "$old"
   ```
