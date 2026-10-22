@@ -48,7 +48,7 @@ toolchain, then ship `sccache.md`'s installer in as
 base64 and run it:
 
 ```sh
-base64 -i "<use-shared-compiler-cache skill dir>/references/install-sccache.sh" | tr -d '\n' > /tmp/sccache.b64
+base64 -i "<lab skill dir>/references/install-sccache.sh" | tr -d '\n' > /tmp/sccache.b64
 ```
 
 In the payload:
