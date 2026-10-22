@@ -21,17 +21,18 @@ In the repository whose work it serves:
   `publish = false` unless it ships;
 - in a repository with no Rust, ask before adding a Cargo workspace to it;
 - a tool several repositories use goes in the repository that owns the
-  shared concern, run with `cargo run --bin` or installed with
-  `cargo install --git`.
+  shared concern, installed with `cargo install --git`, or run in place:
+  `cargo run --manifest-path <repo>/Cargo.toml --bin <name>`.
 
 Not the scratch directory: a tool there is deleted with the session.
 
-Rust is the default. The exception is a script that must run with no build
-step: one shipped in a skill's `references/` or as a plugin hook, which this
-plugin requires to work on a host with nothing else installed. Write those
-in Python or POSIX shell. A guest image or CI step without a Rust toolchain
-is not an exception: it can run a binary built elsewhere. Use another
-language otherwise only when the user asks, and say why.
+Rust is the default. The exception is a script that must run with no build step:
+one shipped in a skill's `references/` or as a plugin hook, which this plugin
+requires to work on a host with nothing else installed. Write those in Python or
+POSIX shell. A guest image or CI step without a Rust toolchain is not an
+exception: it can run a binary built elsewhere for its target (Linux; aarch64 on
+the Pis; musl on Alpine). Use another language otherwise only when the user
+asks, and say why.
 
 ## 2. Capture the input first
 
