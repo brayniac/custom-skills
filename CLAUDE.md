@@ -76,15 +76,18 @@ error. That is why `skillcheck` exists; keep it failing on those cases.
   fails instead of being ignored; add a key to `Frontmatter` in `src/skill.rs`
   when a skill needs one Claude Code supports.
 - **The description listing has a budget.** In Claude Code 2.1.308 it is the
-  context window in tokens times 4 characters times 0.01: 40,000 characters
-  for a 1M-token window, 8,000 for 200,000 (the default when the window is
-  unknown). `SLASH_COMMAND_TOOL_CHAR_BUDGET` or `skillListingBudgetFraction`
-  overrides it. It counts every installed plugin's listing, each entry as
-  `- cs:<name>: <description>`. Past the budget every skill keeps its name,
-  and descriptions are kept in Claude Code's priority order until the budget
-  is spent; the rest are listed by name only. `skillcheck` prints the
-  description total (24,922 characters for 30 skills on 2026-10-22; 25,360
-  with the entry prefixes), which fits a 1M window and not a 200,000 one.
+  context window in tokens (200,000 when unknown) times characters per token
+  times 0.01. Characters per token is 4 for Claude 3 and 4.x models and 3 for
+  later ones, so a Claude 5 model gets 30,000 characters at 1M tokens and
+  6,000 at 200,000. `SLASH_COMMAND_TOOL_CHAR_BUDGET` or
+  `skillListingBudgetFraction` overrides it. It counts every skill in the
+  session (user, project, every plugin, bundled), each entry as
+  `- cs:<name>: <description>` on its own line. Past the budget every skill
+  keeps its name; bundled skills keep their descriptions, and the others keep
+  theirs in order of recent use (use count decayed with a 7-day half-life)
+  until the budget is spent. `skillcheck` prints the description total
+  (24,922 characters for 30 skills on 2026-10-22; 25,360 with prefixes and
+  newlines), which fits a 1M window and not a 200,000 one.
 
 ## Adding or changing a skill
 

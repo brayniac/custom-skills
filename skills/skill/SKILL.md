@@ -79,10 +79,10 @@ then loads in place, and an edit takes effect at the next session or after
 same without installing. Installs from GitHub pick up a merged change with
 `claude plugin update custom-skills@custom-skills`.
 
-The listing budget is 1% of the context window, at 4 characters per token, by
-default: 40,000 characters for a 1M-token window, 8,000 for 200,000. Past it,
-skills lower in Claude Code's priority order are listed by name only, without
-their descriptions. The check prints the total; if it grows past what the
+The listing budget is 1% of the context window, at 3 characters per token for
+Claude 5 models (4 for Claude 3 and 4.x): 30,000 characters for a 1M-token
+window, 6,000 for 200,000. Past it, the least recently used skills are listed
+by name only, without their descriptions. The check prints the total; if it grows past what the
 listing holds, check `/context`, then shorten descriptions or raise
 `skillListingBudgetFraction`.
 
