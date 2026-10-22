@@ -20,7 +20,8 @@
 //! resolve `..` through the link instead, so a `${CLAUDE_SKILL_DIR}` path must
 //! exist under both readings. A link's target, followed, must stay inside the
 //! repository ([`repository`]): git stores a link out of it as a link, and a
-//! clone does not carry what it points at.
+//! clone does not carry what it points at. Every link followed must be
+//! relative ([`follow`]): an absolute one dangles in a clone on another host.
 
 use std::{
     collections::BTreeMap,
@@ -62,8 +63,11 @@ pub struct Skill {
 /// that is not valid YAML with exactly `name` and `description`, on a `name` that
 /// differs from its directory or uses characters outside `[a-z0-9_-]`, on an
 /// empty or over-long description, on two skills with one name, on a
-/// `${CLAUDE_SKILL_DIR}` path that names no file inside `root`, and on a name a
-/// `references/*.md` file gives as beside it that is not.
+/// `${CLAUDE_SKILL_DIR}` path that names no file inside `root`, on one that
+/// names no file when `..` is resolved through symlinks, on a skill directory
+/// or named path whose links lead outside the repository ([`repository`]), on
+/// an absolute symlink in either, and on a name a `references/*.md` file gives
+/// as beside it that is not.
 pub fn load(root: &Path, listed: &[PathBuf]) -> Result<Vec<Skill>> {
     if !root.is_dir() {
         bail!("{} is not a directory", root.display());
@@ -92,10 +96,8 @@ pub fn load(root: &Path, listed: &[PathBuf]) -> Result<Vec<Skill>> {
     }
     let repo = repository(&root);
     for skill in by_name.values() {
-        let target = skill
-            .dir
-            .canonicalize()
-            .with_context(|| format!("failed to resolve {}", skill.dir.display()))?;
+        let target = follow(&located(given, &root, skill))
+            .with_context(|| format!("in skill {:?}", skill.name))?;
         if !target.starts_with(&repo) {
             bail!(
                 "skill {:?} is a link to {}, outside the repository {}",
@@ -167,13 +169,66 @@ pub fn plugin_root(skills: &Path) -> PathBuf {
 }
 
 /// The repository holding the resolved skills root: its nearest ancestor with
-/// a `.git` entry (a directory, or a file in a worktree). With none, the root
-/// itself.
+/// a `.git` entry (a directory, or a file in a worktree) or a
+/// `.claude-plugin/marketplace.json`, the root of what a git install clones.
+/// The marketplace manifest covers a tree with no `.git`, such as the GitHub
+/// tarball rack-ci builds from. With neither, the root itself.
 fn repository(root: &Path) -> PathBuf {
     root.ancestors()
-        .find(|dir| dir.join(".git").exists())
+        .find(|dir| {
+            dir.join(".git").exists() || dir.join(".claude-plugin/marketplace.json").is_file()
+        })
         .unwrap_or(root)
         .to_path_buf()
+}
+
+/// Resolves every symlink in the absolute path `path`, as the OS does, so `..`
+/// after a link steps out of the link's target. Unlike `canonicalize`, it
+/// returns the path a missing file would have, and fails on an absolute link
+/// and on more than 40 links (a loop). `path` comes from the resolved skills
+/// root, so the components above it hold no links.
+fn follow(path: &Path) -> Result<PathBuf> {
+    use std::path::Component;
+    let mut out = PathBuf::new();
+    let mut pending: Vec<std::ffi::OsString> = Vec::new();
+    for part in path.components().rev() {
+        match part {
+            Component::Prefix(_) | Component::RootDir => out.push(part),
+            other => pending.push(other.as_os_str().to_owned()),
+        }
+    }
+    let mut links = 0;
+    while let Some(part) = pending.pop() {
+        if part == "." {
+            continue;
+        }
+        if part == ".." {
+            out.pop();
+            continue;
+        }
+        let next = out.join(&part);
+        let is_link = std::fs::symlink_metadata(&next).is_ok_and(|m| m.file_type().is_symlink());
+        if !is_link {
+            out = next;
+            continue;
+        }
+        links += 1;
+        if links > 40 {
+            bail!("more than 40 symlinks resolving {}", path.display());
+        }
+        let target = std::fs::read_link(&next)
+            .with_context(|| format!("failed to read the link {}", next.display()))?;
+        if target.is_absolute() {
+            bail!(
+                "{} is an absolute symlink to {}; a clone on another host has the link \
+                 and not its target, so make it relative",
+                next.display(),
+                target.display()
+            );
+        }
+        pending.extend(target.components().rev().map(|c| c.as_os_str().to_owned()));
+    }
+    Ok(out)
 }
 
 /// Removes `.` and resolves `..` against the preceding component, without
@@ -355,16 +410,19 @@ fn check_skill_dir_paths(given: &Path, root: &Path, repo: &Path, skill: &Skill) 
             );
         }
         // Following every link: where the file's bytes are, and where `..`
-        // lands when the skill is loaded in place through its own link.
-        for followed in [full.canonicalize(), skill.dir.join(rel).canonicalize()] {
-            let Ok(followed) = followed else {
+        // lands when the skill is loaded in place through its links.
+        let context = || format!("in skill {:?}, ${{CLAUDE_SKILL_DIR}}/{rel}", skill.name);
+        for followed in [follow(&full), follow(&dir.join(rel))] {
+            let followed = followed.with_context(context)?;
+            if !followed.exists() {
                 bail!(
                     "skill {:?} names ${{CLAUDE_SKILL_DIR}}/{rel}, which does not exist \
-                     beside the symlink's target {}; a plugin loaded in place reads it there",
+                     when `..` is resolved through symlinks ({}); a plugin loaded in \
+                     place reads it there",
                     skill.name,
-                    skill.dir.canonicalize().unwrap_or_default().display()
+                    followed.display()
                 );
-            };
+            }
             if !followed.starts_with(repo) {
                 bail!(
                     "skill {:?} names ${{CLAUDE_SKILL_DIR}}/{rel}, which resolves to {}, \
@@ -603,7 +661,78 @@ mod tests {
         // `../flat` exists beside the symlink, not beside its target, so a
         // plugin loaded in place from the checkout would not find it.
         let (_tmp, skills) = symlinked_skill("Read `${CLAUDE_SKILL_DIR}/../flat/references/y.md`.");
-        assert!(load_err(&skills).contains("beside the symlink's target"));
+        assert!(load_err(&skills).contains("when `..` is resolved through symlinks"));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_dotdot_through_a_linked_references_dir_names_the_resolved_path() {
+        // The link is `references/`, not the skill directory.
+        let tmp = TempDir::new().unwrap();
+        fs::create_dir(tmp.path().join(".git")).unwrap();
+        fs::create_dir_all(tmp.path().join("deep/x")).unwrap();
+        let skills = tmp.path().join("skills");
+        let dir = ok_skill(
+            &skills,
+            "a",
+            "Read `${CLAUDE_SKILL_DIR}/references/../SKILL.md`.",
+        );
+        std::os::unix::fs::symlink("../../deep/x", dir.join("references")).unwrap();
+        let err = load_err(&skills);
+        assert!(
+            err.contains("when `..` is resolved through symlinks"),
+            "{err}"
+        );
+        assert!(err.contains("deep/SKILL.md"), "{err}");
+    }
+
+    /// A GitHub tarball, as rack-ci builds from, has no `.git`; the
+    /// marketplace manifest marks the root a git install clones.
+    #[cfg(unix)]
+    #[test]
+    fn a_symlinked_skill_in_a_tree_without_git_resolves_within_the_marketplace() {
+        let (tmp, skills) = symlinked_skill("body");
+        fs::remove_dir(tmp.path().join(".git")).unwrap();
+        assert!(load_err(&skills).contains("outside the repository"));
+        fs::create_dir_all(tmp.path().join(".claude-plugin")).unwrap();
+        fs::write(tmp.path().join(".claude-plugin/marketplace.json"), "{}").unwrap();
+        load(&skills, &[]).unwrap();
+    }
+
+    /// In a git worktree `.git` is a file.
+    #[cfg(unix)]
+    #[test]
+    fn a_symlinked_skill_in_a_worktree_resolves_within_it() {
+        let (tmp, skills) = symlinked_skill("body");
+        fs::remove_dir(tmp.path().join(".git")).unwrap();
+        fs::write(tmp.path().join(".git"), "gitdir: /elsewhere\n").unwrap();
+        load(&skills, &[]).unwrap();
+    }
+
+    /// A clone on another host has the link but not the absolute path.
+    #[cfg(unix)]
+    #[test]
+    fn an_absolute_link_is_an_error() {
+        let (tmp, skills) = symlinked_skill("body");
+        let target = tmp
+            .path()
+            .canonicalize()
+            .unwrap()
+            .join("store/repository/linked");
+        fs::remove_file(skills.join("linked")).unwrap();
+        std::os::unix::fs::symlink(&target, skills.join("linked")).unwrap();
+        assert!(load_err(&skills).contains("absolute symlink"));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn an_absolute_link_inside_a_named_path_is_an_error() {
+        let (tmp, skills) = symlinked_skill("Read `${CLAUDE_SKILL_DIR}/../flat/references/y.md`.");
+        let twin = tmp.path().join("store/repository/flat");
+        fs::create_dir_all(&twin).unwrap();
+        let refs = skills.join("flat/references").canonicalize().unwrap();
+        std::os::unix::fs::symlink(&refs, twin.join("references")).unwrap();
+        assert!(load_err(&skills).contains("absolute symlink"));
     }
 
     #[cfg(unix)]
@@ -622,13 +751,17 @@ mod tests {
         fs::create_dir_all(dir.join("references")).unwrap();
         std::os::unix::fs::symlink("../../../../secret.md", dir.join("references/s.md")).unwrap();
         assert!(load_err(&skills).contains("outside the repository"));
-        // A references/ directory that is itself a link out, and an absolute link.
+        // A references/ directory that is itself a link out.
         fs::remove_dir_all(dir.join("references")).unwrap();
         let outside = tmp.path().join("outside");
         fs::create_dir_all(&outside).unwrap();
         fs::write(outside.join("s.md"), "x").unwrap();
-        std::os::unix::fs::symlink(&outside, dir.join("references")).unwrap();
+        std::os::unix::fs::symlink("../../../outside", dir.join("references")).unwrap();
         assert!(load_err(&skills).contains("outside the repository"));
+        // An absolute link out is refused for being absolute.
+        fs::remove_file(dir.join("references")).unwrap();
+        std::os::unix::fs::symlink(&outside, dir.join("references")).unwrap();
+        assert!(load_err(&skills).contains("absolute symlink"));
     }
 
     #[cfg(unix)]
