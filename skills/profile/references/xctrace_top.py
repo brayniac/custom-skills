@@ -47,7 +47,7 @@ def main():
     args = ap.parse_args()
 
     last = last_run(args.trace)
-    run = args.run or last
+    run = args.run if args.run is not None else last
     if not 1 <= run <= last:
         sys.exit(f"run {run} is not in the trace (runs 1 to {last})")
     root = export(args.trace, run)
