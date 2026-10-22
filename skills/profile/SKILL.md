@@ -1,9 +1,9 @@
 ---
 name: profile
-description: Profile GPU work to find where time goes — capture CUDA activity with Nsight Systems and query the exported SQLite for top kernels, memcpy by direction, CPU-side runtime API cost, and the GPU idle gap; or, on Apple silicon, a Metal frame capture scoped to one steady-state step plus an xctrace system trace. Use when a GPU workload is slower than expected, when choosing which kernel to optimise next, when a change should have reduced kernel or transfer time, and before quoting any per-kernel figure.
+description: Profile CPU or GPU work to find where time goes — on the CPU, sample with xctrace's Time Profiler on macOS (summarised by a bundled script into self and total time per function) or perf on Linux, from a release build with symbols and frame pointers; on the GPU, capture CUDA activity with Nsight Systems and query the exported SQLite for top kernels, memcpy by direction, CPU-side runtime API cost, and the GPU idle gap; or, on Apple silicon, a Metal frame capture scoped to one steady-state step plus an xctrace system trace. Use when a workload is slower than expected and the hot code is unknown, when a GPU workload is slower than expected, when choosing which kernel to optimise next, when a change should have reduced kernel or transfer time, and before quoting any per-kernel figure.
 ---
 
-# Profile GPU kernels
+# Profile
 
 A profile answers where time goes; it does not produce a performance number.
 Capture adds overhead (a full CPU backtrace adds about 30% under nsys; Metal
@@ -13,6 +13,62 @@ decide what to change.
 
 On the lab rack a GPU is only reachable from inside a VM; `lab`'s `vm.md` covers
 getting a GPU guest and pulling artifacts out.
+
+## CPU
+
+### 1. Build for profiling
+
+A release build, so the profile shows the code that ships. On macOS use a
+plain `cargo build --release`: its symbol table is enough. With debuginfo
+(`debug = true`, `line-tables-only` or `limited`), xctrace names a sample
+after the innermost inlined function and leaves out the function containing
+it: in a check here, a function doing 90% of the work appeared nowhere, its
+time attributed to `u64::wrapping_add` under `main`; without debuginfo the
+same binary split 92.4% and 7.4% in one run, 89.9% and 10.0% in another,
+matching its known 9:1 work. For `perf`
+on Linux, add `RUSTFLAGS="-C force-frame-pointers=yes"`.
+
+Profile one steady-state unit of work past warm-up, as for the GPU below. A
+toy loop the optimiser can delete runs in no time; check the binary takes the
+time you expect before reading its profile.
+
+### 2. Capture and summarise
+
+On macOS:
+
+```sh
+xcrun xctrace record --template 'Time Profiler' --output /tmp/cpu-1.trace \
+  --launch -- <binary> <args>
+python3 ${CLAUDE_SKILL_DIR}/references/xctrace_top.py /tmp/cpu-1.trace \
+  --process <name> --top 20 | rustfilt
+```
+
+The script exports the run's `time-profile` table and prints each function's
+self time (samples where it was the leaf) and total time (samples where it was
+on the stack), from the trace's last run unless `--run` names another. Use a
+new `--output` path for each capture. `rustfilt` demangles Rust symbols; drop
+`| rustfilt` if it is not installed (`cargo install rustfilt`).
+
+On Linux (in a VM job on the rack, `lab`), `perf` does the same; these commands
+were not run for this skill:
+
+```sh
+perf record -g --call-graph fp -o /tmp/perf.data -- <binary> <args>
+perf report -i /tmp/perf.data --stdio --no-children | rustfilt | head -60
+```
+
+### 3. Read it
+
+- **Self time first.** It says which code the CPU was executing. A leaf like
+  `memcpy`, a hash, or an allocator call at the top points at its callers'
+  behaviour, not at the leaf.
+- **Total time for a caller is a lower bound.** A sample taken in a
+  function's prologue or epilogue can omit its immediate caller (2–4% of a
+  leaf's samples, measured here with forced frame pointers). If the build has
+  debuginfo, the hot function itself can vanish under an inlined callee's name
+  (step 1).
+- After a change, profile again and compare the same functions' shares; take
+  the speed itself from an unprofiled run (`bench`).
 
 ## CUDA
 
