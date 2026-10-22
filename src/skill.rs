@@ -186,8 +186,8 @@ fn repository(root: &Path) -> PathBuf {
 /// steps out of the link's target; a `..` after a missing component or a file
 /// is resolved lexically. Unlike `canonicalize`, it returns the path a missing
 /// file would have, and fails on an absolute link and on more than 40 links (a
-/// loop). `path` comes from the resolved skills
-/// root, so the components above it hold no links.
+/// loop). `path` comes from the resolved skills root, so the components above
+/// it hold no links.
 fn follow(path: &Path) -> Result<PathBuf> {
     let mut out = PathBuf::new();
     let mut pending: Vec<std::ffi::OsString> = Vec::new();
@@ -396,7 +396,8 @@ fn check_skill_dir_paths(given: &Path, root: &Path, repo: &Path, skill: &Skill) 
         .filter(|rel| !rel.contains('<'))
     {
         // Lexically, as a git install reads it. Each entry a `..` steps back
-        // out of must exist, as it must for the OS to resolve the path.
+        // out of must exist; a file there is not refused, though the OS would
+        // not resolve `file/..`.
         let mut full = dir.clone();
         for part in Path::new(rel).components() {
             match part {
