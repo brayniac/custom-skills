@@ -296,14 +296,19 @@ fn check_skill_dir_paths(root: &Path, skill: &Skill) -> Result<()> {
     Ok(())
 }
 
-/// Every name `text` gives in backticks followed by `(beside this file)` or
-/// `, beside this file`, the form a reference file uses for a sibling because
+/// Every name `text` gives in backticks followed by `(beside this file)`,
+/// `, beside this file` or ` beside this file`, the forms a reference file uses
+/// for a sibling because
 /// Claude Code substitutes `${CLAUDE_SKILL_DIR}` only in a `SKILL.md` body. The
 /// phrase may break across lines.
 pub fn beside_names(text: &str) -> Vec<String> {
     let flat = text.split_whitespace().collect::<Vec<_>>().join(" ");
     let mut names = Vec::new();
-    for suffix in ["` (beside this file)", "`, beside this file"] {
+    for suffix in [
+        "` (beside this file)",
+        "`, beside this file",
+        "` beside this file",
+    ] {
         for (at, _) in flat.match_indices(suffix) {
             if let Some(open) = flat[..at].rfind('`') {
                 names.push(flat[open + 1..at].to_owned());
@@ -677,6 +682,15 @@ mod tests {
         write_reference(&dir, "x.md", "See `gone.md`, beside\nthis file.");
         let err = load_err(tmp.path());
         assert!(err.contains("`gone.md`"), "{err}");
+    }
+
+    #[test]
+    fn a_beside_name_without_punctuation_is_checked() {
+        let tmp = TempDir::new().unwrap();
+        let dir = ok_skill(tmp.path(), "a", "Body.");
+        write_reference(&dir, "x.md", "`gone.rs` beside this file is a model.");
+        let err = load_err(tmp.path());
+        assert!(err.contains("`gone.rs`"), "{err}");
     }
 
     #[test]

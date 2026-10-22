@@ -46,5 +46,6 @@ does not inspect skills. `cargo run --quiet` refuses, and exits 1 on:
   directories;
 - a `${CLAUDE_SKILL_DIR}` path in a body that names no file, or a file outside
   `skills/`. A path containing `<` is a placeholder and is not checked;
-- a name a `references/*.md` file gives as "`<file>`, beside this file" or
-  "`<file>` (beside this file)" that is not in that directory.
+- a name a `references/*.md` file gives as "`<file>`, beside this file",
+  "`<file>` (beside this file)" or "`<file>` beside this file" that is not in
+  that directory.
