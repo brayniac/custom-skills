@@ -1,5 +1,5 @@
 [package]
-name = "check-skills"
+name = "skillcheck"
 version = "0.1.0"
 edition = "2021"
 description = "Refuses a skills tree that Claude Code would load wrongly without saying so."
@@ -7,7 +7,7 @@ license = "MIT OR Apache-2.0"
 publish = false
 
 [[bin]]
-name = "check-skills"
+name = "skillcheck"
 path = "src/main.rs"
 
 [dependencies]

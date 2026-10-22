@@ -7,7 +7,7 @@ marketplace (`.claude-plugin/marketplace.json`, named `custom-skills`). Each
 `plugin.json`, kept short because it is typed before every skill, while the
 marketplace and its entry stay `custom-skills`, so installs are
 `custom-skills@custom-skills`. The Rust crate at
-the root is not part of the plugin: it is `check-skills`, which refuses a skills
+the root is not part of the plugin: it is `skillcheck`, which refuses a skills
 tree Claude Code would load wrongly.
 
 Most work here is **writing skills**. README.md covers install, updating, and
@@ -19,7 +19,7 @@ code.
 Run all of these before claiming a change is done:
 
 ```sh
-cargo run --quiet                                  # check-skills over skills/
+cargo run --quiet                                  # skillcheck over skills/
 cargo fmt --all -- --check
 cargo clippy --all-targets --locked -- -D warnings
 cargo test --locked
@@ -38,7 +38,7 @@ version specified" warning is expected: see Invariants.
 repository with a skill whose frontmatter was not valid YAML, a skill whose
 `name` differed from its directory, and an empty skill directory. Claude Code
 loads such a skill with empty metadata, so it drops out of the listing with no
-error. That is why `check-skills` exists; keep it failing on those cases.
+error. That is why `skillcheck` exists; keep it failing on those cases.
 
 ## Invariants
 
@@ -50,11 +50,11 @@ error. That is why `check-skills` exists; keep it failing on those cases.
   Code substitutes the skill's absolute directory when it loads the body. A bare
   `references/<file>` resolves against the session's working directory. Another
   skill's file is `${CLAUDE_SKILL_DIR}/../<other>/references/<file>`.
-  `check-skills` fails on a path that names no file; a path containing `<` is a
+  `skillcheck` fails on a path that names no file; a path containing `<` is a
   placeholder and is skipped. The substitution happens only in a `SKILL.md`
   body: a file under `references/` names a sibling as "`<file>`, beside this
   file", "`<file>` (beside this file)" or "`<file>` beside this file", which
-  `check-skills` checks, and another skill's file by that skill's name and
+  `skillcheck` checks, and another skill's file by that skill's name and
   relative path, which it does not.
 - **Skills do not act when loaded.** A skill returns instructions; a script
   beside it runs only when the body tells the agent to run it. Do not add hooks,
@@ -72,12 +72,12 @@ error. That is why `check-skills` exists; keep it failing on those cases.
   the string.
 - **Frontmatter holds exactly `name` and `description`.** `name` matches
   `[a-z0-9_-]{1,64}` and equals the directory name; `description` is at most
-  1,536 characters. `check-skills` rejects any other key so a misspelled one
+  1,536 characters. `skillcheck` rejects any other key so a misspelled one
   fails instead of being ignored; add a key to `Frontmatter` in `src/skill.rs`
   when a skill needs one Claude Code supports.
 - **The description listing has a budget.** Claude Code allots about 1% of the
   context window to all skill descriptions and drops the least-used past that.
-  `check-skills` prints the total (19,794 characters for 34 skills on
+  `skillcheck` prints the total (19,794 characters for 34 skills on
   2026-10-07; at about 21,700 for 38, every description was listed under
   Sonnet 5.5 and Opus 5.5). If it grows a lot, check `/context` in a session.
 
@@ -110,8 +110,11 @@ Conventions the existing skills follow:
 - `skills/` is a flat list. Claude Code loads `skills/<name>/SKILL.md`, and
   for each path `plugin.json` lists under `skills` (`"skills":
   ["./skills/<group>"]`), `<path>/SKILL.md` or `<path>/<name>/SKILL.md`.
-  `check-skills` fails on a skill at any other depth and on a listed path
+  `skillcheck` fails on a skill at any other depth and on a listed path
   outside `skills/`.
+  A skill directory may be a relative symlink to a directory elsewhere in the
+  repository; a git install copies the target, and `skillcheck` judges the
+  skill where it is listed.
 
 ### Iterating
 
@@ -128,8 +131,8 @@ a one-off session, `claude --plugin-dir .`.
 | `.claude-plugin/marketplace.json` | The `custom-skills` marketplace, with this repository as its one plugin (`"source": "./"`) |
 | `skills/` | The skills |
 | `hooks/` | `hooks.json` and the review gate (`review_gate.py`, its test) |
-| `src/skill.rs` | The rules `check-skills` enforces, and their tests |
-| `src/main.rs` | The `check-skills` command |
+| `src/skill.rs` | The rules `skillcheck` enforces, and their tests |
+| `src/main.rs` | The `skillcheck` command |
 
 Tests live inline in `#[cfg(test)]` modules. A new rule in `src/skill.rs` gets a
 test that fails without it.

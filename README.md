@@ -147,7 +147,7 @@ absolute directory, so a bundled script runs in place.
 
 Claude Code loads a skill whose frontmatter does not parse with empty metadata,
 so a broken skill drops out of the listing without an error, and
-`claude plugin validate` checks only the manifests. The `check-skills` crate at
+`claude plugin validate` checks only the manifests. The `skillcheck` crate at
 the repository root refuses those cases:
 
 ```sh
@@ -169,12 +169,12 @@ rack-ci runs all but the last (`.rack-ci.toml`).
 | `.claude-plugin/marketplace.json` | The `custom-skills` marketplace, listing this repository as its one plugin |
 | `skills/` | The skills |
 | `hooks/` | `hooks.json` and the review gate (`review_gate.py`, its test) |
-| `src/skill.rs` | The rules `check-skills` enforces, and their tests |
-| `src/main.rs` | The `check-skills` command |
+| `src/skill.rs` | The rules `skillcheck` enforces, and their tests |
+| `src/main.rs` | The `skillcheck` command |
 
 Claude Code loads `skills/<name>/SKILL.md`. A skill in a grouping directory
 (`skills/<group>/<name>/SKILL.md`) loads only when `plugin.json` lists
-`./skills/<group>` under `skills`, which adds one level; `check-skills` fails
+`./skills/<group>` under `skills`, which adds one level; `skillcheck` fails
 on a skill Claude Code would not load.
 
 ## Credit

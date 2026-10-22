@@ -41,7 +41,7 @@ frontmatter when the skill is invoked.
    the skill's. Another skill's file is
    `${CLAUDE_SKILL_DIR}/../<other>/references/<file>`.
 
-6. **Run the check.** `cargo run --quiet` (the `check-skills` crate at the
+6. **Run the check.** `cargo run --quiet` (the `skillcheck` crate at the
    repository root) refuses what Claude Code would load wrongly without an
    error: frontmatter that is not YAML with exactly `name` and `description`,
    a name that differs from its directory, a description over 1,536
