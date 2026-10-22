@@ -144,7 +144,7 @@ fn check_listed(root: &Path, listed: &[PathBuf], skills: &[Skill]) -> Result<()>
     // would load in Claude Code without being checked.
     if let Some(outside) = listed.iter().find(|p| !p.starts_with(&root)) {
         bail!(
-            "plugin.json lists {} under `skills`, which is outside {}; check-skills \
+            "plugin.json lists {} under `skills`, which is outside {}; skillcheck \
              checks only skills under {}",
             outside.display(),
             root.display(),

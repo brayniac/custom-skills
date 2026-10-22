@@ -1,4 +1,4 @@
-//! `check-skills` — refuses a skills tree that Claude Code would load wrongly
+//! `skillcheck` — refuses a skills tree that Claude Code would load wrongly
 //! without saying so.
 //!
 //! ```sh
