@@ -27,6 +27,12 @@ while :; do
   while read -r repo n || [ -n "${repo:-}" ]; do
     case "${repo:-}" in ''|'#'*) repo=; continue ;; esac
     count=$((count + 1))
+    case "${n:-}" in
+      ''|*[!0-9]*)
+        errors=$((errors + 1))
+        out="$out$repo#${n:-} watcher-error: not a PR number"$'\n'
+        repo=; continue ;;
+    esac
     if s=$(/bin/bash "$state" "$n" "$repo" 2>&1); then
       pr=$(printf '%s\n' "$s" | grep '^PR ')
       v=$(printf '%s\n' "$s" | grep '^VERDICT ')

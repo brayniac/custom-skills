@@ -118,8 +118,8 @@ Poll step 1 every minute or two while checks are pending. Follow
 stop with `watcher-timeout` after about twice the checks' usual duration. A
 watcher that has printed nothing is broken until shown otherwise. For one or
 more PRs, run `${CLAUDE_SKILL_DIR}/../watch/references/watch-prs.sh` in the
-background with a list file; it polls `pr_state.sh` and exits when every PR is
-done.
+background with a list file: it polls `pr_state.sh`, prints a count per poll,
+and on exit prints each PR's `PR` and `VERDICT` lines.
 
 ## 7. Stop
 
