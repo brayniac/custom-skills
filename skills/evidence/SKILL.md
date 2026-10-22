@@ -6,8 +6,8 @@ description: Ground every factual claim before stating it — in chat, a skill, 
 # Evidence
 
 Each claim below was written at the same confidence as claims checked
-minutes earlier, and each rested on memory, one repository, a reviewer, or
-an inference. In one session of skill work, these were written as fact and
+minutes earlier, and each rested on memory, one repository, a PR title, a
+reviewer, or an inference. In one session of skill work, these were written as fact and
 refuted by a check:
 
 | Claim | It rested on | The check that refuted it |
@@ -94,7 +94,7 @@ relaying it to the user as fact:
 When there are more findings than you will check yourself, or the text is going
 somewhere it will be quoted (a skill, reference docs, a report), give steps 1 to
 3 to a fresh agent: `subagent_type` general-purpose on the default model, not a
-fork, read-only (no edits, push or comment), with the findings verbatim, the
+fork, read-only (no edits, push or comment). Give it the findings verbatim, the
 head to check against, and this instruction: "For each finding, mark each
 factual statement and each sentence of its proposed replacement confirmed (with
 the command or file:line that shows it), refuted (with the evidence), or
