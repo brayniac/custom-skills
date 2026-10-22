@@ -112,6 +112,9 @@ Conventions the existing skills follow:
   ["./skills/<group>"]`), `<path>/SKILL.md` or `<path>/<name>/SKILL.md`.
   `skillcheck` fails on a skill at any other depth and on a listed path
   outside `skills/`.
+  A skill directory may be a relative symlink to a directory elsewhere in the
+  repository; a git install copies the target, and `skillcheck` judges the
+  skill where it is listed.
 
 ### Iterating
 
