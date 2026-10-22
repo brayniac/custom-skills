@@ -76,6 +76,12 @@ colorblind-safe) for the two paths worth separating. Keep those two if you
 change everything else, because edge color has no shape to fall back on. Key
 panel: `#F2F2F2` fill, `#9E9E9E` border.
 
+These are fixed-ink values for a chart shipped as an image. A chart inlined
+in a page that defines a semantic palette uses the page's tokens (the skill's
+step 8). Map the two path colors to page tokens a colorblind reader can tell
+apart; if the page has no such pair, keep `#CC79A7` and `#D55E00` in both
+themes, and check their contrast against the dark ground.
+
 ## Edge vocabulary
 
 | Style | Means |
@@ -84,11 +90,27 @@ panel: `#F2F2F2` fill, `#9E9E9E` border.
 | dashed, `constraint=false` | a value crossing a cycle boundary: real flow, no ordering claim |
 | dotted | a dependency that is not dataflow, such as a parameter reaching an operation |
 | `penwidth=2` | the product the pipeline exists to emit |
+| curved, open head | an address: a stored offset or reference naming a place; never flow |
 
 Dashed and unconstrained deferred reads keep a cyclic program readable as a
 DAG. Frames on glyphs use the same grammar: solid frame for a property that
 always holds, dashed for conditional, none for absent. Scale the frame with
 the glyph, or it becomes a slab on the key's smaller copy.
+
+The curve is reserved for addresses. An address arrow claims a field's value,
+not that bytes move. When a byte-layout figure shares a page or a key with
+flow charts (a block's anatomy beside the writer that produces it), its offset
+arrows are curved and no flow edge is.
+
+## Many failure points: numbered tags and a table
+
+When a chart must show every place something can go wrong (each point a
+writer can fall behind, reallocate, drop, or block), label none of them in
+place. Put a numbered tag on the node or edge and describe each in a table
+keyed by the same numbers, one row per tag. The chart shows where; the table
+says what happens and how bad it is. Draw the tags as badges
+(`architecture.md`), and check them for bounds and collisions like any other
+label.
 
 ## Position
 

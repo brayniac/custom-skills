@@ -3,8 +3,10 @@
 For a memory or wire format that already exists in code: the byte anatomy of
 one encoded instance, the per-variant conventions of a shared encoding, or the
 linkage between blocks. The conventions come from one binary collection format
-in one repository. The first three rules below are that format's author's; the
-rest is inferred from the figures and carries less weight.
+in one repository, except the curved offset arrow, which comes from a
+reference page that drew a block's anatomy beside flow charts. The first three
+rules below are the collection format's author's; the rest is inferred from
+the figures and carries less weight.
 
 ## Three rules
 
@@ -55,11 +57,14 @@ unbuilt part is dashed, the shipped part solid, and the caption says which.
 - Brackets above for spans, staggered when labels collide, each carrying the
   field name and its decoded value, so a reader can check the figure against
   the bytes.
-- An arrow from every stored offset to the element it addresses.
+- An arrow from every stored offset to the element it addresses. When the
+  figure shares a page or a key with flow charts, draw these arrows curved
+  with an open head, the style `dataflow.md` reserves for addresses, so a
+  reader cannot take a pointer for a path.
 - A caption that states the claim ("the tail offset points at the last entry's
   first byte, so tail access is constant time"), not the contents.
-- Fixed ink on an opaque ground. A host that embeds the figure as an image
-  drops inherited page colors.
+- Colors chosen by how the figure is embedded (the skill's step 8): fixed
+  ink on an opaque ground for an image, the page's tokens when inlined.
 - An accessible label inside the figure and prose beside it stating the same
   claim.
 
