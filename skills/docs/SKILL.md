@@ -107,7 +107,8 @@ you gave it, context leaked; rerun it clean.** Blind users find text that is
 insufficient; the critic finds text a blind user passed by luck.
 
 For an MCP server or a skill, the blind user gets the tool list and picks a
-tool; `skill` step 7 is the same test for one skill's description.
+tool. `skill` step 7, sub-step 5, tests one skill's description by running
+the prompt and looking for the `Skill` call.
 
 ## 6. Revise the specific finding, at most three rounds
 

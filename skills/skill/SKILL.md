@@ -50,14 +50,25 @@ frontmatter when the skill is invoked.
    passed a skill with broken YAML.
 
 7. **Check that the skill changes what an agent does.** Loading proves the
-   file parses, not that it helps. For a skill that corrects a behaviour, give
-   a fresh agent (no skill) a realistic task that invites the mistake and
-   record what it does, in its own words; then repeat with the skill available
-   and compare. Two things to look for: whether the agent calls the skill at
-   all from its description, and whether it follows the body or only the
-   description — a description that summarises the steps can be followed
-   instead of the body. Put what was observed in the commit body. If the
-   baseline agent already does the right thing, the skill is not needed.
+   file parses, not that it helps. Compare an agent with the skill against
+   one without it (for a revision, against the current version). The
+   sections of `${CLAUDE_SKILL_DIR}/references/evaluate.md` hold the detail:
+   1. Freeze each task's required and prohibited outcomes before editing or
+      running anything, and never show them to a worker (section 1).
+   2. Build each task on conventions an agent without the skill cannot
+      infer, several in one task (section 2).
+   3. Run both arms as fresh agents that execute the task in a sandbox with
+      no outward actions, logging every command (section 3).
+   4. Grade blind with a separate agent (section 4).
+   5. Run the description on a task that needs the skill and on a near-miss,
+      and look for a `Skill` call in each (section 5).
+   6. Record the result in the commit body, including a null and which kind
+      of null it is (section 7).
+
+   A skill that only supplies values or endpoints needs only sub-steps 5 and
+   6. A revision that changes no instruction needs only sub-step 6, plus
+   sub-step 5 if the description changed. Say so in the commit body. A
+   revision that shortens a skill also gets section 6.
 
 ## While iterating
 
