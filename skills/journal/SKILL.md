@@ -155,7 +155,7 @@ and the evidence each requires):
 In the same PR: update `updated`, the index row (state and a one-line result
 with its headline number), the backlog per `keep-backlog` step 4, and any
 document the outcome changes. Write the entry after verifying the work
-(`verify-change`), not from memory of it.
+(`verify`), not from memory of it.
 
 If the repository's entries end with a skills-invoked appendix, keep it by the
 rules in `${CLAUDE_SKILL_DIR}/references/skill-use-appendix.md`.

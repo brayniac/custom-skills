@@ -16,7 +16,7 @@ are there to make an honest roster easier to write than an invented one.
 ## Appendix: Skills Invoked
 
 - `architecture-diagram` (beta) — derivation and render checks for figures.
-- `verify-change` — gates before the close-out push.
+- `verify` — gates before the close-out push.
 ```
 
 - The roster covers the whole effort. On update, append; do not rewrite it

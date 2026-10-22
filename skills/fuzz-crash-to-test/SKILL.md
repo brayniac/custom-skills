@@ -42,7 +42,7 @@ downstream: `numel()` and then the `numel × type_size` multiply.
 
 Write the guard (step 5), run it against the unfixed code, and see it fail. Then
 fix, and see it pass. A test written after the fix has not been shown to catch
-the bug (`verify-by-breaking`).
+the bug (`verify` step 8).
 
 ## 5. Choose the strongest guard the property allows
 
@@ -66,7 +66,7 @@ under `corpus/`, which is generated and usually ignored.
 
 ## 7. Gate and PR
 
-Run the repository's gates (`verify-change`) and open the PR (`pr`). The
+Run the repository's gates (`verify`) and open the PR (`pr`). The
 PR body names the invariant, every site fixed, and the guard.
 
 ## Never

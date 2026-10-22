@@ -14,7 +14,7 @@ the day before, a rebase that replayed someone else's commits.
 
 Answering findings someone else made (a person, Copilot, another agent): go to
 step 7. A change whose gates are still red is not ready for review; fix those
-first (`verify-change`).
+first (`verify`).
 
 ## 1. Dispatch a fresh agent, not a fork
 
@@ -111,7 +111,7 @@ entry is not reference documentation.
 - After applying a prose replacement, **check the old text is gone**
   (`rewrite-mechanically` step 5): a correction appended to a stale paragraph
   leaves documentation that says both things.
-- **Re-run the full gate list** afterwards (`verify-change`); doc comments are
+- **Re-run the full gate list** afterwards (`verify`); doc comments are
   compiled by doctests and checked by the intra-doc link lint.
 
 ## 7. Answer every finding

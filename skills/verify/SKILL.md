@@ -1,17 +1,18 @@
 ---
-name: verify-change
-description: Check a code change against the repository's own declared gates before pushing it or saying it works — the branch's prior CI state read first so a later failure can be attributed, every listed gate command run verbatim to a finished exit code, test counts checked so a gated-out file is not read as a pass, cfg-gated call sites found by grep, and a caller-side review for API changes. Use before any push or PR, before writing "tests pass", "fixed" or "CI is green", after a fix to one crate of a workspace, and when local gates are green but CI is red.
+name: verify
+description: Check a change before pushing it or saying it works, and show that every new check can fail — the branch's prior CI state read first so a later failure can be attributed, every gate the repository declares run verbatim to a finished exit code, test counts checked so a gated-out file is not read as a pass, cfg-gated call sites found by grep, a caller-side review for API changes, and each new test, guard or CI rung broken on purpose (the specific fault applied, seen red, restored). Use before any push or PR, before writing "tests pass", "fixed" or "CI is green", after a fix to one crate of a workspace, when local gates are green but CI is red, immediately after writing a test, regression test, guard or CI rung, when a check has never been seen to fail, and when a mutation or fault injection unexpectedly passes.
 ---
 
-# Verify a change
+# Verify
 
 Every failure this skill exists for was green locally. The gates were real;
 what went wrong was which gates ran, how their result was read, and what the
 local platform could not compile. Work through the steps in order and report
 per gate.
 
-This covers code changes. For a benchmark number, use `benchmark-validity`;
-for a test you just wrote, use `verify-by-breaking` to show it can fail.
+Steps 1 to 7 check which gates ran and how their result was read. Step 8
+checks that each check the change adds can fail. For a benchmark number, use
+`benchmark-validity`.
 
 ## 1. Read the branch's CI state before starting
 
@@ -123,10 +124,64 @@ a clean context (a fresh agent, not a fork of this one) asked specifically:
 
 `review` step 4 has the full procedure.
 
-## 8. Report
+## 8. Break every check the change adds
+
+A test that passes shows nothing about what it would catch. A test that fails
+against the specific fault it was written for shows that it works. Do this for
+each new test, regression test, guard or CI rung, before counting it as
+coverage.
+
+1. **Name the fault.** Write down the specific mutation the check exists to
+   catch — the reverted fix, the deleted call, the swapped operands — before
+   touching anything.
+
+2. **Back up the file outside the repository.** Do not rely on `git checkout`
+   to restore; a timeout can kill the command mid-mutation.
+
+3. **Apply the mutation and confirm it applied.** Count the occurrences before
+   and after, or diff. Several mutations have silently matched nothing, and
+   one matched the wrong copy: two functions contained an identical line, and
+   `perl -0pi -e 's/…/…/'` without `/g` changed only the first — in a function
+   the fixture never exercised — so the check "passed". Anchor to the
+   enclosing function, or count first and expect exactly one.
+
+4. **Run the check and read its exit code directly**, not through a pipe
+   (`node t.js | head; echo $?` reports `head`). Expect failure.
+
+5. **Restore and confirm the restoration**: `git status` clean, the occurrence
+   count back to its original value.
+
+6. **Report the observation**: which test failed, with what message. Not "the
+   test covers X".
+
+For a regression test the mutation is the fix itself: write the test, run it
+against the unfixed code (it must fail), apply the fix (it must pass).
+
+### When the mutation does not fail
+
+That is the finding; do not move on. One of three things is true, and all
+three have been reported as coverage before someone checked:
+
+- **The fixture never reaches the branch.** A fixture that reached a branch only
+  through an event ordering the real API cannot produce (`ORDER BY ts DESC`)
+  gave coverage of an impossible input.
+- **The mutation landed somewhere else** (item 3 above).
+- **The property is not tested.** Reverting `ORDER BY ts DESC, rowid DESC` to
+  `ts DESC` left its test passing because SQLite's own tie-break happened to
+  match. The fix was real; the test did not prove it. Say that rather than
+  counting it verified.
+
+Fix the check, not the report.
+
+To design a check that can fail in the first place (a non-vacuity assertion, a
+known-wrong variant the fixture must separate, one bound across every output),
+read `${CLAUDE_SKILL_DIR}/references/checks-that-fail.md`.
+
+## 9. Report
 
 One line per gate: the command, `pass` / `fail` / `not run here`, and for
-`not run here` the reason and the CI job that will run it. Include the prior CI
+`not run here` the reason and the CI job that will run it. One line per new
+check: the mutation applied and the failure observed. Include the prior CI
 state from step 1. Push only when every gate is `pass` or `not run here` with a
 named job; after pushing, confirm the remote has your commit:
 
@@ -144,3 +199,9 @@ git rev-parse HEAD origin/$(git branch --show-current)
   not a workspace pass.
 - **Never read a `rack-ci` `error` as a code failure**, and never read a GitHub
   check that failed in four seconds with no steps as one either (`use-rack-ci`).
+- **Never report a check as coverage without having seen it fail** against the
+  fault it names.
+- **Never mutate without a backup outside the repository** and a confirmed
+  restore.
+- **Never accept "the mutation passed" as a pass.** It is a finding about the
+  check.

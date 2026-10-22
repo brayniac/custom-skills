@@ -77,7 +77,7 @@ of absence, equivalence or who-does-what checked with a grep, and text written
 from the session's vantage removed. It reports one line per comment touched.
 Run it alone (mode `audit`) when asked to check a change's comments.
 
-Then run the repository's declared gates with `verify-change`. If a gate fails,
+Then run the repository's declared gates with `verify`. If a gate fails,
 fix it or stop and report; do not open a PR on a red gate without saying so in
 the body.
 
@@ -107,7 +107,7 @@ gh pr create --repo <owner/repo> --head <head> --base main \
 
 Write the body with `${CLAUDE_SKILL_DIR}/references/pr-body.md`: why the change
 exists, the decisions that want the reviewer, where to look more closely, what
-the tests ran and do not cover (the per-gate lines from `verify-change`), and
+the tests ran and do not cover (the per-gate lines from `verify`), and
 what only production can show. Say what `review` found and how each finding was
 answered. Use the same file to update a body after new commits, or when asked to
 write a PR description. For an API change, state what a caller can no longer do,

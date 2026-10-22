@@ -177,12 +177,12 @@ confirming run. Treat `FLAKY` as an intermittent failure and go back to
 step 1. It refuses to start if the victim fails with no candidate run, or if
 the check reports pollution straight after the reset.
 
-A cargo test filter that matches nothing exits 0 (`verify-change` step 4), so
+A cargo test filter that matches nothing exits 0 (`verify` step 4), so
 a misspelled id reads as clean. Take the ids from `--list`, as above.
 
 Then fix the polluting test, and add a guard where the state is created (a
 test-only assertion that the directory is a temp dir, a reset of the global
-in the test's setup), and confirm with `verify-by-breaking` that the guard
+in the test's setup), and confirm with `verify` step 8 that the guard
 fails when the polluter is restored.
 
 ## Never

@@ -43,7 +43,7 @@ was green locally and broke inside a `#[cfg(has_io_uring)]` block in CI, and
 a whole test file reported `running 0 tests; test result: ok`. The same holds
 for GPU backends (`ferallm-cuda` is an empty member on macOS). Grep every use
 of a changed item, including inside `cfg` blocks, and treat the Linux job as
-the compile for that code (`verify-change` steps 4 and 5).
+the compile for that code (`verify` steps 4 and 5).
 
 **Some repos format with nightly.** systemslab and durable set
 `imports_granularity` and `group_imports` in `rustfmt.toml`, which stable
@@ -137,7 +137,7 @@ defaults
 at deny-warnings, so a lint you want enforced has to go in CI, not in an
 attribute nobody will notice.
 
-Run the repo's own checks before proposing a change; `verify-change` covers
+Run the repo's own checks before proposing a change; `verify` covers
 finding and running them.
 
 ## Review sweeps to run by grep before reading
