@@ -75,11 +75,19 @@ error. That is why `skillcheck` exists; keep it failing on those cases.
   1,536 characters. `skillcheck` rejects any other key so a misspelled one
   fails instead of being ignored; add a key to `Frontmatter` in `src/skill.rs`
   when a skill needs one Claude Code supports.
-- **The description listing has a budget.** Claude Code allots about 1% of the
-  context window to all skill descriptions and drops the least-used past that.
-  `skillcheck` prints the total (19,794 characters for 34 skills on
-  2026-10-07; at about 21,700 for 38, every description was listed under
-  Sonnet 5.5 and Opus 5.5). If it grows a lot, check `/context` in a session.
+- **The description listing has a budget.** In Claude Code 2.1.308 it is the
+  context window in tokens (200,000 when unknown) times characters per token
+  times 0.01. Characters per token is 4 for Claude 3 and 4.x models and 3 for
+  later ones, so a Claude 5 model gets 30,000 characters at 1M tokens and
+  6,000 at 200,000. `SLASH_COMMAND_TOOL_CHAR_BUDGET` or
+  `skillListingBudgetFraction` overrides it. It counts every skill in the
+  session (user, project, every plugin, bundled), each entry as
+  `- cs:<name>: <description>` on its own line. Past the budget every skill
+  keeps its name; bundled skills keep their descriptions, and the others keep
+  theirs in order of recent use (use count decayed with a 7-day half-life)
+  until the budget is spent. `skillcheck` prints the description total
+  (24,922 characters for 30 skills on 2026-10-22; 25,360 with prefixes and
+  newlines), which fits a 1M window and not a 200,000 one.
 
 ## Adding or changing a skill
 
