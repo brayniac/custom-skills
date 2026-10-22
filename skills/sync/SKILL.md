@@ -43,10 +43,10 @@ Then find how the repository merges:
 ## 2. Merge or rebase
 
 - Not pushed: rebase onto `<remote>/<base>`.
-- Pushed, the PR will not be merged by rebase, and no CI check reads each
-  commit: merge `<remote>/<base>` in. It needs no force-push.
-- Pushed, and the repository merges by rebase or checks each commit: a rebase
-  needs a force-push. Ask the user first; if others commit to the branch,
+- Pushed, the PR will not be merged by rebase, and no CI check rejects a
+  merge commit: merge `<remote>/<base>` in. It needs no force-push.
+- Pushed, and the repository merges by rebase or a CI check rejects merge
+  commits: a rebase needs a force-push. Ask the user first; if others commit to the branch,
   tell them before pushing. Push with `--force-with-lease=<branch>:<sha you
   observed>`.
 - Stacked on a parent that was squash-merged: the branch still carries the
