@@ -100,6 +100,9 @@ Request flow:
 ## Default visual language
 
 Adopt all of it or replace all of it; record a replacement in the charter.
+The palette is fixed ink for a chart shipped as an image; a chart inlined in a
+page that defines a semantic palette uses the page's tokens (the skill's step
+8).
 
 - Palette (pastel, for large filled areas): interface/protocol `#FBB4AE`,
   storage/state `#B3CDE3`, runtime/core `#CCEBC5`, foundation `#F2F2F2`,

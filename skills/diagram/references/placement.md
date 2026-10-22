@@ -3,8 +3,11 @@
 Every element inside its panel is the weakest layout claim available, and it is
 usually the only one a generator checks. On the io_uring runtime's topology and
 request-lifecycle charts, a reader reported seven defects, and all seven passed
-the bounds check. Each rule below is one of those defects. Implement each as a
-generator assertion that runs beside the bounds check.
+the bounds check. Each of the first six rules below is one of those defects.
+The last comes from a reference page whose generator checked label overflow
+against measured text width; it is a rule that page followed, not a defect a
+reader reported. Implement each as a generator assertion that runs beside the
+bounds check.
 
 | Rule | Defect it came from | Assertion |
 | --- | --- | --- |
@@ -14,6 +17,7 @@ generator assertion that runs beside the bounds check.
 | Route to the resolved border, not to the column the shape nominally sits in | a connector correct for a narrow box went through a wider sibling | every endpoint lies on the border of the shape it names; equivalent steps share one geometry |
 | Label a parallel pair outward: upper label above the upper line, lower below the lower | both labels above their lines put the inner one nearer the arrow it did not describe | each label is nearer its own connector than any other |
 | Check containment at every level: children inside the parent's content area, siblings apart, the parent's header in its own band | child shapes crossed the parent's border; parent and child labels shared one text rhythm | child bounds within parent content bounds; header band disjoint from children |
+| Measure label fit from the rendered text: the font's metrics or the renderer's measurement, never a character count times an average glyph width | none reported; an estimate passes a label one wide glyph too long, and the bounds check sees the box, not the text | each label's measured width plus padding fits the shape it labels |
 
 The durability rule: a visual defect fixed by changing coordinates comes back
 at the next layout change. On the runtime charts the fixes held only because
