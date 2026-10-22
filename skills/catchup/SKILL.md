@@ -1,6 +1,6 @@
 ---
 name: catchup
-description: Brief the user, or yourself at the start of a session, on the state of a repository before work resumes — the current branch's position against its upstream and main, uncommitted work, stashes and other worktrees, the CI state of the branch and of the user's open PRs, instruction files changed since the window began, and what landed on main grouped by theme with risky changes first. Picks the window by time or reflog, because commits authored by the user's git identity include every agent session's work. Read-only. Use when the user says "catch me up", "what did I miss", "what changed while I was out", "where was I", at the start of a session that resumes earlier work, and before starting new work on a branch you did not create in this session.
+description: Brief the user, or yourself at the start of a session, on the state of a repository before work resumes — the current branch's position against its upstream and main, uncommitted work, stashes and other worktrees, the CI state of the branch and of the user's open PRs, instruction files changed since the window began, what landed on main grouped by theme with risky changes first, and who other than the user wrote it. Picks the window by time or reflog, because commits authored by the user's git identity include every agent session's work. Read-only. Use when the user says "catch me up", "what did I miss", "what changed while I was out", "where was I", at the start of a session that resumes earlier work, and before starting new work on a branch you did not create in this session.
 ---
 
 # Catch up on a repository
@@ -99,10 +99,19 @@ any instruction file before resuming work.
 Use the repository's default branch where this says `main`.
 
 ```sh
-git log --no-merges --date=short --format='%h%x09%ad%x09%s' \
+git log --no-merges --date=short --format='%h%x09%ad%x09%an%x09%s' \
   --since='<window start>' origin/main
+git log --no-merges --format='%ae%x09%an' --since='<window start>' origin/main \
+  | awk -F'\t' -v me="$(git config user.email)" '$1 != me { print $2 }' \
+  | sort | uniq -c | sort -rn
 git diff --stat $W origin/main | tail -20
 ```
+
+The second command counts commits per author, leaving out the user's git
+email. Agent sessions commit as the user, so the commits it leaves out are the
+user's and their sessions', and the authors it lists are the people whose work
+the user has not seen. In `skills-mcp`, 27 of the last 30 commits on main came
+from one other author.
 
 Group by theme (area of the code, feature), not by date. Order the groups:
 
@@ -112,8 +121,9 @@ Group by theme (area of the code, feature), not by date. Order the groups:
 4. fixes relevant to the current branch;
 5. tests, CI, docs and chores, in one line.
 
-For each group, one line of intent and one to three short SHAs. List fewer than
-eight commits individually instead of grouping. If the repository keeps a
+For each group, one line of intent, one to three short SHAs, and the author of
+any of them who is not the user. List fewer than eight commits individually
+instead of grouping. If the repository keeps a
 journal (`docs/journal/`), name entries opened or closed in the window.
 
 Then cross the current branch's changed files with main's:
@@ -131,12 +141,13 @@ Under about 40 lines:
 
 ```
 Window: <range> (<why>)
+Authors: <name (n commits)>, ... (people other than you; "only you" if none)
 Branch: <name>, <ahead/behind>, <dirty files / stashes / unpushed>
 Other worktrees: <path: branch> ...
 CI: <this branch>; open PRs: #n <state>, ...
 Instructions changed: <file: one line> ...
 Landed on main:
-  <theme>: <intent> (<sha>, <sha>)
+  <theme>: <intent> (<sha>, <sha>; <author, if not you>)
   ...
 Overlap with this branch: <files>
 Next step: <one concrete action, only if the state calls for one>
