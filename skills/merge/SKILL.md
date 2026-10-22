@@ -48,6 +48,7 @@ If the PR is merged or closed, report that and stop.
 | `rack-ci/<name>` `error`, or an Actions runner-provisioning, network, or registry timeout | infrastructure | one rerun for this commit (step 4) |
 | compile, lint, format, or a test that fails the same way on rerun, in code the branch touches | caused by the branch | fix (step 3) |
 | a test that fails on this commit and passes on rerun, or fails on `main` too | flaky or pre-existing | record it (step 4); do not edit the test to pass |
+| an audit, lint or build check failing on a crate version or a line the branch did not change, though `main`'s last run of it passed | changed outside the branch: a new advisory, a newer toolchain or lint | do not fix it on this branch; report it (below) |
 | no checks at all on a rack-ci repository | nothing triggered | a PR opened on an unmoved head triggers no build (`lab`'s `rack-ci.md` step 3); the next push builds it |
 
 Read the failed job's log before choosing a class. For Actions, a failed job's
@@ -60,6 +61,19 @@ gh api repos/OWNER/REPO/actions/jobs/<job-id>/logs
 For rack-ci, the `url` on the `CHECK` line is the SystemsLab experiment; read
 its log there. Check the base branch too: if the same check is red on `main`,
 the failure predates the PR (`verify` step 1).
+
+A check can be green on `main` and still fail there on its next run, because
+its inputs moved since: a new RustSec advisory against a pinned dependency
+(rustls-webpki, h2, quinn-proto), or a `stable` toolchain with a new lint
+(clippy 1.99's `double_must_use`). Confirm it is outside the branch: the
+advisory's crate and version are in `git show <remote>/main:Cargo.lock`, and
+the lint's file and line are unchanged in `git diff <remote>/main...HEAD`. If
+current `main` no longer has that crate version or that lint, the branch is
+behind: bring it up to date (`sync`). Otherwise name the advisory IDs the job
+reported as errors, or the lint, and say that `main` will fail the same way on
+its next run. A green audit on another PR proves nothing unless it ran after
+the advisory was published. The fix is a separate PR to `main`; merging over
+the failure is the user's decision.
 
 ## 3. Fix failures the branch caused
 
@@ -114,7 +128,8 @@ Stop and report when one of these holds:
 - **merged or closed** by someone else.
 - **blocked**: billing, a repeated infrastructure failure, a flake awaiting
   the user's decision, a comment awaiting an approved reply, a merge conflict
-  you were not asked to resolve, or a permission error.
+  you were not asked to resolve, a failure from a change outside the branch,
+  an approval the author cannot give, or a permission error.
 
 The report: head commit, the final `VERDICT` line, what was fixed with
 commits, what was rerun and why, flakes recorded with links, and anything
@@ -141,6 +156,24 @@ reviewed. Use the repo's merge style in place of `--squash`.
 Do not use `--auto`: it merges whatever head is current when the checks
 pass, and the gate refuses it.
 
+Then read `state` from the last command. On a repository with a merge queue,
+`gh pr merge` adds the PR to the queue when its required checks have passed,
+and otherwise enables auto-merge, which the gate exists to prevent. Read
+`state` and `autoMergeRequest` (`gh pr view --json`) and
+`gh api graphql -f query='{repository(owner:"<o>",name:"<r>"){
+pullRequest(number:<n>){isInMergeQueue}}}'`; report a queued PR as queued,
+not merged. `--admin` on a queue repository skips the queue.
+
+When the merge is refused for a missing approval (`REVIEW_REQUIRED`, or a
+ruleset's "At least 1 approving review is required"), the author cannot
+approve their own PR, and `--admin` bypasses a ruleset only for someone on
+its bypass list (`gh api repos/<owner/repo>/rulesets/<id> -q
+.current_user_can_bypass`; `never` means `--admin` will be refused). Classic
+branch protection lets a repository admin's `--admin` through unless it
+enforces admins. Report it: someone else approves, or the owner changes the
+rule. Use `--admin` only
+when the user has said so for that PR.
+
 For a stack, merge bottom-up. After a squash merge, the next PR's branch
 still carries the parent's commits. Move only its own commits onto the new
 base: `git log --oneline <parent-tip>..<branch>` lists them, where
@@ -163,3 +196,4 @@ original change, push, retarget, and review the new head before merging it.
   approval of the text.
 - **Never merge unless the user asked**, or merge a head that was not the
   one reviewed.
+- **Never pass `--admin`** without the user's go-ahead for that PR.
