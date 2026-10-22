@@ -5,7 +5,7 @@ so it is not tried again without new evidence. Both are indexes over the
 journal: the reasoning for each item lives in a journal entry, and the
 backlog points at it.
 
-The failure this skill is built from is growth. One repository's roadmap
+The failure this procedure is built from is growth. One repository's roadmap
 reached 3,508 lines, with three dated "Now" blocks kept "as history" and 78
 items marked done; another's backlog reached 1,692 lines with 54 items marked
 DONE or Closed, in a repository whose own journal skill said to remove them.

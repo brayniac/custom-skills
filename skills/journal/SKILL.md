@@ -1,6 +1,6 @@
 ---
 name: journal
-description: Open, update, close, and reconcile an in-repo engineering journal entry for a non-trivial effort, and keep the repository's backlog and NO-GO ledger — find the repository's own convention first, search for prior work and recorded NO-GOs before starting, land intent before building when coordination or a GO/NO-GO probe matters, ground every claim in a commit, path, PR or measured number, keep one of four fixed states in frontmatter, record NO-GOs and ruled-out hypotheses with their mechanism and reopen condition, correct wrong claims in place, close the entry, the index, and the backlog in the same PR as the work, give each backlog item its source, state and ordering reason, delete finished items, and never delete a NO-GO. Use when starting, picking up, handing off, pausing, or closing a feature, investigation, performance probe, refactor, or migration; when deciding what to work on next; when someone proposes something that may already have been tried; when about to drop a measured negative result; when a repository has no durable record of decisions and dead ends; when bootstrapping a journal from commit history; when grooming a backlog or roadmap file; and when the journal index or backlog has drifted from the entries.
+description: Open, update, close, and reconcile an in-repo engineering journal entry for a non-trivial effort, and keep the repository's backlog and NO-GO ledger — find the repository's own convention first, search for prior work and recorded NO-GOs before starting, land intent before building when coordination or a GO/NO-GO probe matters, ground every claim in a commit, path, PR or measured number, keep one of four fixed states in frontmatter, record NO-GOs and ruled-out hypotheses with their mechanism and reopen condition, correct wrong claims in place, close the entry, the index, and the backlog in the same PR as the work, give each backlog item its source, state and ordering reason, delete finished items, and never delete a NO-GO. Use when starting, picking up, handing off, pausing, or closing a feature, investigation, performance probe, refactor, or migration; when deciding what to work on next; when someone proposes something that may already have been tried; when about to drop a measured negative result; when a repository has no durable record of decisions and dead ends; when bootstrapping a journal from commit history; when grooming a backlog or roadmap file; when asked to set up a backlog; and when the journal index or backlog has drifted from the entries.
 ---
 
 # Keep an engineering journal
@@ -26,6 +26,9 @@ Whether a number is sound is `benchmark-validity`; how to take it is
 
 - The effort: what it is for, and whether it is starting, in progress, or done.
 - The repository, its `CLAUDE.md` / `AGENTS.md`, and its visibility.
+- Or a backlog question (what to do next, a proposal to check against the
+  NO-GO ledger, grooming): follow `${CLAUDE_SKILL_DIR}/references/backlog.md`
+  instead of the steps below.
 
 ## 1. Find the repository's convention
 
@@ -66,8 +69,8 @@ git log --oneline --all -i --grep='<topic>' | head -20
 
 Read the backlog's NO-GO ledger if there is one (step 2 of
 `${CLAUDE_SKILL_DIR}/references/backlog.md`). If an entry already covers this
-effort, continue it. If a terminal entry covers it,
-open a new entry that links the old one. Do not write a parallel record.
+effort, continue it. If a terminal entry covers it, open a new entry that links
+the old one. Do not write a parallel record.
 
 ## 3. Choose the lifecycle and say which
 
@@ -157,9 +160,9 @@ and the evidence each requires):
 
 In the same PR: update `updated`, the index row (state and a one-line result
 with its headline number), the backlog per step 4 of
-`${CLAUDE_SKILL_DIR}/references/backlog.md`, and any
-document the outcome changes. Write the entry after verifying the work
-(`verify`), not from memory of it.
+`${CLAUDE_SKILL_DIR}/references/backlog.md`, and any document the outcome
+changes. Write the entry after verifying the work (`verify`), not from memory
+of it.
 
 If the repository's entries end with a skills-invoked appendix, keep it by the
 rules in `${CLAUDE_SKILL_DIR}/references/skill-use-appendix.md`.
