@@ -1,6 +1,6 @@
 ---
 name: review
-description: Review a change adversarially with a fresh-context agent, then answer the findings. The reviewer tries to break the change — concrete failure scenarios, every factual claim in code comments, docs, commit messages and PR bodies checked against the code or the system, staleness and conflicts against the base branch — plus, when a public interface changed, what a caller can no longer do, and when docs changed, whether they state current behaviour. Findings come back as file:line with a failure scenario, marked confirmed or plausible; blocking ones are reproduced before anything is applied; every finding gets one disposition. Records the reviewed head so the merge gate lets it through. Use before opening a PR (`pr` runs it), before merging (`merge` runs it; a hook refuses `gh pr merge` of an unreviewed head), when asked to review, adversarially review or sanity-check a change or a set of open PRs, and when answering findings from a person, Copilot or another agent.
+description: Review a change adversarially with a fresh-context agent, then answer the findings. The reviewer tries to break the change — concrete failure scenarios, every factual claim in code comments, docs, commit messages and PR bodies checked against the code or the system, staleness and conflicts against the base branch — plus, when a public interface changed, what a caller can no longer do, and when docs changed, whether they state current behaviour. Findings come back as file:line with a failure scenario, marked confirmed or plausible; blocking ones are reproduced before anything is applied; every finding gets one disposition. Records the reviewed head so the merge gate lets it through. Separate procedures cover someone else's PR (every finding checked before the user sees it, nothing posted without the user) and a design (claims about today, the criterion, alternatives, what breaks). Use before opening a PR (`pr` runs it), before merging (`merge` runs it; a hook refuses `gh pr merge` of an unreviewed head), when asked to review, adversarially review or sanity-check a change, a set of open PRs, someone else's PR, or a design doc, RFC or plan, and when answering findings from a person, Copilot or another agent.
 ---
 
 # Review
@@ -12,9 +12,15 @@ argued for it all session, cannot: a removed capability no caller in the tree
 exercised, a doc claim the code contradicts, a PR that would undo one merged
 the day before, a rebase that replayed someone else's commits.
 
-Answering findings someone else made (a person, Copilot, another agent): go to
-step 7. A change whose gates are still red is not ready for review; fix those
-first (`verify`).
+| What is being reviewed | Procedure |
+| --- | --- |
+| a change this session made or will merge | steps 1 to 8 |
+| someone else's pull request | steps 1 to 6 with `${CLAUDE_SKILL_DIR}/references/others.md`, which replaces 7 and 8 |
+| a design, RFC, plan or proposal with no code yet | `${CLAUDE_SKILL_DIR}/references/design.md` |
+| findings someone made on this session's change | step 7 |
+
+A change whose gates are still red is not ready for review; fix those first
+(`verify`).
 
 ## 1. Dispatch a fresh agent, not a fork
 
@@ -106,6 +112,9 @@ entry is not reference documentation.
 - **Reproduce a blocking finding before acting on it**: compile the misuse,
   run the input, read the code path. Do not apply what you have not
   reproduced, and say when you disagree.
+- **Fix the class, not the instance.** When a finding is one case of a kind
+  (a stale reference, a missing bound, a wrong unit), grep the whole change
+  for the same kind and fix every instance before the next round.
 - **Design findings go to the owner** before implementation; a reviewer can
   show a capability was lost, only the owner decides whether to restore it.
 - After applying a prose replacement, **check the old text is gone**
