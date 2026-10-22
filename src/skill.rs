@@ -10,6 +10,12 @@
 //! each path `plugin.json` lists under `skills`, from `<path>/SKILL.md` or
 //! `<path>/<name>/SKILL.md`. A skill at any other depth is not loaded. Observed
 //! on Claude Code 2.1.306.
+//!
+//! A skill directory may be a symlink to a directory elsewhere in the
+//! repository; a git install of the plugin replaces each symlink with a copy of
+//! its target. So every path here is resolved lexically from the resolved
+//! skills root ([`located`], [`normalize`]): a skill is judged where it is
+//! listed, and `..` steps out of the listed directory, not the target.
 
 use std::{
     collections::BTreeMap,
@@ -62,7 +68,11 @@ pub fn load(root: &Path, listed: &[PathBuf]) -> Result<Vec<Skill>> {
     if skills.is_empty() {
         bail!("{} holds no skills", root.display());
     }
-    check_listed(root, listed, &skills)?;
+    let given = root;
+    let root = root
+        .canonicalize()
+        .with_context(|| format!("failed to resolve {}", root.display()))?;
+    check_listed(given, &root, listed, &skills)?;
     let mut by_name: BTreeMap<String, Skill> = BTreeMap::new();
     for skill in skills {
         if let Some(existing) = by_name.get(&skill.name) {
@@ -75,11 +85,8 @@ pub fn load(root: &Path, listed: &[PathBuf]) -> Result<Vec<Skill>> {
         }
         by_name.insert(skill.name.clone(), skill);
     }
-    let root = root
-        .canonicalize()
-        .with_context(|| format!("failed to resolve {}", root.display()))?;
     for skill in by_name.values() {
-        check_skill_dir_paths(&root, skill)?;
+        check_skill_dir_paths(given, &root, skill)?;
         check_beside_names(skill)?;
     }
     Ok(by_name.into_values().collect())
@@ -109,15 +116,20 @@ pub fn listed_skill_dirs(plugin_root: &Path) -> Result<Vec<PathBuf>> {
             manifest.display()
         ),
     };
+    let plugin_root = plugin_root
+        .canonicalize()
+        .with_context(|| format!("failed to resolve {}", plugin_root.display()))?;
     paths
         .into_iter()
         .map(|path| {
-            plugin_root.join(path).canonicalize().with_context(|| {
-                format!(
+            let dir = normalize(&plugin_root.join(path));
+            if !dir.is_dir() {
+                bail!(
                     "`skills` in {} lists {path}, which does not exist",
                     manifest.display()
-                )
-            })
+                );
+            }
+            Ok(dir)
         })
         .collect()
 }
@@ -136,13 +148,36 @@ pub fn plugin_root(skills: &Path) -> PathBuf {
     }
 }
 
-fn check_listed(root: &Path, listed: &[PathBuf], skills: &[Skill]) -> Result<()> {
-    let root = root
-        .canonicalize()
-        .with_context(|| format!("failed to resolve {}", root.display()))?;
+/// Removes `.` and resolves `..` against the preceding component, without
+/// following symlinks.
+fn normalize(path: &Path) -> PathBuf {
+    let mut out = PathBuf::new();
+    for part in path.components() {
+        match part {
+            std::path::Component::CurDir => {}
+            std::path::Component::ParentDir => {
+                out.pop();
+            }
+            other => out.push(other),
+        }
+    }
+    out
+}
+
+/// Where `skill` sits under the resolved skills root `root`, given that
+/// `collect` found it under `given`. Symlinks below the root are not followed.
+fn located(given: &Path, root: &Path, skill: &Skill) -> PathBuf {
+    let rel = skill
+        .dir
+        .strip_prefix(given)
+        .expect("collect builds every skill dir under the root it walks");
+    normalize(&root.join(rel))
+}
+
+fn check_listed(given: &Path, root: &Path, listed: &[PathBuf], skills: &[Skill]) -> Result<()> {
     // `collect` walks only `root`, so a skill under a listed path elsewhere
     // would load in Claude Code without being checked.
-    if let Some(outside) = listed.iter().find(|p| !p.starts_with(&root)) {
+    if let Some(outside) = listed.iter().find(|p| !p.starts_with(root)) {
         bail!(
             "plugin.json lists {} under `skills`, which is outside {}; skillcheck \
              checks only skills under {}",
@@ -152,10 +187,7 @@ fn check_listed(root: &Path, listed: &[PathBuf], skills: &[Skill]) -> Result<()>
         );
     }
     for skill in skills {
-        let dir = skill
-            .dir
-            .canonicalize()
-            .with_context(|| format!("failed to resolve {}", skill.dir.display()))?;
+        let dir = located(given, root, skill);
         if listed.contains(&dir) {
             continue;
         }
@@ -273,18 +305,20 @@ pub fn skill_dir_paths(body: &str) -> Vec<&str> {
         .collect()
 }
 
-fn check_skill_dir_paths(root: &Path, skill: &Skill) -> Result<()> {
+fn check_skill_dir_paths(given: &Path, root: &Path, skill: &Skill) -> Result<()> {
+    let dir = located(given, root, skill);
     // `<file>` and `<other>` in instructions about paths are placeholders.
     for rel in skill_dir_paths(&skill.body)
         .into_iter()
         .filter(|rel| !rel.contains('<'))
     {
-        let full = skill.dir.join(rel).canonicalize().with_context(|| {
-            format!(
+        let full = normalize(&dir.join(rel));
+        if !full.exists() {
+            bail!(
                 "skill {:?} names ${{CLAUDE_SKILL_DIR}}/{rel}, which does not exist",
                 skill.name
-            )
-        })?;
+            );
+        }
         if !full.starts_with(root) {
             bail!(
                 "skill {:?} names ${{CLAUDE_SKILL_DIR}}/{rel}, which is outside {}",
@@ -468,6 +502,55 @@ mod tests {
         ok_skill(tmp.path(), "flat", "body");
         ok_skill(&tmp.path().join("cluster"), "nested", "body");
         assert!(load_err(tmp.path()).contains("does not list under `skills`"));
+    }
+
+    /// The layout iopsystems/skills-mcp uses: `plugins/<p>/skills/<name>` is a
+    /// relative symlink to a skill stored elsewhere in the repository. A git
+    /// install copies the target into the symlink's place, so the skill is
+    /// judged where it is listed.
+    #[cfg(unix)]
+    fn symlinked_skill(body: &str) -> (TempDir, PathBuf) {
+        let tmp = TempDir::new().unwrap();
+        let store = ok_skill(&tmp.path().join("store/repository"), "linked", body);
+        fs::create_dir_all(store.join("references")).unwrap();
+        fs::write(store.join("references/x.md"), "x").unwrap();
+        let skills = tmp.path().join("plugins/p/skills");
+        ok_skill(&skills, "flat", "body");
+        let flat_refs = skills.join("flat/references");
+        fs::create_dir_all(&flat_refs).unwrap();
+        fs::write(flat_refs.join("y.md"), "y").unwrap();
+        std::os::unix::fs::symlink("../../../store/repository/linked", skills.join("linked"))
+            .unwrap();
+        (tmp, skills)
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_symlinked_skill_is_judged_where_it_is_listed() {
+        let (_tmp, skills) = symlinked_skill("body");
+        let listed = listed_skill_dirs(&plugin_root(&skills)).unwrap();
+        assert_eq!(load(&skills, &listed).unwrap().len(), 2);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_symlinked_skills_paths_resolve_where_it_is_listed() {
+        // `../flat` exists beside the symlink, not beside its target.
+        let (_tmp, skills) = symlinked_skill(
+            "Read `${CLAUDE_SKILL_DIR}/references/x.md` and \
+             `${CLAUDE_SKILL_DIR}/../flat/references/y.md`.",
+        );
+        load(&skills, &[]).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_symlinked_skill_dir_path_outside_the_root_is_an_error() {
+        // From the target, `../..` is `store`, which has no secret.txt; from the
+        // listed place it is the plugin root, above `skills/`.
+        let (tmp, skills) = symlinked_skill("Read `${CLAUDE_SKILL_DIR}/../../secret.txt`.");
+        fs::write(tmp.path().join("plugins/p/secret.txt"), "x").unwrap();
+        assert!(load_err(&skills).contains("outside"));
     }
 
     #[test]
