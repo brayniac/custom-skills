@@ -20,7 +20,7 @@ neighbouring skills own the rest:
 - `benchmark-validity`: whether one run measured its subject;
 - `interpret`'s `noise.md`: run length from the noise;
 - `interpret`'s `calibrate.md`: thresholds;
-- `systemslab-spec-authoring`: spec mechanics.
+- `lab`'s `specs.md`: spec mechanics.
 
 Steps 2, 5 and 6 name SystemsLab and rezolus. Step 5 also names
 cachecannon, whose JSON result line `sweep_report.py` parses. On another lab,

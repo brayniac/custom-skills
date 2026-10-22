@@ -68,12 +68,12 @@ Host differences on the rack have been invisible from the job: two builds
 of anvil were both installed as `0.3.0-1`, and a hypervisor's rezolus left
 every guest's hardware counters reading near zero while reporting themselves
 healthy. When outcome follows the host, run the infra repository's drift check
-(`vm-job` step 8) before investigating the code.
+(`lab`'s `vm.md` step 8) before investigating the code.
 
-rack-ci builds pull requests and tags, not pushes to `main`
-(`use-rack-ci` step 3), so there is no per-commit history of `main` to read.
-To find where a regression entered, build candidate commits yourself: one VM
-job per bisect step (`vm-job`), or `git bisect run` locally when the failure
+rack-ci builds pull requests and tags, not pushes to `main` (`lab`'s
+`rack-ci.md` step 3), so there is no per-commit history of `main` to read. To
+find where a regression entered, build candidate commits yourself: one VM job
+per bisect step (`lab`'s `vm.md`), or `git bisect run` locally when the failure
 reproduces off the rack.
 
 ## 3. Write the prediction into the spec before running

@@ -1,6 +1,6 @@
 # The lab, and what a number from it means
 
-Getting work onto the rack is the `vm-job` skill's subject, and it is the
+Getting work onto the rack is the subject of `lab`'s `vm.md`, and it is the
 authority on shapes, images, specs, and orphan recovery. This file covers only
 what bears on whether a *measurement* from a given host means anything.
 
@@ -18,8 +18,8 @@ re-register; a fresh `registeredAt` does not mean a fresh machine.
 
 At last observation: `hv01` (`z2.baremetal`, `hypervisor`), `hv02`
 (`z1.baremetal`, `hypervisor`), `pi00`–`pi19` (`pi4b`, except `pi01` and `pi06`
-which are `pi4b-thermal`), `delta` (`z4.baremetal`, `validation`), and
-`macbook`. Re-verify rather than trusting that roster.
+which are `pi4b-thermal`), `delta` (`z4.baremetal`, `validation`), `macbook`
+and `macstudio`. Re-verify rather than trusting that roster.
 
 **`list_hosts` answers for the deployment you are pointed at, and there is more
 than one.** A finding from another SystemsLab instance — a different roster,
@@ -138,8 +138,8 @@ the failure looks like:
      the hypervisor, not of anvil's `main`.
 
   2. **An orphaned guest holding slots, or a slot-release bug** — only once the
-     spec is ruled out. `vm-job`'s "Cancel, timeout, orphan" step (7) has the
-     recovery.
+     spec is ruled out. The "Cancel, timeout, orphan" step (7) of `lab`'s
+     `vm.md` has the recovery.
 
   In neither case retry around it, and never treat a number obtained after a
   retry as clean.
@@ -200,10 +200,9 @@ that it was bare metal and which devices were therefore unavailable.
 
 ## The non-hypervisor hosts are a different story
 
-`pi4b`, `pi4b-thermal`, and the Mac hosts (`macbook` was the only one registered
-at last look; a `macstudio` may join) run work directly. There is no VM layer, so
-the fidelity section below is irrelevant to them — and different concerns replace
-it:
+`pi4b`, `pi4b-thermal`, and the Mac hosts (`macbook` and `macstudio`) run work
+directly. There is no VM layer, so the fidelity section below is irrelevant to
+them — and different concerns replace it:
 
 - **Pis are thermally limited.** That is what the separate `pi4b-thermal` tag is
   about, and it makes run order matter: back-to-back runs on one Pi are not
@@ -241,9 +240,9 @@ tell you whether a given anvil *build* has them.
 
 **Verify from the host, not from the guest.** `virsh dumpxml <domain>` on the
 hypervisor is the authoritative answer, run as a `shell` job pinned to that host
-per `vm-job`. A guest's own `lscpu`, `numactl --hardware`, and `/proc/cpuinfo`
-report what it was *told*, which is the thing under question — they are a useful
-cross-check and are not evidence on their own.
+per `lab`'s `vm.md`. A guest's own `lscpu`, `numactl --hardware`, and
+`/proc/cpuinfo` report what it was *told*, which is the thing under question —
+they are a useful cross-check and are not evidence on their own.
 
 The one guest-side reading worth taking at face value is a negative:
 

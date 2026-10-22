@@ -128,7 +128,8 @@ Record the step 6 review against that head (`review` step 8) if its verdict was
 merge and nothing but the mechanical fixes that step allows landed after it; the
 merge gate refuses an unrecorded head. Report the URL and what the review found.
 If CI has started, give its state; on repos with rack-ci, read the `rack-ci/*`
-statuses (`use-rack-ci`). When a reviewer answers, reply with `review` step 7.
+statuses (`lab`'s `rack-ci.md`). When a reviewer answers, reply with `review`
+step 7.
 
 ## Never
 

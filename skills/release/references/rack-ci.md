@@ -77,8 +77,8 @@ the build declares reproducibility as a goal, so it can regress silently.
    `/home/anvil/dist.tar` and uploads that as artifact `dist.tar`; and a `shell`
    job on the host holding the apt repo (delta, tag `validation`).
 3. They meet at a barrier named `publish`, which the **build** job reaches last,
-   so a failed build never holds the publish host. (See `vm-job` step 3 for why
-   a barrier rather than a handshake.)
+   so a failed build never holds the publish host. (See `lab`'s `vm.md` step 3
+   for why a barrier rather than a handshake.)
 4. The publish job takes the newest artifact named `dist.tar`, unpacks it, and
    hands each `.deb` to the publisher on delta.
 5. The publisher writes into `pool/main/` and regenerates the indexes by

@@ -44,7 +44,7 @@ the spec file outside the checkout or it becomes part of the next patch.
 
 Every platform image already has the toolchain and the shared compiler cache.
 On a stock image (`debian-13`, `rocky-10`, `ubuntu-24.04`, ...), install the
-toolchain, then ship the `use-shared-compiler-cache` skill's installer in as
+toolchain, then ship `sccache.md`'s installer in as
 base64 and run it:
 
 ```sh

@@ -99,7 +99,7 @@ ceremony; a credential in one is a credential you have stopped tracking.
 - **No target-directory cache.** `Swatinem/rust-cache` has no equivalent —
   the guest is destroyed. The CI image ships a warm crates.io index for the
   fetch, and routes rustc through sccache against the shared store for the
-  compile (`use-shared-compiler-cache`); drop any cache step when porting.
+  compile (`sccache.md`); drop any cache step when porting.
 - **`cargo audit` is not covered.** `rustsec/audit-check` posts its own check
   run, which a token cannot create. Until `cargo-audit` is in the CI image,
   advisories are unchecked — and a step that silently skips when the tool is

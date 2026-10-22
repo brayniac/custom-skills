@@ -74,9 +74,9 @@ gh api repos/OWNER/REPO/commits/$(git rev-parse HEAD)/status \
 ```
 
 For each open PR: checks passing, failing, pending, or absent, and whether a
-review is waiting. Read red marks through `use-rack-ci` first: a GitHub check
-that failed in a few seconds with no steps is billing, and `rack-ci/*` `error`
-is infrastructure. Neither is a code failure.
+review is waiting. Read red marks through `lab`'s `rack-ci.md` first: a GitHub
+check that failed in a few seconds with no steps is billing, and `rack-ci/*`
+`error` is infrastructure. Neither is a code failure.
 
 If this branch is red, say which check and on which commit before anything
 else in the briefing.

@@ -11,7 +11,7 @@ a `grep -v` exiting 1 on empty input all produced silence and no error. That is
 why this skill starts from the assumption that a silent watcher is broken.
 
 For SystemsLab state names and `submit --wait`, see
-`systemslab-spec-authoring`; for VM jobs, `vm-job` step 5.
+`lab`'s `specs.md`; for VM jobs, `lab`'s `vm.md` step 5.
 
 ## 1. Take the terminal states from the source, not from memory
 
