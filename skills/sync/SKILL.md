@@ -21,8 +21,10 @@ git log --oneline HEAD..<remote>/<base>      # what it is missing
 
 `<remote>` points at the project (`upstream` in a fork checkout); `<base>` is
 the PR's `baseRefName`, which is not always `main`. If the PR is in a merge
-queue, do not sync it unless it conflicts: the queue tests it against the
-base, and a push removes it from the queue.
+queue (`gh api graphql -f query='{repository(owner:"<o>",name:"<r>"){
+pullRequest(number:<n>){isInMergeQueue}}}'`), do not sync it unless it
+conflicts: the queue tests it against the base, and a push removes it from
+the queue.
 
 Then find how the repository merges:
 
@@ -30,8 +32,9 @@ Then find how the repository merges:
   '{allow_merge_commit,allow_squash_merge,allow_rebase_merge}'`. A merge
   commit on the branch matters only when the PR is merged by rebase.
 - **A per-commit check in CI:** `cog check`, commitlint, or a DCO check reads
-  every commit on the branch, and rejects a merge commit or a message it
-  does not accept.
+  every commit on the branch and may reject a merge commit. Check its
+  configuration: commitlint ignores merge commits by default, and cog does
+  not unless `ignore_merge_commits` is set.
 - **Branch rules,** which may come from a ruleset or classic protection:
   read both `repos/<owner/repo>/rules/branches/<base>` and
   `repos/<owner/repo>/branches/<base>/protection`.
@@ -40,8 +43,8 @@ Then find how the repository merges:
 ## 2. Merge or rebase
 
 - Not pushed: rebase onto `<remote>/<base>`.
-- Pushed, and the repository squash-merges with no per-commit check: merge
-  `<remote>/<base>` in. It needs no force-push.
+- Pushed, the PR will not be merged by rebase, and no CI check reads each
+  commit: merge `<remote>/<base>` in. It needs no force-push.
 - Pushed, and the repository merges by rebase or checks each commit: a rebase
   needs a force-push. Ask the user first; if others commit to the branch,
   tell them before pushing. Push with `--force-with-lease=<branch>:<sha you
@@ -50,7 +53,8 @@ Then find how the repository merges:
   parent's commits, and git does not skip them because the squash commit has
   a different patch. `merge` covers the stacked case: the old parent tip is
   `git merge-base HEAD <parent head>`, with the parent head from
-  `gh pr view <parent> --json headRefOid`. Check `git log --oneline <old
+  `gh pr view <parent> --json headRefOid` (fetch it first with
+  `git fetch <remote> pull/<parent>/head` if the parent branch is gone). Check `git log --oneline <old
   parent tip>..HEAD` lists only this branch's commits, then
   `git rebase --onto <remote>/<base> <old parent tip>`.
 
