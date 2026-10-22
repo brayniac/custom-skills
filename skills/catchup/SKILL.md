@@ -23,8 +23,8 @@ the last fetch.
 ## 1. Pick the window
 
 Do not select the window by the user's authorship. Here, agent sessions commit
-under the user's git identity: in `custom-skills`, 22 of the last 30 commits
-were authored as the user with a Claude co-author trailer; in
+under the user's git identity: in `custom-skills` on 2026-10-22, 29 of the last
+30 commits were authored as the user with a Claude co-author trailer; in
 `crucible-wt-cachers`, 50 of 50. In `custom-skills`, `git log -1
 --author=<user email>` returned `HEAD`, so "since your last commit" was an
 empty window although the three most recent commits came from an agent
@@ -101,28 +101,34 @@ Use the repository's default branch where this says `main`.
 ```sh
 git log --no-merges --date=short --format='%h%x09%ad%x09%an%x09%s' \
   --since='<window start>' origin/main
-git log --no-merges --format='%ae%x09%an' --since='<window start>' origin/main \
+git log --no-merges --format='%aE%x09%aN' --since='<window start>' origin/main \
   | awk -F'\t' -v me="$(git config user.email)" \
         -v my="$(git config user.name)" '
       { e = tolower($1); n = tolower($2) }
       e == "noreply@anthropic.com" { next }
+      n ~ /\[bot\]$/ || e ~ /\[bot\]@users\.noreply\.github\.com$/ { next }
       me != "" && e == tolower(me) { next }
       my != "" && n == tolower(my) { next }
-      { print $2 }' \
-  | sort | uniq -c | sort -rn
+      { c[n]++; if (!(n in name)) name[n] = $2 }
+      END { for (n in c) printf "%7d %s\n", c[n], name[n] }' \
+  | sort -rn
 git diff --stat $W origin/main | tail -20
 ```
 
-The second command counts commits per author name, leaving out the user's git
-email and name and `noreply@anthropic.com`. Agent sessions commit either as the
-user or as `Claude <noreply@anthropic.com>`, so the commits it leaves out are
-the user's and their sessions', and the authors it lists are the people whose
-work the user has not seen. Counting by `%an` combines one author's commits
-made under different emails.
+The second command counts commits per author name. It drops the user's git
+email and name, `noreply@anthropic.com`, and GitHub bot accounts (a name ending
+in `[bot]` or an email ending in `[bot]@users.noreply.github.com`). Agent
+sessions commit either as the user or as `Claude <noreply@anthropic.com>`, so
+the authors it lists are the people whose work the user has not seen. Names are
+read through `.mailmap` (`%aN`, `%aE`) and compared without case, so one
+author's commits under different emails, or under one name spelled with
+different case, are counted together. Spellings that differ in more than case
+are counted apart.
 
-If `user.email` is unset, or the user commits under more than one address, ask
-which addresses are theirs before trusting the Authors line; otherwise the
-user can appear in it.
+If a remaining name is an automation account (a release or CI identity), list
+it separately from the people. If `user.name` is unset, or a listed name could
+be the user's (a handle, initials, another spelling), ask the user before
+writing the Authors line.
 
 Group by theme (area of the code, feature), not by date. Order the groups:
 
@@ -158,7 +164,7 @@ Other worktrees: <path: branch> ...
 CI: <this branch>; open PRs: #n <state>, ...
 Instructions changed: <file: one line> ...
 Landed on main:
-  <theme>: <intent> (<sha>, <sha>; <author, if not you>)
+  <theme>: <intent> (<sha>, <sha>; <author, if neither you nor an agent>)
   ...
 Overlap with this branch: <files>
 Next step: <one concrete action, only if the state calls for one>
