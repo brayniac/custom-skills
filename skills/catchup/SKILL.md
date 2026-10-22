@@ -102,16 +102,27 @@ Use the repository's default branch where this says `main`.
 git log --no-merges --date=short --format='%h%x09%ad%x09%an%x09%s' \
   --since='<window start>' origin/main
 git log --no-merges --format='%ae%x09%an' --since='<window start>' origin/main \
-  | awk -F'\t' -v me="$(git config user.email)" '$1 != me { print $2 }' \
+  | awk -F'\t' -v me="$(git config user.email)" \
+        -v my="$(git config user.name)" '
+      { e = tolower($1); n = tolower($2) }
+      e == "noreply@anthropic.com" { next }
+      me != "" && e == tolower(me) { next }
+      my != "" && n == tolower(my) { next }
+      { print $2 }' \
   | sort | uniq -c | sort -rn
 git diff --stat $W origin/main | tail -20
 ```
 
-The second command counts commits per author, leaving out the user's git
-email. Agent sessions commit as the user, so the commits it leaves out are the
-user's and their sessions', and the authors it lists are the people whose work
-the user has not seen. In `skills-mcp`, 27 of the last 30 commits on main came
-from one other author.
+The second command counts commits per author name, leaving out the user's git
+email and name and `noreply@anthropic.com`. Agent sessions commit either as the
+user or as `Claude <noreply@anthropic.com>`, so the commits it leaves out are
+the user's and their sessions', and the authors it lists are the people whose
+work the user has not seen. Counting by `%an` combines one author's commits
+made under different emails.
+
+If `user.email` is unset, or the user commits under more than one address, ask
+which addresses are theirs before trusting the Authors line; otherwise the
+user can appear in it.
 
 Group by theme (area of the code, feature), not by date. Order the groups:
 
@@ -122,9 +133,9 @@ Group by theme (area of the code, feature), not by date. Order the groups:
 5. tests, CI, docs and chores, in one line.
 
 For each group, one line of intent, one to three short SHAs, and the author of
-any of them who is not the user. List fewer than eight commits individually
-instead of grouping. If the repository keeps a
-journal (`docs/journal/`), name entries opened or closed in the window.
+any of them who is neither the user nor an agent. List fewer than eight
+commits individually instead of grouping. If the repository keeps a journal
+(`docs/journal/`), name entries opened or closed in the window.
 
 Then cross the current branch's changed files with main's:
 
