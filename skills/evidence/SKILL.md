@@ -5,9 +5,9 @@ description: Ground every factual claim before stating it — in chat, a skill, 
 
 # Evidence
 
-Each claim below was written at the same confidence as claims checked
-minutes earlier, and each rested on memory, one repository, a PR title, a
-reviewer, or an inference. In one session of skill work, these were written as fact and
+Each claim below was written at the same confidence as claims checked minutes
+earlier, and each rested on memory, one repository, a PR title, a reviewer, or
+an inference. In one session of skill work, these were written as fact and
 refuted by a check:
 
 | Claim | It rested on | The check that refuted it |
