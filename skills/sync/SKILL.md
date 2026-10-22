@@ -46,9 +46,9 @@ Then find how the repository merges:
 - Pushed, the PR will not be merged by rebase, and no CI check rejects a
   merge commit: merge `<remote>/<base>` in. It needs no force-push.
 - Pushed, and the repository merges by rebase or a CI check rejects merge
-  commits: a rebase needs a force-push. Ask the user first; if others commit to the branch,
-  tell them before pushing. Push with `--force-with-lease=<branch>:<sha you
-  observed>`.
+  commits: a rebase needs a force-push. Ask the user first; if others commit
+  to the branch, tell them before pushing. Push with
+  `--force-with-lease=<branch>:<sha you observed>`.
 - Stacked on a parent that was squash-merged: the branch still carries the
   parent's commits, and git does not skip them because the squash commit has a
   different patch. `merge` covers the stacked case. Find the old parent tip
