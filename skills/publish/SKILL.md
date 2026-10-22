@@ -19,7 +19,7 @@ land gently is what furnishes a detail to soften it. That is why the check has
 to be mechanical and attached to the destination, rather than triggered by a
 feeling that something is sensitive.
 
-Whether the numbers themselves are sound is `benchmark-validity`; whether the
+Whether the numbers themselves are sound is `bench`'s `validity.md`; whether the
 numbers being compared are written comparably is `interpret`'s
 `compared-numbers.md`.
 

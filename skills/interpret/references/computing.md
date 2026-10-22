@@ -134,7 +134,7 @@ through `record()` and the curve comes out of `get()` at a chosen τ, with
 and overlapping HDEV — the three estimators this reference describes — over
 configurable τ ranges and spacings, on circular buffers with bounded memory.
 That makes it the right tool for a curve computed as the measurement runs rather
-than after it; see `analysis-placement.md` in `measure-performance` for where
+than after it; see `bench`'s `analysis-placement.md` for where
 that is and is not appropriate.
 
 ## Self-test before you believe a plot

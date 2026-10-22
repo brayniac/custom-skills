@@ -142,5 +142,5 @@ significance for everything.
 
 `O(B)` per comparison over the bucket count, touching no raw samples, on
 histograms that are already being recorded. That is tier 1 in
-`measure-performance`'s `analysis-placement.md` — cheap enough to run on the node
+`bench`'s `analysis-placement.md` — cheap enough to run on the node
 beside the workload, provided the histograms were going to be built anyway.

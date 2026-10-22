@@ -294,7 +294,7 @@ is no dilution to see — an unarmed experiment reading as a negative result. An
 the index in `rezolus-exec<n>.rez` counts exec steps, so the sleep is #2 when
 the detached step is #1.
 
-Choosing and reading what lands in the recording is `measure-performance`; this
+Choosing and reading what lands in the recording is `bench`'s `rack.md`; this
 is only the part that constrains the spec.
 
 ## Read results

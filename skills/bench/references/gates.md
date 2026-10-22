@@ -1,7 +1,8 @@
 # Gate and mechanism queries
 
 These are the PromQL queries behind the gates and the per-request rates in
-`SKILL.md`, as run against a SystemsLab experiment's rezolus recordings.
+`sweep.md` (beside this file), as run against a SystemsLab experiment's rezolus
+recordings.
 
 ```sh
 systemslab promql --experiment <experiment-id> --job <job-uuid> --output summary '<query>'
@@ -46,7 +47,7 @@ Divide the per-request rates by the measured throughput.
 - **A recording without `start-metrics` spans the whole job.** With no
   window, a query covers every recording of the job. Bracket the measured
   window with `systemslab/start-metrics` and `stop-metrics` in the spec
-  (SKILL.md step 2), and record only that window. If a sweep ran without
+  (`sweep.md` step 2), and record only that window. If a sweep ran without
   them, its means include startup, prefill and shutdown. Report them as
   whole-recording means, and do not trust gate 2 if the prefill could have
   saturated the server.

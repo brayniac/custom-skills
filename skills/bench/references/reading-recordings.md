@@ -134,8 +134,8 @@ Neither decides a verdict. A correlation between two metrics across one run is
 consistent with a shared cause, a coincidence, and a measurement artifact, and
 it distinguishes none of them.
 
-The verdict comes from Step 5 of the skill: interleaved runs, enough of them, and
-a spread that does not cover the difference.
+The verdict comes from step 5 of `rack.md` (beside this file): interleaved runs,
+enough of them, and a spread that does not cover the difference.
 
 ## Reporting a number read this way
 

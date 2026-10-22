@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Tabulate a SystemsLab sweep with the script-checkable parts of gates 1-3
-from SKILL.md step 5.
+from sweep.md step 5.
 
 For every experiment in the given contexts, prints the parameters that vary,
 the load generator's result, the gate signals read from the rezolus
@@ -8,7 +8,7 @@ recordings, and a verdict:
 
   ranked         passed the gate checks this script makes (listed below)
   unclassified   finished cleanly but no saturation signal fired; classify
-                 the limit by hand (SKILL.md step 6). A server that parks in
+                 the limit by hand (sweep.md step 6). A server that parks in
                  futex on a lock, or one capped by a shared ceiling, lands here
   loadgen-bound  the client was out of headroom
   link-bound     the busier direction, rx or tx, reached --link-frac of

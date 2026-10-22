@@ -1,15 +1,10 @@
----
-name: benchmark-validity
-description: Check that a measurement measured its subject before anyone interprets it — that the instrument was not the bottleneck, that the run reached steady state, that the comparison changed one variable, and that a green result did not come from work that never happened. Use when running or reading a benchmark, when two runs disagree, when a result looks clean, and before writing any number into a document or an issue.
----
-
 # Benchmark validity
 
 A benchmark number is a claim about a system. Most bad claims are not noisy —
 they are precise, plausible, and about something other than the subject. Every
 check below corresponds to a measurement that looked fine and was wrong.
 
-This is the instrument-agnostic layer. `measure-performance` owns getting a
+This is the instrument-agnostic layer. `rack.md` owns getting a
 number out of this lab specifically — hosts, recordings, and whether a
 difference between two numbers is real — and is the authority where the two
 overlap.
@@ -101,6 +96,11 @@ goldens run can pass without anything in it ever setting the new flag.
 that skips can skip its way to green — one gate passed with 41 of its checks
 skipped for missing checkpoints, rendered identically to a real pass. Decide
 before the run which line in the log proves the work ran, and grep for that.
+
+**A green result covers only what the run exercised.** A gate that passed on
+one platform or backend says nothing about another, and a code path the run
+did not reach has not been run, however the summary reads ("first run of
+this" about a path you did not execute is a claim, not a result).
 
 ## Before trusting a derived view
 

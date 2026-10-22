@@ -19,8 +19,8 @@ a merged explanation refuted by its own control an hour later.
 Deciding *which* effort to work on, checking a proposal against the NO-GO
 ledger, and grooming the backlog follow
 `${CLAUDE_SKILL_DIR}/references/backlog.md`.
-Whether a number is sound is `benchmark-validity`; how to take it is
-`measure-performance`.
+Whether a number is sound is `bench`'s `validity.md`; how to take it is
+`bench`'s `rack.md`.
 
 ## Inputs
 
