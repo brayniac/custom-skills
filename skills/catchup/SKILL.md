@@ -123,7 +123,8 @@ the authors it lists are the people whose work the user has not seen. Names are
 read through `.mailmap` (`%aN`, `%aE`) and compared without case, so one
 author's commits under different emails, or under one name spelled with
 different case, are counted together. Spellings that differ in more than case
-are counted apart.
+are counted apart; if two listed names share an email, they are probably one
+person, so list them once.
 
 If a remaining name is an automation account (a release or CI identity), list
 it separately from the people. If `user.name` is unset, or a listed name could
