@@ -51,12 +51,16 @@ Then find how the repository merges:
   observed>`.
 - Stacked on a parent that was squash-merged: the branch still carries the
   parent's commits, and git does not skip them because the squash commit has a
-  different patch. `merge` covers the stacked case: the old parent tip is `git
-  merge-base HEAD <parent head>`, with the parent head from `gh pr view <parent>
-  --json headRefOid` (fetch it first with `git fetch <remote>
-  pull/<parent>/head` if the parent branch is gone). Check `git log --oneline
-  <old parent tip>..HEAD` lists only this branch's commits, then `git rebase
-  --onto <remote>/<base> <old parent tip>`.
+  different patch. `merge` covers the stacked case. Find the old parent tip
+  from the parent PR's head (fetching it if the parent branch is gone), check
+  the log lists only this branch's commits, then rebase onto the base:
+
+  ```sh
+  git fetch <remote> pull/<parent>/head
+  old=$(git merge-base HEAD "$(gh pr view <parent> --json headRefOid -q .headRefOid)")
+  git log --oneline "$old"..HEAD
+  git rebase --onto <remote>/<base> "$old"
+  ```
 
 ## 3. Resolve each conflict by reading both sides
 
