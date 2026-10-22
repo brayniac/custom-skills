@@ -1,8 +1,10 @@
 # Report structure
 
-The sections in order, with what each must contain. Leave a section out only
-when it would be empty, and say so in one line rather than dropping it
-silently (an assessment with no rejected hypotheses says "None tested").
+The sections in order, with what each must contain, for a document someone
+will cite. Leave a section out only when it would be empty, and say so in one
+line rather than dropping it silently (an assessment with no rejected
+hypotheses says "None tested"). A short note needs only the result, with its
+population, and a pointer to the ledger and method.
 
 ## 1. Result
 
@@ -14,7 +16,8 @@ Three to six sentences a reader can act on without reading further:
   a queue, the client);
 - the recommendation, and the confidence in it as a statement about the
   evidence ("four interleaved runs per side, difference outside the A-vs-A
-  null"), not an adjective.
+  null"), not an adjective. If the recommendation depends on a given or
+  unknown input, name that input in the confidence statement.
 
 ## 2. Setup
 
@@ -50,6 +53,11 @@ question.
 Enough to reproduce: where the specs, scripts and raw results are (a path
 or URL the reader can open), the commands, and the analysis that turned runs
 into numbers. Link the working notes here.
+
+## 7. Ledger
+
+The evidence ledger as an appendix, so each finding's ledger row can be
+found: claim, kind, source, runs.
 
 ## Status line
 
