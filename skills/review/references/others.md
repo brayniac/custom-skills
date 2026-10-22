@@ -10,7 +10,7 @@ time; each finding is checked here before the user sees it.
 
 ```sh
 gh pr view <n> --repo <owner/repo> --json title,body,author,baseRefName,headRefOid,reviews,comments
-gh api repos/<owner/repo>/pulls/<n>/comments     # inline threads
+gh api --paginate repos/<owner/repo>/pulls/<n>/comments   # inline, all rounds
 ```
 
 Read the description, the linked issue, every earlier review round and the
@@ -19,11 +19,19 @@ unless the answer is wrong, and then the finding says why.
 
 ## 2. Run the review
 
-Steps 1 to 6 of the review skill, with these differences in the brief:
+Steps 1 to 5 of the review skill, with these differences in the brief:
 
-- The checkout is the PR's head, in a scratch worktree
-  (`gh pr checkout <n>` there, or `git fetch <remote> pull/<n>/head`), and the
-  reviewer runs nothing that writes outside it.
+- The checkout is the PR's head, detached, in a scratch worktree.
+  `pull/<n>/head` exists only on the base repository, so fetch from the
+  remote for `<owner/repo>`, not from a fork:
+
+  ```sh
+  git fetch <base-remote> pull/<n>/head
+  git worktree add --detach <scratch>/pr-<n> FETCH_HEAD
+  git -C <scratch>/pr-<n> rev-parse HEAD     # must equal headRefOid from step 1
+  ```
+
+  The reviewer runs nothing that writes outside that worktree.
 - The conventions to check against are the repository's written ones (its
   `CLAUDE.md`, `CONTRIBUTING`, style docs, lint configs). The user's own
   preferences apply to the user's repositories, not to another project's.
@@ -36,8 +44,9 @@ For each finding: open the quoted `file:line` at the PR's head and confirm the
 text is there; follow the code path or run the input; and mark it
 **confirmed** (reproduced or traced), **plausible** (the path is real, the
 trigger is not shown), or drop it. A finding about code the PR does not touch
-is out of scope unless the PR makes it reachable. Say which findings were
-dropped and why.
+is out of scope unless the PR makes it reachable. When a finding is one case
+of a kind, grep the PR's files for the same kind and report every instance as
+one finding. Say which findings were dropped and why.
 
 ## 4. Draft, then hand to the user
 
@@ -53,7 +62,10 @@ comments, a review with comments, a review requesting changes, or nothing).
 
 - **Never post, approve, or request changes** without the user's go-ahead.
 - **Never relay a finding you have not checked** against the PR's head.
-- **Never record the review with `record-review.sh`.** That record exists to
-  let this session merge; whether and when someone else's PR merges is the
-  user's decision.
+- **Never record the review on your own initiative.** The record lets this
+  session merge, and whether someone else's PR merges is the user's decision.
+  When the user asks this session to merge it, the PR moves to the first row
+  of the review skill's table: the author's answers, or the user's waiver of
+  each open finding, take the place of step 7, and the head as it then stands
+  is reviewed and recorded by step 8.
 - **Never push to the author's branch**, including a suggested fix.

@@ -6,15 +6,15 @@ an effort. There is no diff to break, so the reviewer looks for what would
 make the build fail or the result mean nothing, while changing course is
 still cheap.
 
-Dispatch a fresh agent as in step 1 of the review skill, read-only, with the
-proposal, the code it would change, and these mandates as separate sections.
+Dispatch a fresh agent as in steps 1 and 2 of the review skill, read-only,
+with the proposal and the code it would change as item 1 of the brief, and
+these mandates, as separate sections, in place of steps 3 to 5.
 
 ## Mandate: the claims about today
 
 Every statement about the current system, checked against the code or the
 running system with a `file:line` or a command: "X has no Y", "the hot path
-does Z", a cost, a count. A design built on a false premise fails however
-well it is executed.
+does Z", a cost, a count.
 
 ## Mandate: the problem and the criterion
 
@@ -24,7 +24,7 @@ well it is executed.
   stated outcome that would stop the work (a NO-GO)? "Faster" is not one;
   "p99 below 2 ms at 100k req/s on hv01" is.
 - Is there an earlier attempt or a recorded NO-GO for the same idea
-  (`journal`, and the backlog's ledger)? If so, what is new now?
+  (`journal`'s entries and its NO-GO ledger)? If so, what is new now?
 
 ## Mandate: alternatives and the cheapest test
 
@@ -50,5 +50,7 @@ and is marked **before building** (the answer could change the design) or
 **during building** (it can be settled as the work goes). Then what the
 reviewer could not check.
 
-The owner decides what to change. Do not record the review with
+Before handing the questions over, open each cited `file:line` and confirm
+it; drop or mark what does not hold, as in step 3 of `others.md`, beside this
+file. The owner decides what to change. Do not record the review with
 `record-review.sh`: a design has no head to merge.

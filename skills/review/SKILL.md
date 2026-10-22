@@ -14,8 +14,8 @@ the day before, a rebase that replayed someone else's commits.
 
 | What is being reviewed | Procedure |
 | --- | --- |
-| a change this session made or will merge | steps 1 to 8 |
-| someone else's pull request | steps 1 to 6 with `${CLAUDE_SKILL_DIR}/references/others.md`, which replaces 7 and 8 |
+| a change by the user or this session, or any PR the user asks this session to merge | steps 1 to 8 |
+| someone else's pull request, for the user to answer | steps 1 to 5 with `${CLAUDE_SKILL_DIR}/references/others.md`, which replaces 6 to 8 |
 | a design, RFC, plan or proposal with no code yet | `${CLAUDE_SKILL_DIR}/references/design.md` |
 | findings someone made on this session's change | step 7 |
 
@@ -113,8 +113,9 @@ entry is not reference documentation.
   run the input, read the code path. Do not apply what you have not
   reproduced, and say when you disagree.
 - **Fix the class, not the instance.** When a finding is one case of a kind
-  (a stale reference, a missing bound, a wrong unit), grep the whole change
-  for the same kind and fix every instance before the next round.
+  (a stale reference, a missing bound, a wrong unit), grep the files the
+  change touches for the same kind and fix every instance before the next
+  round.
 - **Design findings go to the owner** before implementation; a reviewer can
   show a capability was lost, only the owner decides whether to restore it.
 - After applying a prose replacement, **check the old text is gone**
