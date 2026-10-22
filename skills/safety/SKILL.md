@@ -1,6 +1,6 @@
 ---
 name: safety
-description: Test a Rust lock-free protocol or atomic handshake with loom (exhaustive interleavings under weak memory), shuttle (randomized, sequentially consistent) and ThreadSanitizer, so that each model can fail — a sync shim that swaps every shared atomic, a fixture whose mutations are single atomic operations, one model per entry point, a hazard witness proving the model reached the interleaving it exists for, a neutered-code run that turns it red, and properties chosen for what each checker can and cannot decide (loom reports store buffering even under SeqCst; shuttle cannot see an ordering that is too weak). Use when adding or changing atomics, orderings, CAS loops, reference counts, or reader/writer handshakes; when writing or reviewing a loom or shuttle test; when a loom suite is green and you need to know what that proves; and when a concurrent test flakes.
+description: Check unsafe and concurrent Rust with tools that can fail. For memory safety, Miri for undefined behaviour in unsafe code (use-after-free, out-of-bounds, aliasing, uninitialised reads) and AddressSanitizer where Miri cannot run (FFI, system calls). For concurrency, test a Rust lock-free protocol or atomic handshake with loom (exhaustive interleavings under weak memory), shuttle (randomized, sequentially consistent) and ThreadSanitizer, so that each model can fail — a sync shim that swaps every shared atomic, a fixture whose mutations are single atomic operations, one model per entry point, a hazard witness proving the model reached the interleaving it exists for, a neutered-code run that turns it red, and properties chosen for what each checker can and cannot decide (loom reports store buffering even under SeqCst; shuttle cannot see an ordering that is too weak). Use when adding or changing unsafe code, raw pointers, FFI, atomics, orderings, CAS loops, reference counts, or reader/writer handshakes; when writing or reviewing a loom or shuttle test; when a loom suite is green and you need to know what that proves; and when a concurrent test flakes.
 ---
 
 # Model-check concurrent Rust
@@ -13,6 +13,11 @@ it able to.
 
 Evidence below is from `cache-core` in `crucible-wt-cachers` (PRs #85–#131)
 and from a toy crate run against loom 0.7.2 on 2026-09-30.
+
+For memory safety in unsafe code (raw pointers, `transmute`, FFI, system
+calls) rather than concurrency, follow
+`${CLAUDE_SKILL_DIR}/references/memory.md`: Miri, and AddressSanitizer where
+Miri cannot run.
 
 ## Inputs
 
