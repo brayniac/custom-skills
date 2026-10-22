@@ -1,6 +1,6 @@
 ---
 name: tool
-description: Build a tool someone will run more than once — a converter, a report generator, a load or trace utility, a checker — in Rust by default, in the repository that uses it (a subcommand of its existing binary, or a small crate in its workspace), from a captured input fixture first, with a small CLI (help that shows an example, data on stdout, diagnostics on stderr, a non-zero exit on failure), tests from the fixture that have been seen to fail, output checked against a reference before anyone relies on it, and a review. Use when about to write a script that will outlive this session, when a one-off command is being run for the third time, when asked to build a converter, parser, generator or CLI utility, and when replacing a Python or shell script with something maintained.
+description: Build a tool someone will run again — a converter, a report generator, a load or trace utility, a checker — in Rust by default, in the repository that uses it (a subcommand of its existing binary, or a small crate in its workspace), from a captured input fixture first, with a small CLI (help that shows an example, data on stdout, diagnostics on stderr, a non-zero exit on failure), tests from the fixture that have been seen to fail, output checked against an independent answer before anyone relies on it, and a review. Use when about to write a script that will be run again or by someone else, when asked to build a converter, parser, generator or CLI utility, and when replacing a Python or shell script with something maintained. Not for a script shipped inside a skill or a plugin hook.
 ---
 
 # Build a tool
@@ -8,22 +8,30 @@ description: Build a tool someone will run more than once — a converter, a rep
 The owner's rule is to write tools in Rust, not Python scripts: "We should be
 writing rust tools, not python scripts." A tool is code someone runs again,
 so it gets the same treatment as the rest of the repository: a home, tests,
-a review. A one-off command run once in a session is not a tool; the third
-time it is run, it is.
+a review. A command run once is not a tool; a command that will run again,
+or that someone else will run, is.
 
-## 1. Decide where it lives
+## 1. Decide where it lives, and in what
 
 In the repository whose work it serves:
 
 - a subcommand of the repository's existing binary when there is one (one
   converter became `convert-trace` in `src/trace.rs` of the project's CLI);
 - otherwise a small crate in the workspace (`tools/<name>`), with
-  `publish = false` unless it ships.
+  `publish = false` unless it ships;
+- in a repository with no Rust, ask before adding a Cargo workspace to it;
+- a tool several repositories use goes in the repository that owns the
+  shared concern, run with `cargo run --bin` or installed with
+  `cargo install --git`.
 
-Not the scratch directory and not a gist: a tool nobody can find gets
-rewritten. Use another language only when the user asks, or when the tool
-must run where Rust cannot (inside a guest image with no toolchain, a CI
-step that only has a shell); say which and why.
+Not the scratch directory: a tool there is deleted with the session.
+
+Rust is the default. The exception is a script that must run with no build
+step: one shipped in a skill's `references/` or as a plugin hook, which this
+plugin requires to work on a host with nothing else installed. Write those
+in Python or POSIX shell. A guest image or CI step without a Rust toolchain
+is not an exception: it can run a binary built elsewhere. Use another
+language otherwise only when the user asks, and say why.
 
 ## 2. Capture the input first
 
@@ -40,8 +48,9 @@ documentation or memory.
   error and exit 0.
 - Deterministic output (sorted keys, stable order) when another tool or a
   test reads it; a `--json` mode when a program will.
-- Read input in a streaming way when it can be large (the converter read the
-  dataset's `.tar.gz` directly, a full day in 3.1 s).
+- Read the input in the form it arrives instead of requiring an extracted
+  copy (the converter reads the dataset's `.tar.gz` directly: a full day in
+  3.1 s, 0.72 GB peak). Stream when memory must stay bounded.
 
 Follow the repository's conventions for errors, naming and layout (`rust`).
 
@@ -51,26 +60,27 @@ Tests read the fixture through the real entry point. Break each one once to
 see it fail (`verify` step 8): the converter's timestamp test was checked by
 making the code treat `timestamp` as the start time.
 
-## 5. Check the output against a reference
+## 5. Check the output against an independent answer
 
-Before anything relies on the tool, compare its output with an independent
-answer on real input: the script it replaces, a hand-computed case, or the
-system's own counters. The converter's output was checked against the
-earlier Python numbers on a full day of data. A tool that has only been
-checked against its own tests has been checked against its author's
-understanding.
+Before anything relies on the tool, compare its output with an answer that
+does not come from its own code, on real input: the script it replaces, a
+hand-computed case, or the system's own counters. The converter's session
+and call counts on a full day matched the earlier Python analysis (54,368
+sessions, 1,766,894 calls). Its own tests encode the author's reading of the
+format, so they cannot catch a misreading of it.
 
 ## 6. Document and review
 
 `--help` and a short section where the repository documents its tools (`docs`
-for testing the help with a fresh agent). Then `verify` and `review`; the
-converter's review found a hang on one input, reproduced with a regression
-test that timed out before the fix.
+for testing the help with a fresh agent). Then `verify` and `review`. The
+converter's review found that it hung when every worker failed, and a
+regression test timed out at 10 s on the code before the fix.
 
 ## Never
 
 - **Never leave a recurring task as a Python or shell script** without the
-  user choosing that.
+  user choosing that, except a script that must run with no build step
+  (step 1).
 - **Never write a parser before capturing the input** it parses.
 - **Never exit 0 after an error**, or mix diagnostics into stdout.
 - **Never let anything depend on the tool's output** before step 5.
