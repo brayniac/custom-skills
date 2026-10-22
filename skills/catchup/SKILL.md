@@ -1,6 +1,6 @@
 ---
-name: catch-up-on-repo
-description: Brief the user, or yourself at the start of a session, on the state of a repository before work resumes — the current branch's position against its upstream and main, uncommitted work, stashes and other worktrees, the CI state of the branch and of the user's open PRs, instruction files changed since the window began, and what landed on main grouped by theme with risky changes first. Picks the window by time or reflog, because commits authored by the user's git identity include every agent session's work. Read-only. Use when the user says "catch me up", "what did I miss", "what changed while I was out", "where was I", at the start of a session that resumes earlier work, and before starting new work on a branch you did not create in this session.
+name: catchup
+description: Brief the user, or yourself at the start of a session, on the state of a repository before work resumes — the current branch's position against its upstream and main, uncommitted work, stashes and other worktrees, the CI state of the branch and of the user's open PRs, instruction files changed since the window began, what landed on main grouped by theme with risky changes first, and who other than the user wrote it. Picks the window by time or reflog, because commits authored by the user's git identity include every agent session's work. Read-only. Use when the user says "catch me up", "what did I miss", "what changed while I was out", "where was I", at the start of a session that resumes earlier work, and before starting new work on a branch you did not create in this session.
 ---
 
 # Catch up on a repository
@@ -23,8 +23,8 @@ the last fetch.
 ## 1. Pick the window
 
 Do not select the window by the user's authorship. Here, agent sessions commit
-under the user's git identity: in `custom-skills`, 22 of the last 30 commits
-were authored as the user with a Claude co-author trailer; in
+under the user's git identity: in `custom-skills` on 2026-10-22, 29 of the last
+30 commits were authored as the user with a Claude co-author trailer; in
 `crucible-wt-cachers`, 50 of 50. In `custom-skills`, `git log -1
 --author=<user email>` returned `HEAD`, so "since your last commit" was an
 empty window although the three most recent commits came from an agent
@@ -36,8 +36,11 @@ In order:
 2. The last time this checkout was worked in before the current break.
    `git reflog --date=iso -n 30` lists recent moves of `HEAD`; find the newest
    gap of more than about four hours between consecutive entries, and start
-   the window at the older entry. Consecutive entries minutes apart are one
-   session's commits, so the previous entry alone is not the boundary.
+   the window at the older entry. Count the current time as the newest
+   point: if the newest entry is more than about four hours old, the break is
+   ending now and the window starts at that entry. Consecutive entries minutes
+   apart are one session's commits, so the previous entry alone is not the
+   boundary.
 3. The last 7 days on the default branch, widened to at least 10 commits.
 
 State the window at the top of the briefing, with the reason it was chosen.
@@ -99,10 +102,37 @@ any instruction file before resuming work.
 Use the repository's default branch where this says `main`.
 
 ```sh
-git log --no-merges --date=short --format='%h%x09%ad%x09%s' \
+git log --no-merges --date=short --format='%h%x09%ad%x09%an%x09%s' \
   --since='<window start>' origin/main
+git log --no-merges --format='%aE%x09%aN' --since='<window start>' origin/main \
+  | awk -F'\t' -v me="$(git config user.email)" \
+        -v my="$(git config user.name)" '
+      { e = tolower($1); n = tolower($2) }
+      e == "noreply@anthropic.com" { next }
+      n ~ /\[bot\]$/ || e ~ /\[bot\]@users\.noreply\.github\.com$/ { next }
+      me != "" && e == tolower(me) { next }
+      my != "" && n == tolower(my) { next }
+      { c[n]++; if (!(n in name)) name[n] = $2 }
+      END { for (n in c) printf "%7d %s\n", c[n], name[n] }' \
+  | sort -rn
 git diff --stat $W origin/main | tail -20
 ```
+
+The second command counts commits per author name. It drops the user's git
+email and name, `noreply@anthropic.com`, and GitHub bot accounts (a name ending
+in `[bot]` or an email ending in `[bot]@users.noreply.github.com`). Agent
+sessions commit either as the user or as `Claude <noreply@anthropic.com>`, so
+the authors it lists are the people whose work the user has not seen. Names are
+read through `.mailmap` (`%aN`, `%aE`) and compared without case, so one
+author's commits under different emails, or under one name spelled with
+different case, are counted together. Spellings that differ in more than case
+are counted apart; if two listed names share an email, they are probably one
+person, so list them once.
+
+If a remaining name is an automation account (a release or CI identity), list
+it separately from the people. If `user.name` is unset, or a listed name could
+be the user's (a handle, initials, another spelling), ask the user before
+writing the Authors line.
 
 Group by theme (area of the code, feature), not by date. Order the groups:
 
@@ -112,9 +142,10 @@ Group by theme (area of the code, feature), not by date. Order the groups:
 4. fixes relevant to the current branch;
 5. tests, CI, docs and chores, in one line.
 
-For each group, one line of intent and one to three short SHAs. List fewer than
-eight commits individually instead of grouping. If the repository keeps a
-journal (`docs/journal/`), name entries opened or closed in the window.
+For each group, one line of intent, one to three short SHAs, and the author of
+any of them who is neither the user nor an agent. List fewer than eight
+commits individually instead of grouping. If the repository keeps a journal
+(`docs/journal/`), name entries opened or closed in the window.
 
 Then cross the current branch's changed files with main's:
 
@@ -131,12 +162,13 @@ Under about 40 lines:
 
 ```
 Window: <range> (<why>)
+Authors: <name (n commits)>, ... (people other than you; "only you" if none)
 Branch: <name>, <ahead/behind>, <dirty files / stashes / unpushed>
 Other worktrees: <path: branch> ...
 CI: <this branch>; open PRs: #n <state>, ...
 Instructions changed: <file: one line> ...
 Landed on main:
-  <theme>: <intent> (<sha>, <sha>)
+  <theme>: <intent> (<sha>, <sha>; <author, if neither you nor an agent>)
   ...
 Overlap with this branch: <files>
 Next step: <one concrete action, only if the state calls for one>
