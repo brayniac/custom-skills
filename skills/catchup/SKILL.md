@@ -1,5 +1,5 @@
 ---
-name: catch-up-on-repo
+name: catchup
 description: Brief the user, or yourself at the start of a session, on the state of a repository before work resumes — the current branch's position against its upstream and main, uncommitted work, stashes and other worktrees, the CI state of the branch and of the user's open PRs, instruction files changed since the window began, and what landed on main grouped by theme with risky changes first. Picks the window by time or reflog, because commits authored by the user's git identity include every agent session's work. Read-only. Use when the user says "catch me up", "what did I miss", "what changed while I was out", "where was I", at the start of a session that resumes earlier work, and before starting new work on a branch you did not create in this session.
 ---
 
