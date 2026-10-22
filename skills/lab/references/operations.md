@@ -25,7 +25,7 @@ established.
   list the agent's child processes and the containers and stop them (`pkill -P
   <agent pid>`, `docker rm -f <container>`) before the host takes another job.
 - **A Mac that sleeps is dropped by the server while its job keeps running.**
-  The server requeues the job, and the job carries on on the Mac; on wake the
+  The server requeues the job, and the job keeps running on the Mac; on wake the
   agent refuses to register while it runs (`the server no longer has a live
   host`). One laptop slept on a thermal emergency mid-run, and its job kept
   running locally, about 11 hours into the run when someone noticed. Stop the

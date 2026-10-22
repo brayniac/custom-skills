@@ -48,10 +48,10 @@ sandbox = "none"        # "bwrap" (default) | "sandbox-exec" | "none"
 **What `none` costs is worth stating before choosing it.** No pid namespace, so
 a build that leaves something running leaves it running. No read-only root, so
 a build can read anything that user can. On a pi that does nothing else, that
-is a small surface. **macstudio's agent runs as the owner's own user
-(`fleet/hosts/macstudio.toml`), so it is the machine where that surface is
-least acceptable.**
-If studio is going to run CI, `sandbox-exec` is worth the profile.
+is a small surface. On both Macs the agent runs as the owner's own user
+(per-user LaunchAgents, per their host files), so a build under `none` can read
+everything that user can. That surface is larger than on a Pi; if a Mac is
+going to run CI, `sandbox-exec` is worth the profile.
 
 ### 2. The installer is Debian-only
 
