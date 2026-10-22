@@ -60,7 +60,7 @@ put the qualifier after an em dash. Do not migrate old entries.
 **Mixed outcomes.** Record the state of what landed. A NO-GO on the original
 theory that produced a shipped change is `shipped`, with the NO-GO in the
 status line and body. If the NO-GO deserves its own ledger line, add it to the
-backlog's ledger (`keep-backlog`).
+repository's ledger by step 4 of `backlog.md`, beside this file.
 
 ## Headings
 
