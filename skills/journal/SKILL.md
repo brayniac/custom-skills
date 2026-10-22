@@ -90,7 +90,7 @@ whole effort.
 Use the repository's format, or
 `${CLAUDE_SKILL_DIR}/references/entry-format.md`. Write:
 
-- the goal, and the scope boundary;
+- the goal, and the scope boundary, naming the adjacent problems set aside;
 - **GO/NO-GO criteria as numbers where the effort makes a cost or performance
   claim**, and the prediction with what result would refute it, written before
   running (`debug` step 3). "Bounded", "low" and
