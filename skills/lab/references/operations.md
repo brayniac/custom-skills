@@ -24,19 +24,20 @@ established.
   A leftover shell also kept a Mac marked busy. After a cancel or a timeout,
   list the agent's child processes and the containers and stop them (`pkill -P
   <agent pid>`, `docker rm -f <container>`) before the host takes another job.
-- **A Mac that sleeps is dropped by the server while its job keeps
-  running.** The server requeues the job, and the job carries on on the Mac; on wake the agent
-  refuses to register while it runs (`the server no longer has a live host`).
-  One laptop slept on a thermal emergency mid-run, and its job kept running
-  locally, about 11 hours into the run when someone noticed. Stop the local job processes; the agent then registers and
-  the requeued job starts again from the beginning.
-- **`experiment_timeout` caps every job.** It is set in the agent's
-  `agent.toml` (on macstudio,
-  `~/Library/Application Support/systemslab/agent.toml`; check the agent's
-  command line for which file it reads) and defaults to 12 hours (43,200 s); a spec's own timeout does not lift it. An edit takes effect
-  only when the agent restarts, and the restarted agent registers under a new
-  host ID with the same tag. A long run was reported to have died at 43,200 s
-  because the raised value was on disk but never loaded.
+- **A Mac that sleeps is dropped by the server while its job keeps running.**
+  The server requeues the job, and the job carries on on the Mac; on wake the
+  agent refuses to register while it runs (`the server no longer has a live
+  host`). One laptop slept on a thermal emergency mid-run, and its job kept
+  running locally, about 11 hours into the run when someone noticed. Stop the
+  local job processes; the agent then registers and the requeued job starts
+  again from the beginning.
+- **`experiment_timeout` caps every job.** It is set in the agent's `agent.toml`
+  (on macstudio, `~/Library/Application Support/systemslab/agent.toml`; check
+  the agent's command line for which file it reads) and defaults to 12 hours
+  (43,200 s); a spec's own timeout does not lift it. An edit takes effect only
+  when the agent restarts, and the restarted agent registers under a new host ID
+  with the same tag. A long run was reported to have died at 43,200 s because
+  the raised value was on disk but never loaded.
 - **Two runner builds have reported one version.** Two builds of
   systemslab-runner both reported 161.0.0, and the older one injected a
   `label` field into shell action arguments, which the shell action rejects.
