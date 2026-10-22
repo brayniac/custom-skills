@@ -40,7 +40,8 @@ branch's upstream when it has one, else `HEAD`: it refuses a squash-merged
 branch with no upstream, and deletes a pushed branch whose PR never merged.
 Neither answers whether the work landed. Decide from the PRs, ignoring any
 from another owner's fork with the same branch name (`--head` matches the
-name only): keep the branch if any PR from it is open; otherwise it is done
+name only; compare `headRepositoryOwner.login` with the owner of the remote
+you push to): keep the branch if any PR from it is open; otherwise it is done
 when one `MERGED` PR has a `headRefOid` equal to the branch tip. A tip that
 differs carries commits the PR never had; keep the branch and say which
 (`git log <headRefOid>..<branch>`).
@@ -79,11 +80,11 @@ removals; report any whose message names a branch being deleted.
   hand each time. Delete pinned to the PR's head, so commits pushed after the
   merge are not lost: `git push --force-with-lease=<branch>:<headRefOid>
   origin --delete <branch>`. A rejection as stale means the remote moved;
-  keep it and report.
+  keep it and report. "remote ref does not exist" means it is already
+  deleted.
 - **Scratch copies, build directories, remote scratch:** remove the ones this
-  session created. A copy of a worktree that kept its `.git` file committed
-  onto the real branch, and those commits are on the branch now; step 2's tip
-  comparison shows them.
+  session created. Commits made in a copy of a worktree that kept its `.git`
+  file are on the real branch; step 2's tip comparison shows them.
 - **Processes:** stop the ones this session started, by recorded PID or task
   ID.
 
