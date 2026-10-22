@@ -101,7 +101,7 @@ whole point of monitoring `e` rather than `y`. For any statistic that has *not*
 been studentized that way, the threshold is source-specific and
 `calibrate.md` is how to derive it.
 
-Both detectors are in the tier-1 table in `measure-performance`'s
+Both detectors are in the tier-1 table in `bench`'s
 `analysis-placement.md`.
 
 ## When the model needs refitting

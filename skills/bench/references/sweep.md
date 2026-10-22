@@ -1,8 +1,3 @@
----
-name: sweep-configuration-space
-description: Map a server's performance across a configuration space — process count, threads per process, CPU and IRQ placement, connection count, payload size — in tiers that go from a wide grid of short runs to long runs of the leading cells, gating every cell on whether it measured the server before ranking it, and labelling each limit as the host's (NIC queues, cores, link) or the software's (a main thread, a lock or wake handoff). The method applies to any lab; the bundled script and queries assume SystemsLab, rezolus recordings and cachecannon. Use when asked to find the best geometry or deployment shape for a server on given hardware, to characterise where and why throughput stops scaling, to produce data for charts or a report from many configurations, and before ranking any set of sweep results.
----
-
 # Sweeping a configuration space
 
 A sweep answers two questions: which configuration is best on this hardware,
@@ -12,12 +7,12 @@ and what limits it. It goes wrong in three ways:
 - an axis changes something besides itself;
 - host state left by one run carries into the next.
 
-This skill covers how to lay out a sweep and how to gate its results. The
-neighbouring skills own the rest:
+This file covers how to lay out a sweep and how to gate its results. The
+rest is covered elsewhere:
 
-- `measure-performance`: producing one number, closed and open loop, Little's
-  law, interleaving;
-- `benchmark-validity`: whether one run measured its subject;
+- `rack.md`, beside this file: producing one number, closed and open loop,
+  Little's law, interleaving;
+- `validity.md`, beside this file: whether one run measured its subject;
 - `interpret`'s `noise.md`: run length from the noise;
 - `interpret`'s `calibrate.md`: thresholds;
 - `lab`'s `specs.md`: spec mechanics.
@@ -37,7 +32,7 @@ cell shares:
 - the payload size.
 
 Name the axes and their ranges. Write which cells you expect to win, why, and
-what result would refute each expectation (`measure-performance` step 5).
+what result would refute each expectation (`rack.md` step 5).
 Record all of this beside the sweep file before submitting anything.
 
 ## 2. Build one parameterised spec and one sweep file per study
@@ -54,7 +49,7 @@ Record all of this beside the sweep file before submitting anything.
   the next cell starts. A preflight step fails the run if a port is already
   in use.
 - **Bracket the measured window with `systemslab/start-metrics` and
-  `stop-metrics`** (`measure-performance` step 3), after a
+  `stop-metrics`** (`rack.md` step 3), after a
   `systemslab/barrier` so the client's and the server's windows match.
   Otherwise the recording spans the whole job, and warmup and prefill load
   enter every per-request rate and gate. A prefill that saturates the server
@@ -92,7 +87,7 @@ Little's law the total must be at least that geometry's expected peak
 throughput × its latency at saturation. Confirm in step 5 that it saturated.
 
 A closed-loop ranking is valid only among cells whose ceiling is the subject.
-Confirm the leaders open-loop or with an SLO search (`measure-performance`
+Confirm the leaders open-loop or with an SLO search (`rack.md`
 step 3).
 
 ## 4. Tier 1: a coarse grid
@@ -103,7 +98,7 @@ short measurement window (30 s) and one run per cell.
 
 Keep the same warmup in every tier, including any settle time the load
 generator adds after prefill. It must last until per-second throughput has
-flattened before the window opens (`benchmark-validity`). Check that on the
+flattened before the window opens (`validity.md`). Check that on the
 slowest-warming cell of tier 1.
 
 A shortened warmup leaves some cells still warming during the window and not
@@ -112,10 +107,10 @@ results. If the sweep has to be smaller, cut cells, not warmup.
 
 ## 5. Gate every cell before ranking it
 
-`${CLAUDE_SKILL_DIR}/references/sweep_report.py` prints a verdict per cell from
+`sweep_report.py` (beside this file) prints a verdict per cell from
 gate 1 (except Little's law), gate 2, and gate 3's run-queue and `net_rx`
 tests. Check Little's law, the client's busiest CPU and gate 4 by hand, using
-the queries in `${CLAUDE_SKILL_DIR}/references/gates.md`. The script compares
+the queries in `gates.md` (beside this file). The script compares
 active connections with the total the client opens, read from
 `--planned-conns`. For a study that holds the per-process count fixed
 (step 3), pass the product, quoted so the shell does not expand it:
@@ -130,7 +125,7 @@ is reported as not checked.
      requests.
    - The active connections at the end match the plan.
    - Little's law closes with the mean latency and connections × pipeline
-     depth (`measure-performance` step 5). It checks that throughput,
+     depth (`rack.md` step 5). It checks that throughput,
      latency and in-flight count agree with each other. In a closed loop it
      holds whether or not the server saturated, so it says nothing about
      gate 2.
@@ -194,7 +189,7 @@ to the subject's threads belongs to the host.
 ## 6. Explain the ranking from the recording before reading source
 
 For each cell, read these from the rezolus recording
-(`${CLAUDE_SKILL_DIR}/references/gates.md`) before opening the server's
+(`gates.md`, beside this file) before opening the server's
 source:
 
 - per request: CPU microseconds, futex syscalls, voluntary context switches,
@@ -248,11 +243,11 @@ window. These runs give the chart data and the time series.
   Allan deviation is still falling at 30 s, give the leader one run of about 20
   minutes.
 - **Repeats.** Any number quoted as a result needs the interleaved repeats
-  that `measure-performance` step 5 sets. Size the repeats from the spread
+  that `rack.md` step 5 sets. Size the repeats from the spread
   between these extended runs.
 - **Burst and baseline.** On hosts with credit-based network or CPU limits, a
   30 s run measures the burst rate and a 5-minute run the baseline. Check the
-  allowance counters (`benchmark-validity`) before comparing tier 1 ranks
+  allowance counters (`validity.md`) before comparing tier 1 ranks
   with tier 3.
 - **Open-loop confirmation.** Confirm the top few open-loop or with an SLO
   search.

@@ -104,7 +104,7 @@ Conventions the existing skills follow:
 - Prose wraps at 80 columns. Frontmatter `description` and Markdown tables are
   the exceptions and run long on one line.
 - Skills cross-reference each other by name in backticks (`` `interpret` ``,
-  `` `measure-performance` step 5 ``) rather than restating the other skill.
+  `` `review` step 4 ``) rather than restating the other skill.
   Keep those references accurate when a skill is renamed or its steps are
   renumbered.
 - `skills/` is a flat list. Claude Code loads `skills/<name>/SKILL.md`, and

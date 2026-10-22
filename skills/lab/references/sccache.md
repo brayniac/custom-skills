@@ -108,7 +108,7 @@ use `sccache-or-rustc`, which compiles without sccache in that case.
 
 A build or test duration measured on a machine using the cache is a statement
 about the cache's state as much as the code. State whether the cache was cold
-or warm with every build-time figure (`benchmark-validity`). To measure
+or warm with every build-time figure (`bench`'s `validity.md`). To measure
 without it, disable the wrapper for that one command:
 
 ```sh

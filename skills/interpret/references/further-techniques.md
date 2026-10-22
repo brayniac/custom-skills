@@ -77,7 +77,7 @@ intervention did not touch. This is the right tool for a canary or a production
 deploy.
 
 **It is not the right tool for this lab.** Interleaved, randomized A/B is
-strictly stronger evidence, and `measure-performance` already requires it. Reach
+strictly stronger evidence, and `bench`'s `rack.md` already requires it. Reach
 for synthetic-control methods only where the intervention genuinely cannot be
 randomized.
 

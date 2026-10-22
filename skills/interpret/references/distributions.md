@@ -5,7 +5,7 @@ one is blind to the rest. **The distribution is the measurement**; a percentile 
 a lossy summary of it chosen before you knew what changed.
 
 This procedure is about the comparison itself. Whether the difference is *real*
-is `measure-performance` step 5 (interleave, enough runs, spread that does not
+is `bench`'s `rack.md` step 5 (interleave, enough runs, spread that does not
 cover the difference), and whether your samples are independent enough to
 support any error bar is `noise.md`. Neither of those changes because the
 statistic is a distance rather than a mean.
@@ -35,7 +35,7 @@ W1 = Σ_i |CDF_a(i) − CDF_b(i)| · (x_{i+1} − x_i)
 
 One cumulative sum over the buckets, `O(B)`, no raw samples — cheap enough to run
 on the node beside the measurement (see `analysis-placement.md` in
-`measure-performance`).
+`bench`'s `rack.md`).
 
 **W1 comes out in the units of the metric.** "The distribution moved 107 µs of
 mass" is a sentence an engineer can act on, where a KS statistic of 0.32 is not.
@@ -118,7 +118,7 @@ tight and will call every comparison significant. Same failure as `1/√N`.
 The null you want is **A-vs-A**: compute W1 between interleaved runs of the *same*
 configuration, several times, and take that spread as the noise floor. Then the
 A-vs-B distance is meaningful only if it clears it. You are already interleaving
-for `measure-performance` step 5, so the runs exist.
+for `bench`'s `rack.md` step 5, so the runs exist.
 
 If A-vs-A W1 is comparable to A-vs-B W1, there is no difference yet — report that,
 rather than a distance with a confident sign.

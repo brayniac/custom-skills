@@ -37,7 +37,7 @@ becomes expensive for no reason.
 
 ## Step 3 — Harvest the A-vs-A pairs you are already making
 
-**Do not run new experiments for this.** `measure-performance` step 5 already
+**Do not run new experiments for this.** `bench`'s `rack.md` step 5 already
 requires interleaved runs of the same configuration; four runs a side gives six
 A-vs-A pairs, and those pairs *are* the null. Most labs compute them and throw
 them away.

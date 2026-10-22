@@ -12,7 +12,7 @@ makes it grow. **You do not get to assume the first one**, and every familiar
 tool — the standard error, "take more samples", a confidence interval — assumes
 exactly that one.
 
-This is the diagnostic behind `measure-performance` step 5. That skill says
+This is the diagnostic behind `bench`'s `rack.md` step 5. That file says
 interleave, take at least four runs a side, and report the spread. This one says
 how long each run has to be, whether averaging inside it helps at all, and
 whether the spread you computed means what you want it to.
@@ -131,7 +131,7 @@ color.
   one.
 - **Red noise means interleave.** Flat or rising says the mean itself moves on
   the timescale of your experiment, so A-then-B compares two epochs and not two
-  configurations. This is exactly why `measure-performance` insists on
+  configurations. This is exactly why `bench`'s `rack.md` insists on
   interleaving; the curve is how you show it is necessary — or that it is not.
 - **A null tells you the period.** First null at τ, repeating at 2τ and 3τ: a
   periodic component of period τ. Go find the thing with that period.

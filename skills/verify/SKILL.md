@@ -12,7 +12,7 @@ the steps in order and report per gate and per new check.
 
 Steps 1 to 7 check which gates ran and how their result was read. Step 8
 checks that each check the change adds can fail. For a benchmark number, use
-`benchmark-validity`.
+`bench`'s `validity.md`.
 
 ## 1. Read the branch's CI state before starting
 

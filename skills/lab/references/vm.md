@@ -323,7 +323,7 @@ So when reading someone else's run: if the payload ends `exit 0`, find the
 re-raise step before believing `success`.
 
 The rest of the checks on a green result — evidence that work happened, a
-suite that never set the new flag — are in `benchmark-validity` ("Before
+suite that never set the new flag — are in `bench`'s `validity.md` ("Before
 trusting a green result") and apply unchanged. In the log, the line proving work
 occurred was a version banner, 7 pulls, 0 failures and a skip count of 16
 rather than 41; decide before the run which line that is, and grep for it.

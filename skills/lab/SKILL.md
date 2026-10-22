@@ -18,7 +18,7 @@ what exists before planning, then read the reference for the task.
   (Raspberry Pi 4B; `pi01` and `pi06` tagged `pi4b-thermal`), and `macbook`
   and `macstudio` (jobs run directly on macOS). `fleet/hosts/<host>.toml` in
   `brayniac/infra` declares each host's role, services, tags and guest images.
-  `${CLAUDE_SKILL_DIR}/../measure-performance/references/environment.md` has
+  `${CLAUDE_SKILL_DIR}/../bench/references/environment.md` has
   each class's hardware and what a number from it means.
 - **Guest images:** the table in step 1 of
   `${CLAUDE_SKILL_DIR}/references/vm.md` lists every family (Debian 12 to 14
@@ -36,7 +36,7 @@ what exists before planning, then read the reference for the task.
 | Put a repository on rack-ci, read a `rack-ci/*` status, release through rack-ci | `${CLAUDE_SKILL_DIR}/references/rack-ci.md` |
 | Put a machine's cargo on the shared compiler cache, or find why it is not used | `${CLAUDE_SKILL_DIR}/references/sccache.md` |
 | A job on a Mac, shipping a new version of a rack service, editing a host's live config | `${CLAUDE_SKILL_DIR}/references/operations.md` |
-| Measure on the rack: host classes, exclusivity, VM fidelity | `${CLAUDE_SKILL_DIR}/../measure-performance/references/environment.md` |
+| Measure on the rack: host classes, exclusivity, VM fidelity | `${CLAUDE_SKILL_DIR}/../bench/references/environment.md` |
 
 The references name their own sibling files as "beside this file"; all of
 them are in `${CLAUDE_SKILL_DIR}/references/`. The compiler cache installer

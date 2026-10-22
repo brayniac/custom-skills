@@ -1,8 +1,3 @@
----
-name: measure-performance
-description: Produce a performance number from the local lab — anvil VMs or bare metal, run through systemslab, read back from a rezolus recording — and decide whether a difference between two of them is real. Use before reporting any timing, throughput, or latency figure from this lab, when comparing two builds or configurations, and when a measured difference needs a verdict rather than a description.
----
-
 # Measuring performance in the local lab
 
 Three systems, one loop: **SystemsLab** picks the machine and runs the work,
@@ -14,7 +9,7 @@ not from the workload.
 specs, artifacts, and orphan recovery, and it is the authority whenever the two
 disagree. Spec mechanics that apply to every job — the interpolator, `set -ex`,
 state names, staging files on a context — are `lab`'s `specs.md`;
-Jsonnet syntax is in `systemslab/docs/llm/writing-experiments.md`. This skill
+Jsonnet syntax is in `systemslab/docs/llm/writing-experiments.md`. This file
 starts where those leave off: choosing an environment whose numbers mean
 something, and deciding whether a difference between two of them is real.
 
@@ -55,7 +50,7 @@ vCPU and 3 slots. Different microarchitectures — a z1 result and a z2 result a
 two facts about two machines, not a comparison. `pi4b-thermal` is carried by two
 Pis *instead of* `pi4b`, so tag `pi4b` never schedules onto them and a run that
 landed on one was deliberate. `macbook` measures nothing you would report.
-`${CLAUDE_SKILL_DIR}/references/environment.md` has the full table and the image
+`environment.md` (beside this file) has the full table and the image
 differences that change results.
 
 **Exclusivity is already guaranteed: SystemsLab runs one job per host.** If your
@@ -79,7 +74,7 @@ requires it — a suspected virtualization overhead, something in the host kerne
 and never to avoid verifying fidelity.
 
 The `pi4b` and Mac hosts run work directly and none of this applies to them; see
-`${CLAUDE_SKILL_DIR}/references/environment.md` for what replaces it.
+`environment.md` (beside this file) for what replaces it.
 
 ### Verify fidelity
 
@@ -107,7 +102,7 @@ about what is running on hv01 today.
 guest's `lscpu` and `/proc/cpuinfo` report what it was told, which is the thing
 under question. The one exception is a negative: if
 `/sys/.../current_clocksource` is not `tsc`, the guest has no usable TSC
-whatever the XML claims. `${CLAUDE_SKILL_DIR}/references/environment.md` has
+whatever the XML claims. `environment.md` (beside this file) has
 both sets of checks.
 
 Multi-slot instances must land on one CCD. If placement spanned CCDs, a
@@ -121,7 +116,7 @@ to reason around later. Name it after the thing being measured, and put anything
 you will select on in `metadata` — **`start-metrics`'s own `source` field is a
 rezolus endpoint address, not a label**, and a word there fails the step. The
 selector you use later comes from `metadata`;
-`${CLAUDE_SKILL_DIR}/references/reading-recordings.md` has the exact mapping.
+`reading-recordings.md` (beside this file) has the exact mapping.
 
 For anything with a client and a server, `systemslab/barrier` is what makes the
 measured window the same window on both hosts. Without it you are averaging over
@@ -162,14 +157,14 @@ again.
 
 **Analysis you attach to a running measurement is part of the measurement.**
 Before computing anything on the measured node, read
-`${CLAUDE_SKILL_DIR}/references/analysis-placement.md`: it splits the analysis
+`analysis-placement.md` (beside this file): it splits the analysis
 techniques in this library into what is cheap enough to run in the measurement
 path, what belongs off the measured cores while the run is live, and what has to
 wait for the recording. The cost that matters there is perturbation, not cycles.
 
 ## Step 4 — Read the recording, not the console
 
-`${CLAUDE_SKILL_DIR}/references/reading-recordings.md` has the chain and the
+`reading-recordings.md` (beside this file) has the chain and the
 traps. The short form:
 
 `download_artifact` → `describe_recording` (which recordings exist) →
@@ -201,7 +196,7 @@ quiet zero.
   they are not the same measurement. Interleave anyway — but say which regime
   the figure came from, and treat run order as a confound whenever arms run
   serially against shared hardware.
-  `${CLAUDE_SKILL_DIR}/references/environment.md` has the counters.
+  `environment.md` (beside this file) has the counters.
 - **Price against the right baseline.** A win against a stale baseline is a
   measurement of the baseline.
 - **Report the distribution, not one number.** If the spread of one side covers
@@ -280,7 +275,7 @@ executed.
   data.** `/proc/stat` busy sums count iowait, which is not busy — it read an
   idle io_uring server as 806% against tokio's 33%, and it biases against
   io_uring specifically rather than adding noise evenly. Use `cpu_usage` or
-  `task_cpu_usage`; `${CLAUDE_SKILL_DIR}/references/reading-recordings.md` has
+  `task_cpu_usage`; `reading-recordings.md` (beside this file) has
   the breakdown.
 - **Never report a per-operation figure below the floor the protocol requires.**
   An echo server cannot read less than once per operation. A number under the

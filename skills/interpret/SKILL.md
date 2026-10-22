@@ -5,10 +5,9 @@ description: Decide what a set of measurements shows — the color of its noise 
 
 # Interpret
 
-`measure-performance` produces a measurement and `benchmark-validity` checks it
-measured its subject; this skill decides what it shows. Each question has its
-own procedure in a reference file. Read the one the question needs, all of it,
-before computing anything.
+`bench` produces a measurement and checks that it measured its subject; this
+skill decides what it shows. Each question has its own procedure in a reference
+file. Read the one the question needs, all of it, before computing anything.
 
 | Question | Read |
 | --- | --- |

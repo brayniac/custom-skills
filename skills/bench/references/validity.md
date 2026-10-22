@@ -1,15 +1,10 @@
----
-name: benchmark-validity
-description: Check that a measurement measured its subject before anyone interprets it — that the instrument was not the bottleneck, that the run reached steady state, that the comparison changed one variable, and that a green result did not come from work that never happened. Use when running or reading a benchmark, when two runs disagree, when a result looks clean, and before writing any number into a document or an issue.
----
-
 # Benchmark validity
 
 A benchmark number is a claim about a system. Most bad claims are not noisy —
 they are precise, plausible, and about something other than the subject. Every
 check below corresponds to a measurement that looked fine and was wrong.
 
-This is the instrument-agnostic layer. `measure-performance` owns getting a
+This is the instrument-agnostic layer. `rack.md` owns getting a
 number out of this lab specifically — hosts, recordings, and whether a
 difference between two numbers is real — and is the authority where the two
 overlap.
