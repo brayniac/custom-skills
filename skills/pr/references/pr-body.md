@@ -15,7 +15,7 @@ the commit that updates this file.
 
 - The base and head: `git diff <base>...HEAD`, and the head SHA the body is
   pinned to.
-- The per-gate lines from `verify-change`.
+- The per-gate lines from `verify`.
 - For a change to a public interface, what a caller can no longer do
   (`review` step 4).
 
@@ -131,7 +131,7 @@ For each surface the repository has (unit, integration, smoke, benchmark,
 property or fuzz, manual): whether it ran, the real command and its real
 result, and what it does not cover. "All tests pass" is not a report; "136
 tests pass across seven binaries; none exercise the publish path" is. Take the
-lines from `verify-change`. Never state a command ran when it did not; name a
+lines from `verify`. Never state a command ran when it did not; name a
 skipped check and why. No coverage percentages.
 
 ## 6. Production-only risks

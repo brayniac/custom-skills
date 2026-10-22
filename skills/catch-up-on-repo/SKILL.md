@@ -8,7 +8,7 @@ description: Brief the user, or yourself at the start of a session, on the state
 The briefing has two jobs: say what state the work is in, and say what changed
 around it. The first matters more. Two rounds of work once went onto a branch
 whose `get_stream_end_to_end` failure predated them, because nobody read the
-branch's CI state before starting (`verify-change` step 1).
+branch's CI state before starting (`verify` step 1).
 
 The command sequence is read-only apart from `git fetch`, which updates
 remote-tracking refs and nothing in the working tree. Skip the fetch if the

@@ -58,12 +58,12 @@ gh api repos/OWNER/REPO/actions/jobs/<job-id>/logs
 
 For rack-ci, the `url` on the `CHECK` line is the SystemsLab experiment; read
 its log there. Check the base branch too: if the same check is red on `main`,
-the failure predates the PR (`verify-change` step 1).
+the failure predates the PR (`verify` step 1).
 
 ## 3. Fix failures the branch caused
 
 Check the worktree is clean apart from your own changes; if it has unrelated
-edits, stop and ask. Fix, run the repository's gates (`verify-change`),
+edits, stop and ask. Fix, run the repository's gates (`verify`),
 commit, and push. A push starts a new round of checks, so return to step 1 on
 the new head.
 

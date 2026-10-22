@@ -63,7 +63,7 @@ Write down each answer for this source, including "no".
 
 The parse module takes bytes or strings and returns typed values: no I/O, no
 network, no clock. Its tests read the committed fixture, with one explicit
-test per finding from step 3 that applies. Apply `verify-by-breaking` to each:
+test per finding from step 3 that applies. Apply `verify` step 8 to each:
 revert the handling for that finding and confirm its test fails.
 
 ## 5. Build outward, reversible steps first

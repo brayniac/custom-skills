@@ -27,7 +27,7 @@ Number them. The reply covers the whole list.
 - Reread the code the finding cites, at the head you will push, not the line
   as the reviewer quoted it.
 - **Reproduce a blocking finding before fixing it** (`review` step 6). Compile
-  the misuse, run the input, write the failing test with `verify-by-breaking`.
+  the misuse, run the input, write the failing test with `verify` step 8.
 - **A reader's confusion is evidence the claim may be wrong.** When a reviewer
   says a passage does not make sense, go to the source before rewording. A PR
   body rewrite once kept a "before" state that had never existed, in
@@ -68,7 +68,7 @@ Then post one summary with:
 - answers to the reviewer's open questions;
 - changes in this round that no finding asked for, so the reviewer reviews
   them too;
-- the gate results for the new head (`verify-change`).
+- the gate results for the new head (`verify`).
 
 Write the replies with `prose`, and check the destination
 with `publish`; a reply on a public repository is public.

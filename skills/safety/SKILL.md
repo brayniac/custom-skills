@@ -103,7 +103,7 @@ times; a two-ADD model written for it reached it 8 times (#98).
 
 ## 5. Prove each model can fail
 
-Apply `verify-by-breaking`: neuter the guard the model defends (restore the
+Apply `verify` step 8: neuter the guard the model defends (restore the
 pre-fix `verify_slot`, remove the CAS re-check) and confirm the model goes
 red with the forbidden outcome.
 

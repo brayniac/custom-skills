@@ -88,7 +88,7 @@ is not. Report that as unknown rather than inferring it either way.
    patch on an older line (maintenance branches, under question 4 of
    `${CLAUDE_SKILL_DIR}/references/discovery.md`). Stop on any of the three
    rather than fixing it.
-2. **Run the repo's checks** with `verify-change`: every gate, to a file, exit
+2. **Run the repo's checks** with `verify`: every gate, to a file, exit
    code first. If any fails, stop and report — do not release past a red check.
 3. **Compute the new version** from the level argument (`patch`/`minor`/`major`)
    or take the explicit version given. Dev suffixes like `-alpha.N` are dropped

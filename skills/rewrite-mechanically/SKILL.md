@@ -86,7 +86,7 @@ section once to confirm it does not now say both things.
 ## 6. Verify the build, including the code this platform cannot compile
 
 A rewrite that changes ownership or types can break a use inside a
-`#[cfg(...)]` block the local compiler never sees. Hand off to `verify-change`
+`#[cfg(...)]` block the local compiler never sees. Hand off to `verify`
 (steps 4 and 5) before pushing.
 
 ## Never
