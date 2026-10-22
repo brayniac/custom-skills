@@ -25,7 +25,7 @@
 
 use std::{
     collections::BTreeMap,
-    path::{Path, PathBuf},
+    path::{Component, Path, PathBuf},
 };
 
 use anyhow::{bail, Context, Result};
@@ -182,13 +182,13 @@ fn repository(root: &Path) -> PathBuf {
         .to_path_buf()
 }
 
-/// Resolves every symlink in the absolute path `path`, as the OS does, so `..`
-/// after a link steps out of the link's target. Unlike `canonicalize`, it
-/// returns the path a missing file would have, and fails on an absolute link
-/// and on more than 40 links (a loop). `path` comes from the resolved skills
+/// Resolves every symlink in the absolute path `path`, so `..` after a link
+/// steps out of the link's target; a `..` after a missing component or a file
+/// is resolved lexically. Unlike `canonicalize`, it returns the path a missing
+/// file would have, and fails on an absolute link and on more than 40 links (a
+/// loop). `path` comes from the resolved skills
 /// root, so the components above it hold no links.
 fn follow(path: &Path) -> Result<PathBuf> {
-    use std::path::Component;
     let mut out = PathBuf::new();
     let mut pending: Vec<std::ffi::OsString> = Vec::new();
     for part in path.components().rev() {
@@ -237,8 +237,8 @@ fn normalize(path: &Path) -> PathBuf {
     let mut out = PathBuf::new();
     for part in path.components() {
         match part {
-            std::path::Component::CurDir => {}
-            std::path::Component::ParentDir => {
+            Component::CurDir => {}
+            Component::ParentDir => {
                 out.pop();
             }
             other => out.push(other),
@@ -395,7 +395,26 @@ fn check_skill_dir_paths(given: &Path, root: &Path, repo: &Path, skill: &Skill) 
         .into_iter()
         .filter(|rel| !rel.contains('<'))
     {
-        let full = normalize(&dir.join(rel));
+        // Lexically, as a git install reads it. Each entry a `..` steps back
+        // out of must exist, as it must for the OS to resolve the path.
+        let mut full = dir.clone();
+        for part in Path::new(rel).components() {
+            match part {
+                Component::CurDir => {}
+                Component::ParentDir => {
+                    if std::fs::symlink_metadata(&full).is_err() {
+                        bail!(
+                            "skill {:?} names ${{CLAUDE_SKILL_DIR}}/{rel}, and {} does not \
+                             exist",
+                            skill.name,
+                            full.display()
+                        );
+                    }
+                    full.pop();
+                }
+                other => full.push(other),
+            }
+        }
         if !full.exists() {
             bail!(
                 "skill {:?} names ${{CLAUDE_SKILL_DIR}}/{rel}, which does not exist",
@@ -684,6 +703,61 @@ mod tests {
             "{err}"
         );
         assert!(err.contains("deep/SKILL.md"), "{err}");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_symlink_loop_in_a_named_path_is_an_error() {
+        let tmp = TempDir::new().unwrap();
+        fs::create_dir(tmp.path().join(".git")).unwrap();
+        let skills = tmp.path().join("skills");
+        let dir = ok_skill(
+            &skills,
+            "a",
+            "Read `${CLAUDE_SKILL_DIR}/references/l/../x.md`.",
+        );
+        fs::create_dir_all(dir.join("references")).unwrap();
+        fs::write(dir.join("references/x.md"), "x").unwrap();
+        std::os::unix::fs::symlink("l", dir.join("references/l")).unwrap();
+        let err = load_err(&skills);
+        assert!(err.contains("more than 40 symlinks"), "{err}");
+    }
+
+    /// The git-install reading: `../flat` beside the symlink is a link out of
+    /// the repository, while `../flat` beside the target is an ordinary file.
+    #[cfg(unix)]
+    #[test]
+    fn a_named_path_linking_out_beside_the_symlink_is_an_error() {
+        let (tmp, skills) = symlinked_skill("Read `${CLAUDE_SKILL_DIR}/../flat/references/s.md`.");
+        let twin = tmp.path().join("store/repository/flat/references");
+        fs::create_dir_all(&twin).unwrap();
+        fs::write(twin.join("s.md"), "s").unwrap();
+        let away = TempDir::new().unwrap();
+        fs::write(away.path().join("s.md"), "s").unwrap();
+        // From plugins/p/skills/flat/references, six `..` reach the directory
+        // holding both temp dirs.
+        let away_name = away.path().file_name().unwrap().to_str().unwrap();
+        std::os::unix::fs::symlink(
+            format!("../../../../../../{away_name}/s.md"),
+            skills.join("flat/references/s.md"),
+        )
+        .unwrap();
+        assert!(skills.join("flat/references/s.md").is_file());
+        let err = load_err(&skills);
+        assert!(err.contains("outside the repository"), "{err}");
+    }
+
+    #[test]
+    fn a_dotdot_after_a_missing_directory_is_an_error() {
+        let tmp = TempDir::new().unwrap();
+        ok_skill(
+            tmp.path(),
+            "a",
+            "Read `${CLAUDE_SKILL_DIR}/nope/../SKILL.md`.",
+        );
+        let err = load_err(tmp.path());
+        assert!(err.contains("nope"), "{err}");
+        assert!(err.contains("does not exist"), "{err}");
     }
 
     /// A GitHub tarball, as rack-ci builds from, has no `.git`; the
