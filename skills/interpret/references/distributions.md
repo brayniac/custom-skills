@@ -34,8 +34,8 @@ W1 = Σ_i |CDF_a(i) − CDF_b(i)| · (x_{i+1} − x_i)
 ```
 
 One cumulative sum over the buckets, `O(B)`, no raw samples — cheap enough to run
-on the node beside the measurement (see `analysis-placement.md` in
-`bench`'s `rack.md`).
+on the node beside the measurement (see `bench`'s
+`analysis-placement.md`).
 
 **W1 comes out in the units of the metric.** "The distribution moved 107 µs of
 mass" is a sentence an engineer can act on, where a KS statistic of 0.32 is not.

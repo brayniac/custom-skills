@@ -12,7 +12,7 @@ case this skill is built from: a control predicted 0/100 failures and measured
 already been merged.
 
 This is about correctness failures. For a performance difference, use
-`bench`'s `rack.md` and `interpret`'s `perturbation.md`.
+`bench` and `interpret`'s `perturbation.md`.
 
 ## 1. Measure the rate and size the sweep from it
 

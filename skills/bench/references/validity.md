@@ -97,6 +97,11 @@ that skips can skip its way to green — one gate passed with 41 of its checks
 skipped for missing checkpoints, rendered identically to a real pass. Decide
 before the run which line in the log proves the work ran, and grep for that.
 
+**A green result covers only what the run exercised.** A gate that passed on
+one platform or backend says nothing about another, and a code path the run
+did not reach has not been run, however the summary reads ("first run of
+this" about a path you did not execute is a claim, not a result).
+
 ## Before trusting a derived view
 
 **Does the chart agree with the counter?** Dashboards compute. One metrics view

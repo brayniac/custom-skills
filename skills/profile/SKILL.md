@@ -8,7 +8,7 @@ description: Profile GPU work to find where time goes — capture CUDA activity 
 A profile answers where time goes; it does not produce a performance number.
 Capture adds overhead (a full CPU backtrace adds about 30% under nsys; Metal
 frame capture slows decode substantially), so take throughput and latency
-figures from an unprofiled run (`bench`'s `rack.md`), and use the profile to
+figures from an unprofiled run (`bench`), and use the profile to
 decide what to change.
 
 On the lab rack a GPU is only reachable from inside a VM; `lab`'s `vm.md` covers

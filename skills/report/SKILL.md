@@ -56,7 +56,7 @@ runs it rests on:
 | behaviour above 400k req/s | unknown | not run | 0 |
 
 Every number in the report appears here, with its run IDs and how many runs
-it rests on. A measured row's runs have passed `benchmark-validity`;
+it rests on. A measured row's runs have passed `bench`'s `validity.md`;
 `interpret` decides whether a difference is real, and a claim that fails it
 does not enter the report as a finding. A mechanism is derived only with the
 control that separates it from coincidence, as in the second row.

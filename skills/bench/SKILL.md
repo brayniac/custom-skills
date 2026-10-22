@@ -1,6 +1,6 @@
 ---
 name: bench
-description: Benchmark something in any repository and get a number that means what it says — state the question and the result that would refute it before running, check the instrument measured the subject (not the client, a queue, a lock, or work that never happened), run A/B comparisons interleaved in one session with at least four runs a side and a measured A-vs-A floor, capture the whole run before filtering it, and record every number with the command, the conditions and the run count that produced it. Also carries the local rack's path (SystemsLab, anvil VMs, rezolus recordings) and tiered sweeps of a configuration space with per-cell gates. Use before running or reading a benchmark, before reporting any timing, throughput, latency, memory or tok/s figure, when two runs disagree, when a result looks clean, when comparing two builds or configurations, when mapping how a server scales across processes, threads, placement or connections, and before writing a measured value into a test threshold, a comment or a commit message.
+description: Benchmark something in any repository and get a number that means what it says — state the question and the result that would refute it before running, check the instrument measured the subject (not the client, a queue, a lock, or work that never happened), run A/B comparisons interleaved in one session with at least four runs a side and a measured A-vs-A floor, capture the whole run before filtering it, and record every number with the command, the conditions and the run count that produced it. Also carries the local rack's path (SystemsLab, anvil VMs or bare metal, rezolus recordings) and tiered sweeps of a configuration space with per-cell gates. Use before running or reading a benchmark, before reporting any timing, throughput, latency, memory or tok/s figure, when two runs disagree, when a result looks clean, when comparing two builds or configurations, when a measured difference needs a verdict, when mapping how a server scales across processes, threads, placement or connections, to find a server's best deployment shape on given hardware or where its throughput stops scaling, before ranking sweep results, and before writing a measured value into a test threshold, a comment or a commit message.
 ---
 
 # Benchmark
@@ -54,7 +54,8 @@ The command, the commit, the host and its state (idle or not), the
 configuration, the run count, and which part is measured and which inferred.
 A number written into a test threshold records the distribution it came
 from, applies its bound to every case, and prints the distribution when it
-fails (`validity.md`, "Before writing a measured value into a threshold").
+fails (`${CLAUDE_SKILL_DIR}/references/validity.md`, "Before writing a
+measured value into a threshold").
 
 ## On the local rack
 
