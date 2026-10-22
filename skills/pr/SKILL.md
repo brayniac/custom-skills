@@ -108,10 +108,11 @@ gh pr create --repo <owner/repo> --head <head> --base main \
 Write the body with `${CLAUDE_SKILL_DIR}/references/pr-body.md`: why the change
 exists, the decisions that want the reviewer, where to look more closely, what
 the tests ran and do not cover (the per-gate lines from `verify`), and
-what only production can show. Say what `review` found and how each finding was
-answered. Use the same file to update a body after new commits, or when asked to
-write a PR description. For an API change, state what a caller can no longer do,
-not only what was added. Keep engagement or client detail out of public
+what only production can show. Say what `review` found, how each finding was
+answered, and whether each fix was re-reviewed or only reported. Use the same
+file to update a body after new commits, or when asked to write a PR
+description. For an API change, state what a caller can no longer do, not only
+what was added. Keep engagement or client detail out of public
 repositories (`publish`; a hook enforces the literal terms).
 
 If a PR already exists for the branch, report its URL instead of creating
