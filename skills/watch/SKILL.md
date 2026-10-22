@@ -13,6 +13,28 @@ why this skill starts from the assumption that a silent watcher is broken.
 For SystemsLab state names and `submit --wait`, see
 `lab`'s `specs.md`; for VM jobs, `lab`'s `vm.md` step 5.
 
+## 0. Pick the mechanism
+
+In Claude Code, a watcher for one outcome ("tell me when it ends") is a Bash
+command run with `run_in_background` that exits when the job ends. The
+harness reports its exit; do not poll its output file. Run the script itself
+in the background, not a line ending in `&` inside a backgrounded command:
+that shell exits at once, the harness reports that exit (0), and the script's
+own exit is never reported.
+
+The Monitor tool is for a stream of events. Each monitor expires after its
+`timeout_ms` (5 minutes by default, at most 30), so a watch over a longer job
+has to be re-armed on every expiry. For a long job, prefer one background
+command with its own deadline (step 5).
+
+For pull requests, `${CLAUDE_SKILL_DIR}/references/watch-prs.sh <list>
+[minutes]` reads each PR in a list file (one `<owner/repo> <number>` per line,
+re-read every poll) with `merge`'s `pr_state.sh`, and exits 0 when every PR is
+merged, closed, green or failing. A PR whose CI has not registered yet
+(`no-checks`) keeps it waiting. It prints `pending=<n> errors=<n>` to stderr
+each poll, exits 3 when the list or a PR cannot be read on the first poll,
+and exits 2 on its deadline (default 90 minutes).
+
 ## 1. Take the terminal states from the source, not from memory
 
 Read the states from the server's code or from a job that has already
@@ -28,6 +50,10 @@ report — `running`, `ended:<state>`, `watcher-error` — and handle each.
 For a source you have not watched before, capture its output through one
 successful, one failed and one cancelled run before writing the matcher;
 `capture` has the procedure.
+
+Copy job IDs from the output that created them, never retype them, and have
+the first poll confirm the ID exists: a watcher given a mistyped experiment
+ID reported "not found" as "still waiting".
 
 ## 2. Make the job emit one verdict line
 
@@ -75,6 +101,12 @@ command's exit status.
 - Monitor's shell is zsh (no word-splitting of unquoted variables) and macOS
   `bash` is 3.2 (no `declare -A`). Test the script in the shell that will run
   it.
+- `ssh` inside a `while read` loop reads the loop's input and ends it after
+  the first host. Use `ssh -n`, or redirect its stdin from `/dev/null`.
+- A pattern can match the watcher's own command line: under `set -x`, or when
+  the log records the command, `grep RESULT` matched the echoed
+  `grep RESULT` and the watcher exited early. Anchor the match (`^RESULT `)
+  to the line the job prints.
 
 ## 5. Emit a heartbeat and a deadline
 
