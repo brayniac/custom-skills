@@ -1,6 +1,6 @@
 ---
 name: release
-description: Cut a release for a Rust repo — discover the repo's own release mechanism, then bump, changelog, and open the release PR, from main or a maintenance branch; tag a prerelease; release one crate of a per-crate workspace; stop before any manual crates.io publish. Use when asked to release, cut a version, tag a version or prerelease, ship a new version, or release a patch on an older line, and when a release did not tag or publish and you need to find out why.
+description: Cut a release for a Rust repo — discover the repo's own release mechanism, then bump, changelog, and open the release PR, from main or a maintenance branch; tag a prerelease; release one crate of a per-crate workspace; stop before any manual crates.io publish. Also brings a repo's release automation onto the shared tag workflow, or reports how far off it is. Use when asked to release, cut a version, tag a version or prerelease, ship a new version, or release a patch on an older line; when a release did not tag or publish and you need to find out why; when asked to unify, standardise or migrate release workflows, when a repo's release behaves differently from a sibling's, or when setting up releases in a new repo; and before relying on a repo's tag automation you have not checked.
 ---
 
 # Release
@@ -21,6 +21,11 @@ success, and never tags, because the commit message did not match what the
 workflow was watching for. Across these repos the trigger prefix is variously
 `release: prepare v`, `release: v`, and `release: ` — a one-word difference that
 nothing checks and no test covers.
+
+To bring a repo's release automation onto the shared standard, or report how
+far off it is, follow `${CLAUDE_SKILL_DIR}/references/conform.md` instead of
+the steps below; the standard itself is
+`${CLAUDE_SKILL_DIR}/references/standard.md`.
 
 ## Step 1 — Discover, before touching anything
 
