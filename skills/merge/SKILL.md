@@ -167,12 +167,15 @@ not merged. `--admin` on a queue repository skips the queue.
 When the merge is refused for a missing approval (`REVIEW_REQUIRED`, or a
 ruleset's "At least 1 approving review is required"), the author cannot
 approve their own PR, and `--admin` bypasses a ruleset only for someone on
-its bypass list (`gh api repos/<owner/repo>/rulesets/<id> -q
-.current_user_can_bypass`; `never` means `--admin` will be refused). Classic
-branch protection lets a repository admin's `--admin` through unless it
-enforces admins. Report it: someone else approves, or the owner changes the
-rule. Use `--admin` only
-when the user has said so for that PR.
+its bypass list; `never` from this command means `--admin` will be refused:
+
+```sh
+gh api repos/<owner/repo>/rulesets/<id> -q .current_user_can_bypass
+```
+
+Classic branch protection lets a repository admin's `--admin` through unless
+it enforces admins. Report it: someone else approves, or the owner changes
+the rule. Use `--admin` only when the user has said so for that PR.
 
 For a stack, merge bottom-up. After a squash merge, the next PR's branch
 still carries the parent's commits. Move only its own commits onto the new
