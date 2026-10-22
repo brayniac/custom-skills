@@ -9,7 +9,7 @@ running builds on the rack instead:
 GitHub <-- delta polls --> systemslab experiment --> anvil guest --> commit status
 ```
 
-The authority is `docs/guides/ci.md` in `brayniac/infra`; this skill is what you
+The authority is `docs/guides/ci.md` in `brayniac/infra`; this file is what you
 need when that repo is not checked out, and it defers to it wherever they differ.
 
 ## First: is this failure even a build failure?

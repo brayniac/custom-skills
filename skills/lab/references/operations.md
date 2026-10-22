@@ -11,8 +11,11 @@ is no checkout.
 
 ## Jobs on the Macs
 
-`macbook` and `macstudio` run jobs directly on macOS, with no VM, so nothing
-tears the job's processes down for you.
+`macbook` and `macstudio` run jobs directly on macOS; anvil-vm does not drive
+them, so nothing tears a job's processes down for you. Each also declares a
+Debian 13 arm64 Parallels template (`images = ["rack-debian-13"]`, built by
+infra's `host-setup/mac-vm`); whether a SystemsLab job can use it is not
+established.
 
 - **Cancelling a job does not stop what it started.** A server the payload
   launched and its Docker containers kept running after a cancel on both Macs,
@@ -21,21 +24,27 @@ tears the job's processes down for you.
   A leftover shell also kept a Mac marked busy. After a cancel or a timeout,
   list the agent's child processes and the containers and stop them (`pkill -P
   <agent pid>`, `docker rm -f <container>`) before the host takes another job.
-- **A Mac that sleeps loses its job twice.** The server drops the host and
-  requeues the job, while the job keeps running on the Mac; on wake the agent
+- **A Mac that sleeps is dropped by the server while its job keeps
+  running.** The server requeues the job, and the job carries on on the Mac; on wake the agent
   refuses to register while it runs (`the server no longer has a live host`).
-  One laptop slept on a thermal emergency mid-run and its job ran on for about
-  11 hours unseen. Stop the local job processes; the agent then registers and
+  One laptop slept on a thermal emergency mid-run, and its job kept running
+  locally, about 11 hours into the run when someone noticed. Stop the local job processes; the agent then registers and
   the requeued job starts again from the beginning.
-- **`experiment_timeout` caps every job.** It is set in
-  `~/Library/Application Support/systemslab/agent.toml` and defaults to 12
-  hours (43,200 s); a spec's own timeout does not lift it. An edit takes effect
+- **`experiment_timeout` caps every job.** It is set in the agent's
+  `agent.toml` (on macstudio,
+  `~/Library/Application Support/systemslab/agent.toml`; check the agent's
+  command line for which file it reads) and defaults to 12 hours (43,200 s); a spec's own timeout does not lift it. An edit takes effect
   only when the agent restarts, and the restarted agent registers under a new
   host ID with the same tag. A long run was reported to have died at 43,200 s
   because the raised value was on disk but never loaded.
-- **An agent started by hand outlives an upgrade.** One Mac ran an agent
-  process started weeks earlier outside `launchd`, with new binaries on disk;
-  the registry showed it idle. Restart it under `launchd`.
+- **Two runner builds have reported one version.** Two builds of
+  systemslab-runner both reported 161.0.0, and the older one injected a
+  `label` field into shell action arguments, which the shell action rejects.
+  When jobs fail in seconds on one Mac only, compare `sha256sum` of its runner
+  and agent binaries with another host's before restarting anything.
+  macstudio's agent is still started by hand on purpose (see the migration
+  note in `fleet/hosts/macstudio.toml`); do not move it under `launchd`
+  without reading that note.
 
 ## Shipping a new version of a rack service
 
@@ -46,7 +55,9 @@ Merging changes no host. The sequence is:
 2. An infra PR bumps the version in `fleet/versions.toml` (or the host's file
    under `fleet/hosts/`).
 3. `host-setup/converge-package <package> --dry-run`, then without
-   `--dry-run`. It skips hosts SystemsLab reports busy.
+   `--dry-run`. It skips hosts SystemsLab reports busy. It installs Debian
+   packages; the Macs take `host-setup/converge-mac`, and their host files
+   list `[build]` versions instead of `[packages]`.
 4. Verify the running binary, not the package.
 
 Two things make step 3 and 4 report success wrongly:

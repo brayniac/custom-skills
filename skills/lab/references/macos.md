@@ -31,7 +31,7 @@ moves:
 
 ```toml
 [targets.studio]
-host_tags = ["studio"]
+host_tags = ["macstudio"]
 bare = true
 sandbox = "none"        # "bwrap" (default) | "sandbox-exec" | "none"
 ```
@@ -48,8 +48,9 @@ sandbox = "none"        # "bwrap" (default) | "sandbox-exec" | "none"
 **What `none` costs is worth stating before choosing it.** No pid namespace, so
 a build that leaves something running leaves it running. No read-only root, so
 a build can read anything that user can. On a pi that does nothing else, that
-is a small surface. **studio is described in the design as a control point —
-"never managed" — so it is the machine where that surface is least acceptable.**
+is a small surface. **macstudio's agent runs as the owner's own user
+(`fleet/hosts/macstudio.toml`), so it is the machine where that surface is
+least acceptable.**
 If studio is going to run CI, `sandbox-exec` is worth the profile.
 
 ### 2. The installer is Debian-only
@@ -72,9 +73,10 @@ So roughly half of it transfers verbatim.
 
 Both Macs are managed fleet hosts: `fleet/hosts/macbook.toml` and
 `macstudio.toml` declare `role = "runner"`, the `systemslab-agent` service, and
-the tags `macbook` and `macstudio`. Not checked: **`sudo` for the agent's
-user** — the bare payload runs `sudo rm -rf` and `sudo chown -R rack-ci:rack-ci`
-before dropping privileges.
+the tags `macbook` and `macstudio`. macstudio's agent is still the hand-started
+binary, deliberately, per the migration note in its host file. Not checked:
+**`sudo` for the agent's user** — the bare payload runs `sudo rm -rf` and `sudo
+chown -R rack-ci:rack-ci` before dropping privileges.
 
 ### What transfers unchanged
 

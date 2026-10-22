@@ -13,11 +13,14 @@ everywhere else with the same key. On the rack, that means:
   `debian-13-gpu-cu13`, were built before the toolchain was added and have
   no toolchain or cache. A vm job on a stock image runs the installer in its
   payload; `recipes.md` (beside this file) says how.
-- **C and C++ go through it on the images too**, since `brayniac/infra` #124
-  (`d48a201`, 2026-10-21): cc-rs and CMake compiles inside build scripts. The
-  installer here sets only cargo's `rustc-wrapper`, so on a machine it set up
-  those compiles are not cached. sccache keys a C or C++ compile by its
-  absolute path, so it hits only when the build runs in the same directory.
+- **C and C++ in build scripts.** `brayniac/infra` #124 (`d48a201`) sends
+  cc-rs and CMake compiles through the cache on platform images built from
+  it; images built before it cache only rustc, because cc-rs wraps the C
+  compiler only when the wrapper's file name is `sccache`. On a machine set up
+  by this installer (`rustc-wrapper = "sccache"`), cc-rs compiles are cached
+  and CMake ones are not; on a Mac, infra's `host-setup/install-sccache-mac`
+  adds the CMake launchers. sccache keys a C or C++ compile by its absolute
+  path, so it hits only when the build runs in the same directory.
 - **What it bought**, measured on a Pi guest: slipway's test check 951 s
   populating, 503 s warm with 305 of 307 rustc calls served; anvil 191 s cold,
   69 s warm with 59 of 59. What remains is linking and running tests, which no
@@ -27,7 +30,7 @@ everywhere else with the same key. On the rack, that means:
   dependencies from scratch, because cargo shares nothing between them. It
   saves compile time, not disk: objects still land in every target directory.
 
-Everything needed is in this skill; no infra checkout is required on the
+Everything needed is in `lab`; no infra checkout is required on the
 machine being set up.
 
 ## 1. Choose the mode
