@@ -100,7 +100,18 @@ Ask for every instance of:
   thing);
 - a claim of absence, equivalence or who-does-what not checked by a grep
   (`pr`'s comment sweep,
-  `${CLAUDE_SKILL_DIR}/../pr/references/sweep-comments.md` step 5).
+  `${CLAUDE_SKILL_DIR}/../pr/references/sweep-comments.md` step 5);
+- in a configuration or declaration file (TOML, YAML, a unit file, a host
+  declaration), a comment that says more than what the setting, or the file,
+  declares, what constrains changing it, and the steps a change needs:
+  history ("before that", "since <date>"), including the incident that showed
+  a constraint (state the constraint in the present tense); run or experiment
+  IDs; backup paths; argument for the change; and measured figures other than
+  the one a constraint rests on, which cites its fixture. A host file may name
+  its machine in one line with a pointer to its inventory, and a threshold
+  keeps a pointer to the fixture or journal entry holding its provenance.
+  History, backup paths and argument go to the commit, the PR or the journal;
+  figures, run IDs and inventory go to a fixture.
 
 A comment can be well worded and false, so each claim is checked against the
 code. Reference documentation describes the result; the argument goes in the

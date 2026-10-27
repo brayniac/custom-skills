@@ -40,7 +40,7 @@ module doc, that states the model once. Other sites carry only:
 
 - facts from outside the code (vendor behaviour, measured values, why a
   number is what it is, wire formats, a deliberate absence, a promise about
-  code that does not exist yet);
+  code that does not exist yet; in configuration files, within step 1's bar);
 - deviations from the model;
 - **edit constraints** — one sentence stating what must stay true, where the
   retrieval test below says yes;
@@ -71,12 +71,21 @@ which no per-file subagent has.
 
 ### 1. Partition the files by bar
 
-Production, test, and demo or tutorial. Write the partition down first. A test
-doc comment that restates the model it enforces is kept: when the test fails,
-it names the promise that broke. A comment explaining a deliberately odd
-fixture (a capacity below the append count, a failure scripted on the second
-send) is kept, or the next editor simplifies the coverage away. Demo files are
-teaching sites and are held to "teaches each idea once".
+Production, test, demo or tutorial, and configuration. Write the partition
+down first. A test doc comment that restates the model it enforces is kept:
+when the test fails, it names the promise that broke. A comment explaining a
+deliberately odd fixture (a capacity below the append count, a failure
+scripted on the second send) is kept, or the next editor simplifies the
+coverage away. Demo files are teaching sites and are held to "teaches each
+idea once". Configuration and declaration files (TOML, YAML, unit files, host
+declarations) are held to what the setting, or the file, declares, what
+constrains changing it, and the steps a change needs. A constraint learned
+from an incident is stated in the present tense. History, dates, backup paths
+and argument go to the commit, the PR or the journal; measured figures, run
+IDs and inventory go to a fixture, except the figure a constraint rests on,
+which stays with a pointer to its fixture. A host file may name its machine in
+one line with a pointer to its inventory, and a threshold keeps a pointer to
+its provenance.
 
 ### 2. Inventory the models
 
@@ -96,7 +105,8 @@ Classify every comment:
   delete;
 - **derivable only across files** — state it at the home; elsewhere a pointer,
   one edit-constraint sentence, or nothing;
-- **from outside the code** — keep, one sentence per fact.
+- **from outside the code** — keep, one sentence per fact (in configuration
+  files, within step 1's bar).
 
 Then check each survivor against the current design: a comment naming
 anything deleted or renamed is rewritten or deleted.
@@ -116,9 +126,10 @@ Restate the surviving fact in the present tense and delete the rest:
   issue.
 
 Keep issue references, present-tense counterfactuals ("without the fence, a
-reader can observe a torn write"), measured bounds with the word "measured",
-and runtime old/new ("the old connection drains before the new one accepts").
-Grep probes for this step are in `sweep-comments-probes.md`, beside this file.
+reader can observe a torn write"), measured bounds with the word "measured"
+(in configuration files, within step 1's bar), and runtime old/new ("the old
+connection drains before the new one accepts"). Grep probes for this step are
+in `sweep-comments-probes.md`, beside this file.
 
 ### 5. Check every surviving claim against the code
 
