@@ -83,12 +83,12 @@ idea once".
 A comment in a configuration or declaration file (TOML, YAML, a unit file, a
 host declaration) states what the setting, or the file, declares, what
 constrains changing it, and the steps a change needs. A constraint learned
-from an incident is stated in the present tense. It keeps one measured figure
+from an incident is stated in the present tense. It keeps a measured figure
 only when a constraint rests on it, with a pointer to its fixture; a host file
 may name its machine in one line with a pointer to its inventory; a threshold
-keeps a pointer to its provenance. History, dates, backup paths and argument
-go to the commit, the PR or the journal; other figures, run IDs and inventory
-go to a fixture.
+keeps a pointer to the fixture or journal entry holding its provenance.
+History, dates, backup paths and argument go to the commit, the PR or the
+journal; other figures, run IDs and inventory go to a fixture.
 
 ### 2. Inventory the models
 
@@ -130,7 +130,7 @@ Restate the surviving fact in the present tense and delete the rest:
 
 Keep issue references, present-tense counterfactuals ("without the fence, a
 reader can observe a torn write"), measured bounds with the word "measured"
-(in a configuration file, only the one a constraint rests on, with its
+(in a configuration file, only a figure a constraint rests on, with its
 fixture), and runtime old/new ("the old connection drains before the new one
 accepts"). Grep probes for this step are in `sweep-comments-probes.md`, beside
 this file.

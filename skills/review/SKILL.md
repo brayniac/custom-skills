@@ -102,7 +102,8 @@ Ask for every instance of:
   (`pr`'s comment sweep,
   `${CLAUDE_SKILL_DIR}/../pr/references/sweep-comments.md` step 5);
 - in a configuration or declaration file (TOML, YAML, a unit file, a host
-  declaration), a comment that carries history, run IDs, backup paths,
+  declaration), a comment that carries history (a date, "before that", the
+  incident behind a constraint), run IDs, backup paths,
   argument for the change, or measured figures beyond the one a constraint
   rests on. What such a comment keeps, and where the rest goes, is
   `${CLAUDE_SKILL_DIR}/../pr/references/sweep-comments.md` step 1.
