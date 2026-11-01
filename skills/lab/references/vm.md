@@ -149,18 +149,29 @@ every CI check on one hypervisor for five days. Class `c` compute, `g` gpu, `n`
 network.
 
 **Tags are ANDed** (a job runs where its tags are a subset of the host's):
-`["z2.baremetal","z1.baremetal"]` matches nothing and pends forever. An image
+`["z2.baremetal","z1.baremetal"]` matches nothing, stays `pending`, and ends in
+`timeout` after the server's unschedulable timeout (6 h by default). An image
 that exists on one host with tags allowing the other fails at instance
 creation.
 
 **Two jobs in one experiment need two distinct hosts.** The scheduler matches
 jobs to hosts 1-to-1 (maximal bipartite matching) and schedules only when
 *every* job is covered, so an experiment with two jobs tagged for a
-single-host class — `macbook`, or `z2.baremetal` — is unsatisfiable. It does
-not fail: it sits `unscheduled` forever, indistinguishable from an ordinary
-queue. It cost another session 40 jobs before anyone noticed. Sequential arms
-belong in **one** job, which also measures better: the arms get the machine to
-themselves instead of racing each other.
+single-host class — `macbook`, `z2.baremetal`, or `host:hv01` — is
+unsatisfiable. It does not fail at submit: it stays `pending`, indistinguishable
+from an ordinary queue, and ends in `timeout` after the server's unschedulable
+timeout (6 h by default).
+
+The unschedulable timeout counts a host that is `locked`, `draining` or
+`drained` as available. When a class has two hosts and one of them is out,
+the experiment stays `pending` until the host is reactivated or the queue
+timeout (7 days by default) ends it. Read `state` in `systemslab host list`
+before submitting.
+
+Sequential arms belong in **one** job; the arms get the machine to themselves
+instead of racing each other. Two guests cannot share a hypervisor inside one
+job: anvil-vm destroys every anvil guest already on the host before it launches
+one. Two roles that must run at once on one host belong in one guest.
 
 Whole host by default. `slots` (one slot = one CCX, 4 cores / 8
 threads, 4 GiB per thread, on both hosts; hv01 has 7 usable, hv02 3),
@@ -222,6 +233,10 @@ Rules:
   or the server had idled out). On a stock image, recipes.
 
 ## 3. Two jobs that must meet
+
+The two jobs need two distinct matching hosts, none of them `locked`,
+`draining` or `drained` (section 1, "Two jobs in one experiment need two
+distinct hosts").
 
 A rendezvous between jobs in one experiment is a `barrier` step or it is a
 bug. The barrier is the **only** construct that propagates one job's failure
@@ -385,8 +400,8 @@ nothing checked has drifted, not that the rack is correct.
 ## Never
 
 - Never work on hv01/hv02 outside a job, "just to check".
-- Never put two jobs on a single-host tag; the experiment pends forever rather
-  than failing.
+- Never put two jobs on a single-host tag; the experiment stays `pending` and
+  ends in `timeout` hours later instead of failing at submit.
 - Never read an experiment's `success` as the work's verdict when the payload
   ends `exit 0` — read the artifact it wrote.
 - Never a payload that ends non-zero when you want the artifacts.

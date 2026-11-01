@@ -26,7 +26,7 @@ fail differently:
 
 | Symptom | Layer | Look at |
 | --- | --- | --- |
-| job pends forever, or ran on the wrong generation | constraints | tags. They are ANDed, so `["z2.baremetal","z1.baremetal"]` matches nothing |
+| job stays `pending`, then ends in `timeout`, or ran on the wrong generation | constraints | tags. They are ANDed, so `["z2.baremetal","z1.baremetal"]` matches nothing |
 | `503 No suitable slots available` **while slots are free** | the two disagree | `anvil-server` filters hosts by generation before slots, so a `z2.c` job that landed on hv02 is refused without the message ever saying "generation" |
 | instance creation fails | the two disagree | a pinned shape landed on the other generation. Prefer `auto.c`, which resolves against the host it is built on |
 | guest topology, pinning, NUMA binding or clocksource wrong | shape realization | the anvil-agent on that host; verify with `virsh dumpxml` |
