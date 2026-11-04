@@ -158,24 +158,24 @@ setup — not a co-tenant on the host — is responsible.
 
 ## Which image to measure in
 
-`debian-13-base@golden` carries **rezolus**, plus slipway and stressapptest. It
-is the measurement image. It also has a Rust toolchain and the shared compiler
-cache, which change nothing a measurement sees until something compiles.
-`debian-13-ci@golden` adds what build scripts commonly need (libssl-dev,
-clang, cmake and others) and a warm crates index, and is built for building.
+`debian-13-6.12@golden` carries rezolus, slipway's remote config and
+stressapptest; a job installs the slipway client with `packages = ["slipway"]`.
+It is the measurement image. It also has a Rust toolchain, the shared compiler
+cache, what build scripts commonly need (libssl-dev, clang, cmake and others)
+and a warm crates index; these change nothing a measurement sees until something
+compiles.
 
 Two image differences change results outright:
 
-- **`io_uring_disabled` is 0 on the Debian images and 2 on `rocky-10`.** Any
-  io_uring measurement — ringline especially — is measuring a different code
+- **`io_uring_disabled` is 0 on the Debian images and 2 on `rocky-10-6.12`.**
+  Any io_uring measurement — ringline especially — is measuring a different code
   path on Rocky, not a slower one.
-- Kernel version travels with the image (6.12 on `debian-13-ci`). A comparison
+- Kernel version travels with the image (6.12 on `debian-13-6.12`). A comparison
   across images is a comparison across kernels.
 
-`rocky-10` and `rocky-10-base` are on **both** hypervisors now. A
-Rocky-versus-Debian comparison used to be same-host by necessity; it no longer
-is, so arrange it deliberately — pin both arms to one `host:` tag — rather than
-relying on scarcity to do it for you.
+`rocky-10-6.12` is on hv01, hv02, hv03, delta and the Pis, so a
+Rocky-versus-Debian comparison can land on different hosts: pin both arms to
+one `host:` tag.
 
 ## On the hypervisors, measure in a VM
 

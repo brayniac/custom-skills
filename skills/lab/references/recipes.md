@@ -69,9 +69,9 @@ store on delta, and exits non-zero unless a probe build went through the
 cache, so a store that is down at install time leaves cargo unwrapped and
 the build uncached. It writes `rustc-wrapper = "sccache"`, so a server
 started later in the job with the store down fails the build; run
-`RUSTC_WRAPPER= cargo ...` then. Checked 2026-10-15 on `debian-13-base` (x86
-and a Pi) and `rocky-10-base` builds that had no toolchain: it exited 0 on
-each. Not run on a stock image.
+`RUSTC_WRAPPER= cargo ...` then. Checked 2026-10-15 on `debian-13-base` (x86 and
+a Pi) and `rocky-10-base` (families since retired) builds that had no toolchain:
+it exited 0 on each. Not run on a stock image.
 
 ## Numbers to budget with
 
@@ -88,20 +88,20 @@ vCPU and is not slower.
 
 Sizes: `z2.c` with `slots = 4` is 32 vCPU / 128 GiB allocated (the guest's
 `free` shows 125); hv01 whole host 56 vCPU / ~224 GiB; hv02 whole host 24
-vCPU / ~96 GiB. Guest kernels: `debian-13-ci`
-and `-base` 6.12.63 (Debian), `rocky-10` 6.12.0-211 (el10). `debian-13-ci`
-has `kernel.io_uring_disabled=0`; `rocky-10` has `2`, so anything that needs
+vCPU / ~96 GiB. Guest kernels: `debian-13-6.12` 6.12.63 (Debian),
+`rocky-10-6.12` 6.12.0-211 (el10). `debian-13-6.12` has
+`kernel.io_uring_disabled=0`; `rocky-10-6.12` has `2`, so anything that needs
 io_uring fails there by design and a mio/epoll fallback is what to test.
 
 ## Install a package on a guest: attempt, do not probe
 
-Do not gate an install behind a probe. Measured on `debian-13-gpu`, same
-moment, same package: `apt-cache policy slipway 2>&1` prints
-`Candidate: 0.2.7-1`, the identical command with stderr discarded matches
-nothing, and `apt-get install -y slipway` then succeeds. A probe written as
-`apt-cache policy X 2>/dev/null | grep -q` had therefore been answering "no" on
-every run since it was written, and the failure surfaced 300 lines later as
-`command not found`.
+Do not gate an install behind a probe. Measured on `debian-13-gpu` (withdrawn;
+see `vm.md`, beside this file), same moment, same package: `apt-cache policy
+slipway 2>&1` prints `Candidate: 0.2.7-1`, the identical command with stderr
+discarded matches nothing, and `apt-get install -y slipway` then succeeds. A
+probe written as `apt-cache policy X 2>/dev/null | grep -q` had therefore been
+answering "no" on every run since it was written, and the failure surfaced 300
+lines later as `command not found`.
 
 ```sh
 sudo apt-get install -y slipway || { echo "slipway unavailable"; exit 1; }
@@ -132,7 +132,7 @@ tags = ["z1.baremetal"]
 type = "anvil-vm"
 background = true             # frees this runner to wait at the barrier
 shape = "z1.c"
-image = "spool/images/debian-13-ci@golden"
+image = "spool/images/debian-13-6.12@golden"
 gpu = false
 payload_timeout = 3600
 payload = '''
@@ -168,7 +168,7 @@ tags = ["z2.baremetal"]
 [[jobs.steps]]
 type = "anvil-vm"             # foreground: this job's work IS the payload
 shape = "z2.c"
-image = "spool/images/debian-13-ci@golden"
+image = "spool/images/debian-13-6.12@golden"
 gpu = false
 payload_timeout = 3600
 artifacts = ["/tmp/job/results.json"]
@@ -369,5 +369,5 @@ systemd-run --user --pipe --wait -p SystemCallFilter=~io_uring_setup \
   -p SystemCallErrorNumber=EPERM ./path/to/binary
 ```
 
-For the sysctl itself (`kernel.io_uring_disabled=2`), use the rocky-10 image,
-where it is the default.
+For the sysctl itself (`kernel.io_uring_disabled=2`), use the `rocky-10-6.12`
+image, where it is the default.
