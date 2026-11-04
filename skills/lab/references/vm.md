@@ -96,8 +96,9 @@ bring its data NIC up as `enp2s0` instead of `data`.
   on it are not comparable with `debian-13-gpu-cu12`, whose driver package and
   kernel differ.
 - Pis against x86: a Pi when the question is the A72 or there are many small
-  independent cells to run (eighteen Pis match `["hypervisor", "aarch64"]`, one
-  job each); x86 for anything that needs more than 3 vCPU and ~3 GiB, the
+  independent cells to run (nineteen Pis match `["hypervisor", "aarch64"]`:
+  eighteen Pi 4Bs and pi20, a Pi 5; add `pi4b` or `pi5` to choose; one job
+  each); x86 for anything that needs more than 3 vCPU and ~3 GiB, the
   passthrough NICs, or a GPU.
 
 **sched_ext** needs it compiled in, and Debian's 6.12 leaves it out. It is in
@@ -131,11 +132,20 @@ in 3 of 6 boots on pi10, unexplained).
 Shape is `{generation}.{class}`, and **the default is `auto`**: since anvil
 0.8.6, `auto.c` and `auto.g` resolve the generation against the host the guest
 is actually built on, so `tags = ["hypervisor", "x86_64"]` with `shape =
-"auto.c"` lands on either hypervisor and works. The `x86_64` is not optional
-since 2026-09-28: the Raspberry Pis run guests too and carry `hypervisor`, so
-`["hypervisor"]` alone also matches eighteen Pis (pi01 and pi06 run guests but
-carry `thermal-vm` instead of `hypervisor`), where an x86 image, a 16 GiB guest
-or a GPU does not exist. `["hypervisor", "aarch64"]` is a Pi guest (shape
+"auto.c"` lands on any of hv01, hv02 and hv03 and works. hv03 has one 16-thread
+slot of 20 GiB, 30.6 GiB in all, and no NVIDIA GPU, passthrough NICs or scratch
+pool; on hv03 `gpu = true` and `ports` do not fail, and the guest boots without
+them. So a job that needs the 4090 adds `rtx4090` (or `gpu-passthrough` for any
+passed-through GPU), one that needs ports adds `nic-passthrough`, and one that
+uses `scratch_gib` adds `scratch`. One with `slots` above 1, or `memory_gib`
+above what hv03 has free (anvil refuses a guest larger than MemAvailable less 1
+GiB), names `zen1`, `zen2` or `host:<name>`. A measurement compared against
+earlier runs names the hardware those runs used. infra's docs/guides/vm-jobs.md
+has the full list. The `x86_64` is not optional since 2026-09-28: the Raspberry
+Pis run guests too and carry `hypervisor`, so `["hypervisor"]` alone also
+matches nineteen Pis (eighteen Pi 4Bs and pi20, a Pi 5; pi01 and pi06 run guests
+but carry `thermal-vm` instead of `hypervisor`), where an x86 image, a 16 GiB
+guest or a GPU does not exist. `["hypervisor", "aarch64"]` is a Pi guest (shape
 `a72.c` or `auto.c`, an image the table marks "Pis"; see infra's
 docs/guides/vm-jobs.md, "Guests on a Pi"). delta (`["validation"]`) runs guests
 too, from a pool of 40 1G hugepages of which its resident systemslab and plex
@@ -174,12 +184,13 @@ job: anvil-vm destroys every anvil guest already on the host before it launches
 one. Two roles that must run at once on one host belong in one guest.
 
 Whole host by default. `slots` (one slot = one CCX, 4 cores / 8
-threads, 4 GiB per thread, on both hosts; hv01 has 7 usable, hv02 3),
+threads, 4 GiB per thread, on hv01 and hv02; hv01 has 7 usable, hv02 3;
+hv03's one slot is all 16 threads at 1280 MiB per thread),
 `memory_gib`, and `ports` (0-4 passthrough NIC ports, bonded in the guest)
 only when the size is the experiment. `disk_gib` grows the root disk past the
 image's 100 GiB (anvil >= 0.8.10; thin, so it costs only what the guest
-writes; smaller than the image is refused). Each host holds one RTX 4090 and a
-guest gets it unless `gpu = false`; set that unless the payload uses the
+writes; smaller than the image is refused). hv01 and hv02 each hold one RTX
+4090, and a guest there gets it unless `gpu = false`; set that unless the payload uses the
 card, so a stray or orphaned guest cannot sit on it. Timeouts are seconds.
 
 ## 2. Write the spec

@@ -94,8 +94,9 @@ ceremony; a credential in one is a credential you have stopped tracking.
   guest per hypervisor is a rack-wide rule.
 - **`host_tags` are ANDed.** A job runs where its tags are a *subset* of the
   host's, so `["z2.baremetal", "z1.baremetal"]` means "a host that is both" —
-  nothing is. It does not fail; it waits until the timeout. Both hypervisors
-  carry `hypervisor`, so "either one" is a single tag.
+  nothing is. It does not fail; it waits until the timeout. hv01, hv02, hv03
+  and every Pi but pi01 and pi06 carry `hypervisor`, so "any x86 hypervisor" is
+  `["hypervisor", "x86_64"]` and "either 4090 host" is `["rtx4090"]`.
 - **No target-directory cache.** `Swatinem/rust-cache` has no equivalent —
   the guest is destroyed. The CI image ships a warm crates.io index for the
   fetch, and routes rustc through sccache against the shared store for the

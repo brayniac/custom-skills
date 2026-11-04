@@ -13,11 +13,14 @@ what exists before planning, then read the reference for the task.
 
 - **Hosts:** call `list_hosts` (systemslab MCP) and read `state` and `tags`.
   Never plan from a remembered roster. At last observation: `hv01` and `hv02`
-  (x86 hypervisors, one RTX 4090 each), `delta` (x86, tag `validation`; it
-  also serves the shared compiler cache at `delta:8081`), `pi00`–`pi19`
-  (Raspberry Pi 4B; `pi01` and `pi06` tagged `pi4b-thermal`), and `macbook`
-  and `macstudio` (jobs run directly on macOS). `fleet/hosts/<host>.toml` in
-  `brayniac/infra` declares each host's role, services, tags and guest images.
+  (x86 hypervisors, one RTX 4090 each, tags `rtx4090` and `gpu-passthrough`),
+  `hv03` (x86, `hypervisor` and `bare`: one 16-thread guest slot, no NVIDIA GPU,
+  and barry's reviews run on it bare), `delta` (x86, tag `validation`; it also
+  serves the shared compiler cache at `delta:8081`), `pi00`–`pi19` (Raspberry Pi
+  4B; `pi01` and `pi06` tagged `pi4b-thermal`), `pi20` (Raspberry Pi 5, tag
+  `pi5`), and `macbook` and `macstudio` (jobs run directly on macOS).
+  `fleet/hosts/<host>.toml` in `brayniac/infra` declares each host's role,
+  services, tags and guest images.
   `${CLAUDE_SKILL_DIR}/../bench/references/environment.md` has
   each class's hardware and what a number from it means.
 - **Guest images:** the table in step 1 of

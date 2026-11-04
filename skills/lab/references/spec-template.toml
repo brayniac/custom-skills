@@ -9,7 +9,9 @@ name = "NAME"
 
 [[jobs]]
 name = "vm"
-tags = ["hypervisor", "x86_64"]  # subset-of-host semantics; x86_64 because the Pis carry hypervisor too
+tags = ["hypervisor", "x86_64"]  # subset-of-host; x86_64 excludes the Pis
+# add "rtx4090", "nic-passthrough" or "scratch" when the guest needs them
+# (vm.md step 1)
 
 [[jobs.steps]]
 uses = "anvil-vm"
