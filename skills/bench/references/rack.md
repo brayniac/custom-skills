@@ -58,10 +58,12 @@ job is running, you have the machine — there is no co-tenant and nothing to
 drain. So `busy` means another job owns the host and you wait for it, and a `503
 No suitable slots available` is never ordinary contention. It has two causes the
 message does not distinguish: a **generation mismatch in your own spec** — check
-this first, since a generation-specific shape under `tags = ["hypervisor"]` is a
-coin flip, which `shape = "auto.c"` now removes — or an orphaned guest holding
-slots, which the "Cancel, timeout, orphan" step (7) of `lab`'s `vm.md` recovers.
-A number obtained after retrying around a 503 is not a clean number.
+this first, since a generation-specific shape under `tags = ["hypervisor"]` can
+land on any of three x86 hypervisors or a Pi and works on only one, and
+`["hypervisor", "x86_64"]` with `shape = "auto.c"` removes that — or an orphaned
+guest holding slots, which the "Cancel, timeout, orphan" step (7) of `lab`'s
+`vm.md` recovers. A number obtained after retrying around a 503 is not a clean
+number.
 
 ## Step 2 — On the hypervisors, measure in a VM, and verify fidelity
 

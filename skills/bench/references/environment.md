@@ -17,8 +17,9 @@ re-register; a fresh `registeredAt` does not mean a fresh machine.
 ## Host classes are comparability classes
 
 At last observation: `hv01` (`z2.baremetal`, `hypervisor`), `hv02`
-(`z1.baremetal`, `hypervisor`), `pi00`–`pi19` (`pi4b`, except `pi01` and `pi06`
-which are `pi4b-thermal`), `delta` (`z4.baremetal`, `validation`), `macbook`
+(`z1.baremetal`, `hypervisor`), `hv03` (`zen4`, `hypervisor`, `bare`),
+`pi00`–`pi19` (`pi4b`, except `pi01` and `pi06` which are `pi4b-thermal`),
+`pi20` (`pi5`), `delta` (`z4.baremetal`, `validation`), `macbook`
 and `macstudio`. Re-verify rather than trusting that roster.
 
 **`list_hosts` answers for the deployment you are pointed at, and there is more
@@ -30,11 +31,14 @@ Check the roster before carrying a number or a threshold across.
 | --- | --- | --- |
 | `z2.baremetal` (hv01) | Zen 2, 56 vCPU, ~224 GiB, one RTX 4090 | 7 usable |
 | `z1.baremetal` (hv02) | Zen 1 Threadripper 1950X, 24 vCPU, ~96 GiB, one RTX 4090 | 3 usable |
+| `zen4` + `hypervisor` (hv03; delta also carries `zen4`) | Zen 4 Ryzen 7 7840HS, 16 threads, 30.6 GiB, no NVIDIA GPU | 1 (all 16 threads, 20 GiB) |
 | `pi4b` | Raspberry Pi 4B ×18 | — |
+| `pi5` (pi20) | Raspberry Pi 5 ×1 | — |
 | `pi4b-thermal` | Raspberry Pi 4B ×2, held apart | — |
 | `z4.baremetal` (delta) | Zen 4 — **services host, not a measurement host** | 1 |
 
-One slot is one CCX: 4 cores / 8 threads, 4 GiB per thread, on both hosts.
+One slot is one CCX: 4 cores / 8 threads, 4 GiB per thread, on hv01 and hv02.
+hv03's one slot is all 16 threads at 1280 MiB per thread.
 
 **`delta` is not a comparability class — it is not a measurement environment at
 all.** It is the services host (slipway registry, internal apt repo, Caddy) and
@@ -75,8 +79,8 @@ can be what keeps a host out of a pool — and absence is invisible when you rea
 the tag instead of the roster. Before replacing a tag with what looks like an
 equivalent capability, count the hosts matching before and after. Translating
 `pi4b` to `["bare","aarch64"]` reads as a faithful rewrite and silently widens
-the pool from eighteen hosts to twenty, because both are true of the two thermal
-Pis.
+the pool from eighteen hosts to twenty-three, because both are true of the
+thermal pair, pi20 and the two Macs.
 
 ## Exclusivity is already guaranteed — do not manage it
 
@@ -123,17 +127,21 @@ the failure looks like:
      reported as a capacity error, and the cheap thing to rule out.
 
      The specific trap *was* `tags = ["hypervisor"]` paired with a
-     generation-specific shape: both hypervisors carry `hypervisor`, so the
-     scheduler may place either way while `z2.c` only works on one.
+     generation-specific shape: every x86 hypervisor and nineteen Pis carry
+     `hypervisor`, so the scheduler may place it on any of them while `z2.c`
+     only works on one.
 
      **The fix is no longer to pin the tag.** Since anvil 0.8.6, `auto.c` and
      `auto.g` resolve the generation against the host the guest is actually
      being built on — the first moment it is knowable (`InstanceType::parse_for`
-     in anvil-types). So say `tags = ["hypervisor"]` with `shape = "auto.c"`
-     and let it land either way. Name a generation only when the silicon is
-     part of the measurement and a comparison needs the same hardware every
-     time. Pinning is what kept every CI check on this rack on one hypervisor
-     for five days, and left one of two RTX 4090s unused for the same reason.
+     in anvil-types). So say `tags = ["hypervisor", "x86_64"]` with `shape =
+     "auto.c"` (the Pis carry `hypervisor` too) and let it land on any of hv01,
+     hv02 and hv03; add `rtx4090` when it needs the GPU, since hv03 has none and
+     boots a `gpu = true` guest without one. Name a generation only when the
+     silicon is part of the measurement and a comparison needs the same hardware
+     every time. Pinning is what kept every CI check on this rack on one
+     hypervisor for five days, and left one of two RTX 4090s unused for the same
+     reason.
      As with fidelity, this is a property of the anvil version *deployed* on
      the hypervisor, not of anvil's `main`.
 
