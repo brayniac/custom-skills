@@ -114,7 +114,8 @@ A `v*` tag on a repository whose override says `release = true` runs
 repo on delta.
 
 **A tag pushed while the service was down is never caught up** — release it by
-hand with `rack-ci build --release`, or delete and re-push the tag.
+hand with `rack-ci build --release --ref refs/tags/<tag>`, or delete and re-push
+the tag.
 
 macOS — studio as a runner, and a macOS artifact to ship — is
 `macos.md` (beside this file). The runner is blocked on more than
