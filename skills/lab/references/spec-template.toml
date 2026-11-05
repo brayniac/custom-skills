@@ -17,7 +17,7 @@ tags = ["hypervisor", "x86_64"]  # subset-of-host; x86_64 excludes the Pis
 uses = "anvil-vm"
 [jobs.steps.with]
 shape = "auto.c"                 # resolves to the host's own generation
-image = "spool/images/debian-13-ci@golden"
+image = "spool/images/debian-13-6.12@golden"
 gpu = false                      # keep the 4090 free unless the payload uses it
 boot_timeout = 300               # create->reachable is ~25-30 s
 payload_timeout = 3600

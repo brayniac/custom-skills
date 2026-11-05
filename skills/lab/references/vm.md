@@ -13,55 +13,72 @@ about three minutes. Treat "run it on distro X" as routine, not an expedition.
 
 | Need | image | where | notes |
 | --- | --- | --- | --- |
-| build / test Rust | `debian-13-ci` | x86, Pis | `debian-13-base` plus what build scripts commonly need (libssl-dev, libelf-dev, zlib1g-dev, clang, cmake) and a warm crates index; kernel 6.12 |
-| measurement tooling only | `debian-13-base` | x86, Pis | rezolus, slipway's remote, bubblewrap, stressapptest |
-| newer kernel, io_uring after 6.14 | `debian-13-ci-bpo` | x86, Pis | `debian-13-ci` on trixie-backports 7.1.13 |
-| a specific kernel series | `debian-12-5.10`, `debian-12-base` (6.1), `debian-12-{6.6,6.9,6.11}`, `debian-13-{6.17,6.18,7.1,7.2}`, `debian-14-base` (7.2.8) | hv01, hv02, Pis; `debian-13-7.1` and `debian-13-7.2` not on the Pis | `-base` platform on a Debian kernel; bookworm userspace for Debian 12, trixie for 13, forky for 14 |
-| a release candidate or kernel tree | `debian-13-mainline` | x86 | `debian-13-base` on a kernel.org build (7.3.0-rc6 on 2026-10-06); infra's `jobs/build-kernel-mainline` moves it |
-| Ubuntu | `ubuntu-24.04-base`, `ubuntu-26.04-base` | x86 | rezolus, bubblewrap, stressapptest; no internal apt repo or slipway (its packages are built on trixie) |
-| RHEL-family behaviour (io_uring refused, SELinux, dnf) | `rocky-10-base` | x86, Pis | rezolus, the Rust toolchain; `io_uring_disabled=2` |
-| Amazon Linux | `al2023-i40e` | x86 | kernel 6.12, can drive the passthrough ports. Stock `al2023` needs `ports = 0` |
-| Amazon Linux 2, only if the question is AL2 | `al2` | hv01, hv02 | stock, out of support since 2026-06-30; no python3, `ports = 0`, start payloads with `export PATH=$PATH:/sbin:/usr/sbin` |
+| build / test Rust, measure | `debian-13-6.12` | x86, Pis | stock Debian 13 plus rezolus, slipway's remote, bubblewrap, stressapptest, the Rust toolchain with the shared compiler cache, what build scripts commonly need (libssl-dev, libelf-dev, zlib1g-dev, clang, cmake) and a warm crates index; kernel 6.12 |
+| newer kernel, io_uring after 6.14 | `debian-13-7.1` | x86, Pis | `debian-13-6.12` on trixie-backports 7.1.13 |
+| a specific kernel series | `debian-12-5.10`, `debian-12-6.1`, `debian-12-{6.6,6.9,6.11}`, `debian-13-{6.17,6.18,7.1,7.2}`, `debian-14-7.2` (7.2.8) | hv01, hv02, hv03, Pis; `debian-13-7.1` also on delta; `debian-13-7.2` not on the Pis | rezolus, the Rust toolchain and compiler cache on a Debian kernel; none has the C build libraries or crates index today (see Toolchain below); bookworm userspace for Debian 12, trixie for 13, forky for 14. `debian-13-7.1` is the exception and has them |
+| a release candidate or kernel tree | `debian-13-7.3-rc` | x86 | `debian-13-6.12` on a kernel.org build (7.3.0-rc6 on 2026-10-06); infra's `jobs/build-kernel-mainline` moves it |
+| Ubuntu | `ubuntu-24.04-6.8`, `ubuntu-26.04-7.0` | x86 | rezolus, bubblewrap, stressapptest; no internal apt repo or slipway (its packages are built on trixie) |
+| RHEL-family behaviour (io_uring refused, SELinux, dnf) | `rocky-10-6.12` | x86, Pis | rezolus, the Rust toolchain; `io_uring_disabled=2` |
+| Amazon Linux | `al2023-6.12-i40e` | x86 | kernel 6.12, can drive the passthrough ports. Stock `al2023` needs `ports = 0` |
+| Amazon Linux 2, only if the question is AL2 | `al2` | hv01, hv02, hv03 | stock, out of support since 2026-06-30; no python3, `ports = 0`, start payloads with `export PATH=$PATH:/sbin:/usr/sbin` |
 | musl, OpenRC | `alpine-3.24` | x86, Pis | busybox userland; no rezolus (recipes, "Alpine") |
-| GPU, CUDA 12 | `debian-13-gpu-cu12` | hv01, hv02 | Debian's driver 550 and CUDA 12.4 toolkit, kernel 6.12; shape `z2.g` (hv01) or `z1.g` (hv02), one RTX 4090 each |
-| GPU, CUDA 13 | `debian-13-gpu-cu13` | hv01, hv02 | NVIDIA's 595 driver and CUDA 13.2 toolkit, kernel 6.12; for CUDA 13 wheels such as vLLM |
-| GPU on another kernel or release | `debian-13-{6.12,6.17,6.18}-gpu-cu12`, `debian-13-{6.12,6.17,6.18,7.1,7.2,mainline}-gpu-cu13`, `debian-12-6.1-gpu-cu12`, `debian-12-6.1-gpu-cu13`, `debian-14-7.2-gpu-cu13` | hv01, hv02 | aliases `debian-12-gpu-cu12`, `debian-12-gpu-cu13` (6.1) and `debian-14-gpu-cu13` (7.2) also exist; no other combination does. On bookworm (`debian-12-*`) cu12 is driver 535 (CUDA up to 12.2) and nvcc 11.8. A cu13 driver also runs CUDA 12 code |
+| GPU, CUDA 12 | `debian-13-6.12-gpu-cu12` | hv01, hv02 | Debian's driver 550 and CUDA 12.4 toolkit, kernel 6.12; shape `z2.g` (hv01) or `z1.g` (hv02), one RTX 4090 each |
+| GPU, CUDA 13 | `debian-13-6.12-gpu-cu13` | hv01, hv02 | NVIDIA's 595 driver and CUDA 13.2 toolkit, kernel 6.12; for CUDA 13 wheels such as vLLM |
+| GPU on another kernel or release | `debian-13-{6.17,6.18}-gpu-cu12`, `debian-13-{6.17,6.18,7.1,7.2,7.3-rc}-gpu-cu13`, `debian-12-6.1-gpu-cu12`, `debian-12-6.1-gpu-cu13`, `debian-14-7.2-gpu-cu13` | hv01, hv02 | no other combination exists. On bookworm (`debian-12-*`) cu12 is driver 535 (CUDA up to 12.2) and nvcc 11.8. A cu13 driver also runs CUDA 12 code |
 
-Name the family (`debian-13-base`), not `spool/images/<x>@golden`: the family
+Name the family (`debian-13-6.12`), not `spool/images/<x>@golden`: the family
 resolves to its current build on whichever host the job lands on. Pin a build
-(`spool/images/debian-13-base-20260912.3@golden`, or the `.qcow2` name on a
-Pi) only when the exact image is part of the result. Stock images
-(`debian-13`, `ubuntu-24.04`, `rocky-10`, `al2023`) exist as sources for the
+(`debian-13-6.12-20261021.1`) only when the exact image is part of the result.
+Build ids differ by host: infra's `host-setup/promote-image <host> --list
+<family>` on hv01, hv02 and delta, `ls /var/lib/anvil/images` on hv03 and a Pi;
+name the build without `.qcow2`. Stock images (`debian-13`, `ubuntu-24.04`,
+`rocky-10`, `al2023`) exist as sources for the
 builds; a job rarely wants one. Ubuntu 26.04's stock image in particular can
 bring its data NIC up as `enp2s0` instead of `data`.
+
+Every family is named for its distribution and kernel series. A spec that names
+one of these old names fails with `no image or image family named`. Use:
+`debian-13-ci` and `debian-13-base` -> `debian-13-6.12`; `debian-13-ci-bpo` ->
+`debian-13-7.1`; `debian-13-mainline` -> `debian-13-7.3-rc`; `debian-12-base` ->
+`debian-12-6.1`; `debian-14-base` -> `debian-14-7.2`; `ubuntu-24.04-base` ->
+`ubuntu-24.04-6.8`; `ubuntu-26.04-base` -> `ubuntu-26.04-7.0`; `rocky-10-base`
+-> `rocky-10-6.12`; `al2023-i40e` -> `al2023-6.12-i40e`; `debian-13-gpu-cu12` ->
+`debian-13-6.12-gpu-cu12`; `debian-13-gpu-cu13` -> `debian-13-6.12-gpu-cu13`;
+`debian-12-gpu-cu1x` -> `debian-12-6.1-gpu-cu1x`; `debian-14-gpu-cu13` ->
+`debian-14-7.2-gpu-cu13`. A pinned build does not carry over:
+`debian-13-6.12-<id>` is not the `debian-13-base-<id>` image, and a
+`debian-13-7.1-<id>` pin older than the rename can name a different image with
+no error.
 
 **Choosing between them.**
 
 - The distribution is part of the question only sometimes. When it is not,
-  use Debian: `debian-13-ci` to build or test, `debian-13-base` to measure.
-  Every other family exists because some result depends on the distribution.
-- `-base` against `-ci`: every platform image (each `-base`, `al2023-i40e`,
-  and every family built from them) has rustup stable with clippy and
-  rustfmt, a C compiler, and the shared compiler cache. `-ci` adds what
-  build scripts commonly need (libssl-dev, clang, cmake and others) and a
-  warm crates index. A job that compiles nothing uses `-base`. Only Debian
-  has a `-ci`; on Ubuntu and Rocky a build that needs those installs them
-  in the payload. Alpine, the stock images, `debian-13-gpu`, and delta's
-  own `debian-13-gpu` and `debian-13-gpu-cu13` have no toolchain (recipes).
+  use Debian: `debian-13-6.12`, which builds, tests and measures. Every other
+  family exists because some result depends on the distribution or the
+  kernel.
+- Toolchain: every family has rustup stable with clippy and rustfmt, a C
+  compiler and the shared compiler cache, except Alpine, the stock images and
+  `debian-13-gpu` (recipes). `debian-13-6.12` and `debian-13-7.1` also have what
+  build scripts commonly need (libssl-dev, clang, cmake and others) and a warm
+  crates index. `debian-13-6.17`, `-6.18`, `-7.2`, `-7.3-rc`, `debian-14-7.2`
+  and the Debian 13 and 14 GPU families have the toolchain but not those C
+  libraries or the index until rebuilt. Debian 12, Ubuntu, Rocky and Amazon
+  Linux have neither, and a rebuild does not add them. A build there installs
+  what it needs in the payload. A job that compiles nothing is unaffected.
 - Debian against Ubuntu: Ubuntu when the workload's production fleet runs
-  Ubuntu, or for Ubuntu's kernel. `ubuntu-24.04-base` is what is deployed
-  widely today (kernel 6.8); `ubuntu-26.04-base` is the next LTS (kernel 7.0,
+  Ubuntu, or for Ubuntu's kernel. `ubuntu-24.04-6.8` is what is deployed
+  widely today; `ubuntu-26.04-7.0` is the next LTS (kernel 7.0,
   sched_ext). Packages from infra's internal repo are built on Debian trixie
   (glibc 2.41), and a binary that needs 2.41 does not run on 24.04 (2.39):
-  rezolus is the known case, so `ubuntu-*-base` takes rezolus's own Ubuntu
+  rezolus is the known case, so the Ubuntu families take rezolus's own Ubuntu
   build.
 - Rocky when RHEL behaviour is the question: SELinux enforcing,
-  `io_uring_disabled=2`, dnf, an EL kernel. `al2023-i40e` when Amazon Linux
+  `io_uring_disabled=2`, dnf, an EL kernel. `al2023-6.12-i40e` when Amazon Linux
   is; it is x86 only.
 - `alpine-3.24` for musl and its allocator, or a small busybox userland.
 - An older kernel than 6.12: `debian-12-5.10` (bullseye's 5.10.262),
-  `debian-12-base` (6.1), `debian-12-6.6`, `debian-12-6.9` and
-  `debian-12-6.11` on hv01, hv02 and the Pis; `ubuntu-24.04-base` (6.8) on
+  `debian-12-6.1`, `debian-12-6.6`, `debian-12-6.9` and
+  `debian-12-6.11` on hv01, hv02, hv03 and the Pis; `ubuntu-24.04-6.8` on
   x86. There is no `debian-12-6.8`: bookworm-backports had none. The Pi builds
   of Debian 12 have no stressapptest (bookworm has no arm64 build);
   `/etc/anvil-image.json` lists it under `packages_absent`. No apt source in
@@ -73,28 +90,27 @@ bring its data NIC up as `enp2s0` instead of `data`.
   architectures and `tcp_connect_latency` fails on the Pis; the agent runs
   without them. On one hv01 boot `cpu_dtlb` was also not started (PMU budget).
 - A kernel series after 6.12 on trixie userspace: `debian-13-6.17` and
-  `debian-13-6.18` on hv01, hv02 and the Pis; `debian-13-7.1` and
-  `debian-13-7.2` on hv01 and hv02. `debian-14-base` (forky userspace, 7.2.8)
-  is on hv01, hv02 and the Pis. delta has none of these.
-- A newer kernel, in order of preference: `debian-13-ci-bpo` (Debian's
-  backports kernel, 7.1.13: packaged, stable, sched_ext), then
-  `ubuntu-26.04-base` (7.0), then `debian-13-mainline` (a release
-  candidate, or a tree with patches no release has). Mainline is the one
-  whose kernel changes when someone rebuilds it; record its
-  `/etc/anvil-image.json` with the result.
-- GPU: `debian-13-gpu-cu12` for CUDA 12, `debian-13-gpu-cu13` for CUDA 13;
-  both have nvcc. In cu13 images nvcc is `/usr/local/cuda/bin/nvcc` and is on
-  a login shell's PATH only, so a payload adds `/usr/local/cuda/bin` to PATH
-  or calls it by full path. These two are aliases for
-  `debian-13-6.12-gpu-cu12` and `debian-13-6.12-gpu-cu13`; name the family
-  with the kernel series when the kernel is part of the result. An alias
-  moves only when it is re-pointed after its target is promoted, so record
-  `/etc/anvil-image.json` with the result. A result measured on cu12 is not
-  comparable with one on cu13: the driver differs.
-- `debian-13-gpu` is an older cu12 family (Debian's 550.163.01-2 on kernel
-  6.12.107). Use it only to continue a series already measured on it; results
-  on it are not comparable with `debian-13-gpu-cu12`, whose driver package and
-  kernel differ.
+  `debian-13-6.18` on hv01, hv02, hv03 and the Pis; `debian-13-7.1` on hv01,
+  hv02, hv03, delta and the Pis; `debian-13-7.2` on hv01, hv02 and hv03.
+  `debian-14-7.2` (forky userspace, 7.2.8) is on hv01, hv02, hv03 and the Pis.
+  Of these, delta has only `debian-13-7.1`.
+- A newer kernel, in order of preference: `debian-13-7.1` (Debian's backports
+  kernel, 7.1.13: packaged, stable, sched_ext), then `ubuntu-26.04-7.0`, then
+  `debian-13-7.3-rc` (a release candidate, or a tree with patches no release
+  has). `debian-13-7.3-rc` is the one whose kernel changes when someone rebuilds
+  it; record its `/etc/anvil-image.json` with the result.
+- GPU: `debian-13-6.12-gpu-cu12` for CUDA 12, `debian-13-6.12-gpu-cu13` for CUDA
+  13; both have nvcc. In cu13 images nvcc is `/usr/local/cuda/bin/nvcc` and is
+  on a login shell's PATH only, so a payload adds `/usr/local/cuda/bin` to PATH
+  or calls it by full path. Name a family with another kernel series when the
+  kernel is part of the result. A result measured on cu12 is not comparable with
+  one on cu13: the driver differs.
+- `debian-13-gpu`, the cu12 image's earlier name, is withdrawn: do not name it
+  in a new spec, and it can be destroyed without notice. It has no Rust
+  toolchain or compiler cache. Its builds (Debian's 550.163.01-2 on kernel
+  6.12.107, from 2026-09-12) are not in `debian-13-6.12-gpu-cu12`, whose driver
+  package (550.163.01-4~bpo13+1) and kernel (6.12.113) differ, so a series
+  measured on the old one is not comparable with a run on the new one.
 - Pis against x86: a Pi when the question is the A72 or there are many small
   independent cells to run (nineteen Pis match `["hypervisor", "aarch64"]`:
   eighteen Pi 4Bs and pi20, a Pi 5; add `pi4b` or `pi5` to choose; one job
@@ -102,12 +118,12 @@ bring its data NIC up as `enp2s0` instead of `data`.
   passthrough NICs, or a GPU.
 
 **sched_ext** needs it compiled in, and Debian's 6.12 leaves it out. It is in
-`debian-13-ci-bpo`, `debian-13-{6.17,6.18,7.1,7.2}`, `debian-14-base`,
-`debian-13-mainline`, `ubuntu-26.04*` and `rocky-10*`. It is not in Debian
+`debian-13-{6.17,6.18,7.1,7.2}`, `debian-14-7.2`,
+`debian-13-7.3-rc`, `ubuntu-26.04*` and `rocky-10*`. It is not in Debian
 images on 6.12 or older, `ubuntu-24.04*` or `alpine-3.24`. Not every yes was
 seen in a booted guest: `debian-13-7.2`'s comes from its 7.2.6 kernel config,
-`debian-13-7.1`'s from sharing `debian-13-ci-bpo`'s 7.1.13 kernel, and
-`debian-13-6.17`, `debian-13-6.18` and `debian-14-base` were checked booted on
+`debian-13-7.1`'s from its 7.1.13 kernel, and
+`debian-13-6.17`, `debian-13-6.18` and `debian-14-7.2` were checked booted on
 arm64 only. A `-gpu-cu12` or `-gpu-cu13` image has its source family's answer:
 `debian-13-7.2-gpu-cu13` has it, `debian-13-6.12-gpu-cu13` does not. infra's
 docs/guides/vm-jobs.md keeps the table. A guest's scheduler places threads on
@@ -116,8 +132,8 @@ policy's effect, not bare-metal latency.
 
 **Hardware counters in a guest** on a Pi: `vpmu = false` on the step and
 the `guest-pmc-dkms` package; infra's docs/examples/guest-pmc.toml is a
-working job on `debian-13-base`. DKMS builds the module against
-`linux-headers-$(uname -r)`. Use `debian-13-base` or `debian-13-ci`:
+working job on `debian-13-6.12`. DKMS builds the module against
+`linux-headers-$(uname -r)`. Use `debian-13-6.12`:
 `guest_pmc.c` uses `BTF_KFUNCS_START` and `asm/arm_pmuv3.h`, which
 bookworm's 6.1 headers lack, and no apt source in an image on a pinned
 backports or bullseye kernel carries headers for it. With a vPMU (the
