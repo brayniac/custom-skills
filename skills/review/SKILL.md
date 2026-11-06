@@ -129,6 +129,8 @@ entry is not reference documentation.
   round.
 - **Design findings go to the owner** before implementation; a reviewer can
   show a capability was lost, only the owner decides whether to restore it.
+- **A finding against a PR body corrects or deletes the claim**, by section 4
+  of `${CLAUDE_SKILL_DIR}/../pr/references/pr-body.md`.
 - After applying a prose replacement, **check the old text is gone**
   (`rewrite-mechanically` step 5): a correction appended to a stale paragraph
   leaves documentation that says both things.

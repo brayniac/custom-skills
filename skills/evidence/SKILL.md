@@ -110,7 +110,8 @@ When a claim already stated turns out wrong, correct it where it was stated:
 - in a journal entry or a published finding, leave the wrong text, mark it
   refuted, and write what replaced it and why (`journal`, `publish`);
 - in a pushed commit message, which cannot change, state the correction in
-  the PR body or the next commit's body;
+  the next commit's body or, when the PR is squash-merged, in the squash
+  commit message (`gh pr merge --body`);
 - in chat, say what was wrong and what replaced it.
 
 ## Never

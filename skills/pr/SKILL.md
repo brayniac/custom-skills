@@ -1,6 +1,6 @@
 ---
 name: pr
-description: Open a pull request from local work in any of these repositories — find the upstream and fork remotes, branch if on main, sweep the comments the change touches (where each fact lives, every claim of absence or equivalence checked by a grep), run the repo's gates, stage files by name, follow its commit convention and per-repo PR steps, run a `review` of the commits and answer it, push, and write the body as a guide for the reviewer (why, the decisions, where to look, what the tests ran and do not cover). Use when asked to open, create, submit, or send a PR; when uncommitted changes or unpushed commits need to become a PR; and when asked to write or update a PR description, or to add, document, sweep, clean up or check the comments in a change, in any language.
+description: Open a pull request from local work in any of these repositories — find the upstream and fork remotes, branch if on main, sweep the comments the change touches (where each fact lives, every claim of absence or equivalence checked by a grep), run the repo's gates, stage files by name, follow its commit convention and per-repo PR steps, run a `review` of the commits and answer it, push, and write a short body for the maintainer (what changed and why, the evidence, and only what they must decide or do). Use when asked to open, create, submit, or send a PR; when uncommitted changes or unpushed commits need to become a PR; and when asked to write or update a PR description, or to add, document, sweep, clean up or check the comments in a change, in any language.
 ---
 
 # Open a PR
@@ -68,9 +68,10 @@ and the "Commits" / "Pull requests" section of `CLAUDE.md` if there is one.
   user (behaviour, config, CLI, public API, a security advisory), add the
   entry under `Unreleased` by `changelog` step 2, in the same commit as the
   change.
-- **Attribution**: use the trailer and PR-body line the harness specifies for
-  this session. Do not copy a model name from an old commit or from a repo
-  skill; several hard-code one that is out of date.
+- **Attribution**: use the commit trailer the harness specifies for this
+  session. Do not copy a model name from an old commit or from a repo skill;
+  several hard-code one that is out of date. The PR body takes none
+  (`${CLAUDE_SKILL_DIR}/references/pr-body.md` section 3).
 
 ## 4. Sweep the comments, then verify
 
@@ -99,7 +100,7 @@ Run `review` on the commits (a fresh agent; its mandates for what breaks, and
 for API and docs when they changed). Answer every finding before pushing:
 fix, dispute with evidence, or defer with the user. Fix commits are part of
 what goes up; if the fixes are more than mechanical, review again. Skip only
-when the user says to, and say so in the PR body.
+when the user says to, and say so in the step 8 report.
 
 ## 7. Push and create the PR
 
@@ -109,15 +110,13 @@ gh pr create --repo <owner/repo> --head <head> --base main \
   --title "<subject>" --body-file <file>
 ```
 
-Write the body with `${CLAUDE_SKILL_DIR}/references/pr-body.md`: why the change
-exists, the decisions that want the reviewer, where to look more closely, what
-the tests ran and do not cover (the per-gate lines from `verify`), and
-what only production can show. Say what `review` found, how each finding was
-answered, and whether each fix was re-reviewed or only reported. Use the same
-file to update a body after new commits, or when asked to write a PR
+Write the body with `${CLAUDE_SKILL_DIR}/references/pr-body.md`: what changed
+and why, the evidence, and only what the maintainer must decide or do. Use the
+same file to update a body after new commits, or when asked to write a PR
 description. For an API change, state what a caller can no longer do, not only
-what was added. Keep engagement or client detail out of public
-repositories (`publish`; a hook enforces the literal terms).
+what was added. Review history stays out of the body; step 8 reports it. Keep
+engagement or client detail out of public repositories (`publish`; a hook
+enforces the literal terms).
 
 If a PR already exists for the branch, report its URL instead of creating
 another.
@@ -131,7 +130,10 @@ gh pr view --json url,state,isDraft,headRefOid
 
 Record the step 6 review against that head (`review` step 8) if its verdict was
 merge and nothing but the mechanical fixes that step allows landed after it; the
-merge gate refuses an unrecorded head. Report the URL and what the review found.
+merge gate refuses an unrecorded head. Report the URL to the user, with what the
+review found, how each finding was answered, whether each fix was re-reviewed
+or only reported (never "re-review pending" when none is scheduled), and the
+per-gate lines from `verify`, with any skipped check and why.
 If CI has started, give its state; on repos with rack-ci, read the `rack-ci/*`
 statuses (`lab`'s `rack-ci.md`). When a reviewer answers, reply with `review`
 step 7.

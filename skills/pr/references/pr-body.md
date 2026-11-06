@@ -1,213 +1,134 @@
 # Writing a PR body
 
-The reviewer already has the diff. The body does not summarise it. It says
-why the change exists, where a reviewer's limited attention is best spent, and
-what the author could not settle. `pr` handles the mechanics; this is
-the body it passes to `gh pr create --body-file`.
+The reader is a maintainer deciding whether to merge. They have the diff, the
+CI results and the linked issue. The body says what changed, why, what evidence
+supports it, and what they have to decide or do. `pr` handles the mechanics;
+this is the file it passes to `gh pr create --body-file`.
 
-The rules below came from one reader's reports on about a dozen bodies across
-two repositories, each report against a specific body. Every one was invisible
-to the author and to automated review. They have not been measured beyond
-that; when one fights the change in front of you, override it and say so in
-the commit that updates this file.
-
-Five later rules rest on less: one body revision (review status), one PR
-(scope growth), and small one-generation comparisons that found a modest gain
-for the commit-message rule only.
+A dependency swap once drew 1,152 words of prose, most of it review history,
+settled choices and caveats the author added after each review round. The
+maintainer asked for a paragraph and a table instead, which took 108. The
+200-word limit below rests on that PR and a two-task comparison; override it
+when the change needs more, and say so in the commit that updates this file.
 
 ## Inputs
 
-- The base and head: `git diff <base>...HEAD`, and the head SHA the body is
-  pinned to.
-- The per-gate lines from `verify`.
+- The base and head: `git diff <base>...HEAD`.
+- For a performance or behaviour claim, the measurement.
+- `verify`'s lines for results CI cannot show. `pr` step 8 reports the rest.
 - For a change to a public interface, what a caller can no longer do
   (`review` step 4).
 
-Before writing, check the destination's visibility and apply
-`publish`.
+Before writing, check the destination's visibility and apply `publish`.
 
-## 1. Decide whether there is anything to guide
+## 1. The default shape
 
-A body earns more than a sentence when it carries at least one thing the
-reviewer cannot get from the diff:
+1. **What changed and why**, in a few sentences: what existed, what is
+   different now, and the reason. Name the types and crates involved, with one
+   clause for any name the reader may not know. Link the issue or PR it builds
+   on.
+2. **Evidence**, when the change makes a claim the diff cannot show. A
+   performance claim gets its numbers in a table, with the baseline commit,
+   the run count, the noise floor, and one line for the conditions. Link the
+   journal entry if there is one.
+3. **What the reader must act on**, if anything (section 2). When the reader
+   must decide something or take a step, say so in the opening paragraph and
+   say where it is.
 
-- a reading order different from the diff's file order;
-- a test gap;
-- a judgement call;
-- a risk that only production can show.
+Nothing else is a default. A change with nothing to decide needs no headings.
 
-If all four are empty, write one sentence describing the change and one
-saying you checked those four and found nothing. Silence reads the same as
-not having looked.
+**Length check.** Count the prose outside tables and code blocks. Over 200
+words, cut what section 2 does not admit until it fits. Section 2 items stay,
+at the length that section gives them; a list of changed public types or
+carried commits goes in a bullet list. A small change is one or two sentences.
 
-Length follows what the change carries. A 32-line, one-file README change once
-drew a 733-word body with seven headings; three drafts brought it to 216. Its
-testing section said "no test covers README content", which is true of every
-documentation change. **A heading is earned by its content**: an answer that
-needs a clause is a clause in the opening paragraph.
+`pr-body-examples.md`, beside this file, shows the shape.
 
-## 2. Build the reviewer's model before naming anything
+## 2. Add only what the reader must act on
 
-Six bodies for one stacked series each opened on a reading order and named
-types the reviewer had not met. In the order below, before any section that
-names a type, establish:
+Each item below is added when the merge decision or a caller's work depends on
+it. Anything else goes in the journal or the commit message.
 
-1. what the system does at the level this change touches, in the domain's
-   terms;
-2. the two or three concepts the change depends on, each named once and
-   reused;
-3. where this change sits among them.
+- **An open decision.** Its own `###` subsection under `## Decisions`: the
+  context, readable without the code; the `path:line`; what you chose, what you
+  rejected, what evidence would change it; and whether it blocks the merge. Put
+  the central decision first. A choice you settled is not a decision, and
+  neither is a value one edit reverses. Before asking, check whether the
+  document being edited already answers it.
+- **A breaking change.** What a caller can no longer do, and who is affected,
+  in a sentence or two.
+- **A gap that could change the merge decision**: a platform not measured, a
+  path not tested, a case that still does not work. One sentence each. Leave
+  out a gap that is true of every change.
+- **A gate known to be failing**, and why the PR is opened anyway.
+- **What the calling skill requires** (`backport` step 6, `fuzz-crash-to-test`
+  step 7).
+- **A step at deploy**: a migration, a config change, a rollback constraint.
+- **A risk only production shows**, with the metric or log line that would
+  show it.
+- **A diagram the change makes wrong.**
+- **A line to read closely**, when a reviewer would otherwise miss it.
+- **In a stack**, a link to the base PR, and only this PR's delta.
 
-State the starting point you assume, and name where to skip to by the
-section's exact heading. Write every explanation as **before, problem,
-change**: the arrangement that worked, what arrived or stopped being true, and
-the change as the response. Each beat appears once; the common inflation is
-stating the "before" a second time as the problem.
+## 3. What stays out
 
-An identifier this change adds introduces itself. One that already existed
-needs one clause in the "before" beat saying what its job is. A diagram goes
-here when the concepts have a shape (a topology, a pipeline, a before and
-after); link a checked-in one, or inline mermaid small enough to read without
-scrolling. Say so when the change makes an existing diagram wrong.
+- **Review history.** No reviews, rounds, findings, dispositions or re-review
+  status. `review` step 7 answers the findings and `pr` step 8 reports them to
+  the user.
+- **Process narration.** No account of what you tried, what failed, what an
+  earlier commit did, or how the branch reached this state. Describe the final
+  change. The dead ends go in the journal.
+- **Gate results CI shows.** State a result only when CI cannot show it: a
+  manual run, or a check on hardware CI does not have.
+- **The diff retold** file by file, or a list of what is safe to skim.
+- **Settled choices** and "recorded, not asked" lists.
+- **Confidence ratings, leftover doubts and instructions to yourself.**
+- **Attribution.** No generated-by line and no session link, even when the
+  harness supplies one for PR bodies.
 
-In a stack, write the model once in the base PR's body, link it from each PR
-above by number, and state only this PR's delta. The six stacked bodies above
-carried five near-identical models, about 1,650 words of duplicate text.
+## 4. Check what remains
 
-## 3. Decisions
+- Check each fact against the code or the measurement. A scenario file or
+  fixture that describes what an agent should do is not evidence that an agent
+  ran it.
+- Open every line you cite, and pin each `path:line` to a full commit SHA.
+- Check every absolute word ("once", "always", "never") against the retry,
+  replacement and failure paths in the diff. Put a qualification in the
+  sentence it qualifies.
+- A count must match its list.
+- When a review finding is against the body, correct the claim or delete it.
+  Delete it when the reader does not need it. Add a caveat only if section 2
+  admits it, and no line about the review itself.
 
-This is the section a reviewer cannot reconstruct alone. Order it by
-centrality: first the decision the change exists to make, then one line
-saying the rest is lower stakes, then the rest. Presented side by side, a
-leftover doubt and the central question read as equal weight, and the
-reviewer answers the easier one.
+## 5. Before publishing, and on every rewrite
 
-Each decision gets its own `###` subsection, in this order:
+Run `prose` over the body. Quoted output, paths and identifiers are
+untouchable. Apply the length check.
 
-1. **context** — the arrangement and what forces a choice, readable without
-   the code;
-2. **reference** — `path:line` where the choice is made;
-3. **question** — what was chosen, what was rejected, what evidence would
-   change it, whether it blocks the merge, and whether it needs a decision, a
-   confirmation of fact or an acceptance of risk.
-
-A first attempt put the questions in a list at the top. In five of six bodies
-the items used terms introduced two sections later, and each reappeared below
-at greater length (854 words previewing 1,335). The reviewer cannot answer a
-question before reading the context it depends on.
-
-Not every question earns a subsection. Put in a one-line "recorded, not
-asked" list any call whose context is already visible in the diff, and any
-call about a value (a width, a name, a threshold) that one edit reverses. A
-label-width question once took 323 words, 44% of its body. Before asking
-anything, check whether the document being edited already answers it: a body
-once asked whether an exception was justified when the skill it changed
-granted that exception in two places.
-
-Every item cites evidence (an ambiguous requirement quoted, an untested path,
-an unverified assumption, a measurement not taken). Without the call, the
-alternative and what would change it, drop it. Do not rate confidence. Do not
-manufacture doubt, and do not present one reading of an ambiguous requirement
-as the only one. If nothing was genuinely open, say so and why.
-
-Worked examples of a summary, a decision subsection and a glossed "before"
-beat are in `pr-body-examples.md`, beside this file.
-
-## 4. Where to look more closely
-
-Rank by the cost of a missed defect times the chance the reviewer misses it:
-
-1. code carrying a judgement call;
-2. code whose correctness depends on something outside the diff;
-3. code no test covers;
-4. code you are least sure of.
-
-Then name what is safe to skim and why: generated output, mechanical renames,
-formatting. Point at a line, not a module, and **open every line you cite in
-this session**. One body cited three ranges each off by a section because the
-numbers were estimated; another read four anchors and estimated the fifth,
-which was wrong. State near the top which commit the line numbers are pinned
-to.
-
-## 5. Testing
-
-For each surface the repository has (unit, integration, smoke, benchmark,
-property or fuzz, manual): whether it ran, the real command and its real
-result, and what it does not cover. "All tests pass" is not a report; "136
-tests pass across seven binaries; none exercise the publish path" is. Take the
-lines from `verify`. Never state a command ran when it did not; name a
-skipped check and why. No coverage percentages.
-
-Report review status at the strength it has. An author saying a finding is
-fixed, a named check passing at a stated commit, and another reviewer
-confirming the fix on the current head are three claims, and none implies the
-next. "All findings addressed" needs the third for every fix that `review`
-step 7 does not class as mechanical; name the mechanical ones. When no one has
-re-reviewed a fix, say that no re-review has happened; "re-review pending"
-asserts a scheduled review the record does not show. A scenario file or
-fixture that describes what an agent should do is not evidence that an agent
-ran it.
-
-## 6. Production-only risks
-
-List what cannot show before deployment (scale, real data shape, timing and
-partial failure across hosts, configuration drift, migration and rollback,
-upstream behaviour) and, for each, what would surface it: a metric, a log
-line, an alert. Say which risks want a judgement and which want an
-acceptance.
-
-## 7. Write the summary last, at the top
-
-Above every heading, answer in order: why this change is needed, the one idea
-it turns on, and what is true once it lands, including what still does not
-work. A small change answers all three in one sentence. **No type, field,
-function, flag or path in the summary**; the reviewer cannot resolve a name
-before the model exists. Test: could someone who has not seen the codebase say
-what problem the change solves?
-
-Check every absolute word in the summary ("once", "always", "never", "for its
-lifetime") against the retry, replacement and failure paths in the diff. One
-body's opening made a lifetime claim that its own retry exception contradicted.
-When the detail qualifies the summary, put the qualification in the summary;
-a later paragraph that retracts it is read after the reviewer has believed it.
-
-When the repository's convention keeps the commit messages in the body and a
-later commit replaces what an earlier one says, put a synopsis of the final
-behaviour above them and label them as history. Keep messages the convention
-requires verbatim, and do not rewrite commits to tidy the body.
-
-Close with the ask as its own paragraph, pointing rather than restating:
-"Two decisions want your opinion, one blocking; each is a subsection under
-Decisions." When nothing needs the reviewer, say so. A count must match the
-list; "two things want your opinion" once sat above three.
-
-## 8. Before publishing, and on every rewrite
-
-Run `prose` over the body. Quoted output, paths and
-identifiers are untouchable. When rewriting any section, reread the code
-behind it first; a reader's confusion is evidence the claim may be wrong, and
-editing prose from prose carries the old errors forward.
-
-When later commits widen the change, reread the title, the summary, the
-decisions and the where-to-look list against the final diff, and rebuild the
-body around the final change. A section appended per commit leaves the title and
-summary describing the first scope.
+When later commits widen the change, rebuild the title and body around the
+final diff. Do not append a section per commit, and do not add a line to
+explain a later fix. On a rewrite, rerun section 4 against the code; editing
+prose from prose carries the old errors forward.
 
 On a rewrite, recheck every dependency and blocker claim against the PR it
 names (`gh pr view <n> --json state,mergedAt`). A merged dependency no longer
-blocks the merge, but its integration or validation can still be unfinished;
-remove the blocker without implying the PR is ready. When the state cannot be
-read, mark the claim unverified rather than repeating it or dropping it.
+blocks the merge, but its integration can still be unfinished; remove the
+blocker without implying the PR is ready. When the state cannot be read, mark
+the claim unverified.
+
+When the repository's convention keeps commit messages in the body, put a
+synopsis of the final behaviour above them and label them as history. Keep
+messages the convention requires verbatim, and do not rewrite commits to tidy
+the body. They do not count toward the length check.
 
 ## Never
 
-- **Never retell the diff file by file**, or order the reading list by path.
-- **Never open with a heading**, or put an identifier in the summary.
+- **Never write to yourself.** If a sentence helps the author and not the
+  maintainer, delete it.
 - **Never ask a question before its context**, or put two decisions in one
   subsection.
 - **Never cite a line you did not open** in this session.
 - **Never report a check as run without its output**, or a coverage
   percentage in place of a gap.
-- **Never pad to look thorough**; a padded body teaches the reviewer to skim
-  the next one.
+- **Never add a section to look thorough.**
 - **Never write the body to a file in the repository** unless asked.

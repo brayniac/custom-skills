@@ -138,8 +138,8 @@ is not. Report that as unknown rather than inferring it either way.
    no amend, or to mechanical fixes only.
 8. **Push and open the PR** with `gh pr create --base <base>`, titled the same
    as the commit. The body states the version, the changelog section, and what
-   merging will trigger. Record the last step 7 review against the head you
-   push (`review` step 8).
+   merging will trigger, with no attribution line or session link. Record the
+   last step 7 review against the head you push (`review` step 8).
 9. **Report the PR URL.**
 
 ### Prereleases
