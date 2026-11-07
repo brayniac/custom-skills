@@ -109,18 +109,23 @@ is not. Report that as unknown rather than inferring it either way.
    date, open a fresh empty `Unreleased`. In a per-crate workspace, do what the
    crate's last release did (`git show <crate>-v<last> --stat`, then its
    changelog diff): some keep the root file's blocks under `Unreleased` and
-   rename the crate's own `CHANGELOG.md` section instead. Keep a Changelog
-   format. If
-   `Unreleased` is thin, fill it from `git log <last-tag>..HEAD` using
-   `${CLAUDE_SKILL_DIR}/references/changelog.md`. **Show the user the section
-   and ask before continuing** — this is the one part of the release that
-   carries prose a reader will rely on.
+   rename the crate's own `CHANGELOG.md` section instead. Then audit the
+   section with `changelog` step 3:
+   every entry re-checked against the present, traced to its PR, and filled
+   from `git log <last-tag>..HEAD` where `Unreleased` is thin. **Show the user
+   the section and the list of entries you changed, and ask before
+   continuing** — this is the one part of the release that carries prose a
+   reader will rely on.
 7. **Commit** with the message derived in step 1, question 4. Nothing before the
    prefix. On a squash merge the PR's single commit message becomes the merge
-   commit message, which is what the workflow matches against.
+   commit message, which is what the workflow matches against. Then run
+   `review` on the release commit, naming in its brief every entry step 6
+   rewrote, and answer its findings. If a fix changes an entry, show the user
+   the changed entry and ask before step 8.
 8. **Push and open the PR** with `gh pr create --base <base>`, titled the same
    as the commit. The body states the version, the changelog section, and what
-   merging will trigger.
+   merging will trigger. Record the step 7 review against the PR head
+   (`review` step 8).
 9. **Report the PR URL.**
 
 ### Prereleases

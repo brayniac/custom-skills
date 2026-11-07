@@ -64,6 +64,10 @@ and the "Commits" / "Pull requests" section of `CLAUDE.md` if there is one.
   `Cargo.lock`; `cargo release version <new> --execute --no-confirm`, with
   `-p <crate>` where only one crate carries it, edits all three. A repo whose
   version has no `-alpha.N` takes no bump.
+- **CHANGELOG.** If the repository keeps one and the change is visible to a
+  user (behaviour, config, CLI, public API, a security advisory), add the
+  entry under `Unreleased` by `changelog` step 2, in the same commit as the
+  change.
 - **Attribution**: use the trailer and PR-body line the harness specifies for
   this session. Do not copy a model name from an old commit or from a repo
   skill; several hard-code one that is out of date.
