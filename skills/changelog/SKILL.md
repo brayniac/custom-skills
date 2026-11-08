@@ -142,22 +142,22 @@ review when it merged is still true.
    ```
 
    Set `LAST` in the same call: a shell variable does not survive between
-   tool calls, and with `LAST` empty `git show :Cargo.lock` prints the
-   current lockfile, so the two audits match and nothing reads as cleared.
-   An empty old lockfile audits as 0 dependencies with exit 0, with the same
-   result. The first audit fetches the advisory database; an old local copy
-   misses recent advisories.
+   tool calls. The guards stop the cases where nothing would read as
+   cleared: no tag, and an empty old lockfile, which audits as 0
+   dependencies with exit 0. The first audit fetches the advisory database;
+   an old local copy misses recent advisories.
 
    In a per-crate workspace the root `Cargo.lock` covers every member: keep
    only advisories on crates in this crate's tree (`cargo tree --target all
    -p <crate> -i <dep>@<version>`, with the version each revision's lockfile
-   has, at `HEAD` and in a worktree of `$LAST`). For a crate others depend on
-   as a library, its `Cargo.lock` does not reach them: an advisory is cleared
-   for them only when the affected crate left this crate's tree (`cargo tree
-   --target all -i <dep>` reports that no package matched), or every
-   version the tree's requirements (this crate's `Cargo.toml` and its
-   dependencies') now allow is unaffected. Otherwise say the bump covers
-   this repository's builds and the binaries it ships.
+   has, at `HEAD` and in a worktree of `$LAST`; an "ambiguous" error means
+   the lockfile holds more than one version). For a crate others depend on
+   as a library, its `Cargo.lock` does not reach them: write each entry as
+   covering this repository's builds and the binaries it ships. Say library
+   users are covered only when you have shown that no version their
+   resolution may pick is affected, since a downstream lockfile can hold
+   any older version of an intermediate crate that this crate's
+   `Cargo.toml` allows.
 
    Attribute each bump to the dependency that moved it (`Cargo.lock`'s
    dependency lists), not to the nearest bump in the same PR.
