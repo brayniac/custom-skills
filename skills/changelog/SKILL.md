@@ -61,11 +61,11 @@ Before writing anything, read the two most recent released sections:
 6. **Check every claim about old behaviour and other products.** "Before, a
    Prometheus line with a label name containing `.` was kept under the labels
    that parsed" was false: prometheus-parse 0.2.5 recorded the line with the
-   label name as written. Read or run the old code before describing it. For another product's versions, look up its
-   latest release (`git tag`, the registry, its releases page) before writing
-   a range: "rezolus 5.21 to 5.28 read dendro schema 4" was written after 5.29
-   had shipped. Write the range up to the latest release you checked, not
-   "and later".
+   label name as written. Read or run the old code before describing it. For
+   another product's versions, look up its latest release (`git tag`, the
+   registry, its releases page) before writing a range: "rezolus 5.21 to 5.28
+   read dendro schema 4" was written after 5.29 had shipped. Write the range up
+   to the latest release you checked, not "and later".
 7. **Date claims about external state, at the precision of the evidence.** "The
    assets are corrupt" was true on the day the PR merged and false the same
    evening, when the assets were replaced. For state outside the repository
@@ -87,9 +87,9 @@ Before writing anything, read the two most recent released sections:
    body and in the sub-bullet, since it may call for a minor bump (`release`
    step 3 reads it).
 10. **Put a new entry under `Unreleased`**, never under a released heading.
-    If the file has none, add `## [Unreleased]` above the newest release, in
-    the file's heading style.
-    A correction to a released entry edits that entry in place; say so in the
+    If the file has none, add an `Unreleased` heading above the newest
+    release, at the same level and style as the release headings. A
+    correction to a released entry edits that entry in place; say so in the
     commit. Add the PR reference in the file's style when the PR has a
     number, or leave it for the release audit (3.1). Present tense for current
     behaviour; backticks on what a user types or calls (`--flag`,
@@ -125,15 +125,17 @@ review when it merged is still true.
    release's lockfile and on `HEAD`'s, and list every advisory cleared
    between them, each under the crate it was on, including `unsound` and
    `unmaintained` warnings if earlier Security sections of CHANGELOG.md list
-   them. If the repository has no `Cargo.lock` at either revision, or
-   `cargo audit` is not installed, stop and tell the user; do not write
-   Security from memory.
+   them. If the last release's or `HEAD`'s tree has no committed
+   `Cargo.lock`, or `cargo audit` is not installed, stop and tell the user;
+   do not write Security from memory. Without a committed lockfile,
+   `cargo audit` resolves and writes one, and audits today's resolution.
 
    ```sh
    LAST=<the tag 3.1 settled on>
    git rev-parse -q --verify "refs/tags/$LAST" >/dev/null || { echo "no tag '$LAST'; stop"; exit 1; }
    OLD=$(mktemp)
    git show "$LAST":Cargo.lock > "$OLD" || { echo "no Cargo.lock at $LAST; stop"; exit 1; }
+   git ls-files --error-unmatch Cargo.lock >/dev/null || { echo "no committed Cargo.lock at HEAD; stop"; exit 1; }
    cargo audit -f "$OLD"
    cargo audit --no-fetch
    rm -f "$OLD"
@@ -148,9 +150,12 @@ review when it merged is still true.
 
    In a per-crate workspace the root `Cargo.lock` covers every member: keep
    only advisories on crates in this crate's tree (`cargo tree -p <crate> -i
-   <dep>` at both revisions). For a library, an advisory is cleared for its
-   users only when the manifest requirement now excludes the affected
-   version; otherwise say the bump covers this repository's own builds.
+   <dep>@<version>`, at `HEAD` and in a worktree of `$LAST`). For a crate
+   others depend on as a library, its `Cargo.lock` does not reach them: an
+   advisory is cleared for them only when the dependency was removed or a
+   requirement on the path to it (this crate's `Cargo.toml` or a
+   dependency's) now excludes every affected version. Otherwise say the bump
+   covers this repository's builds and the binaries it ships.
 
    Attribute each bump to the dependency that moved it (`Cargo.lock`'s
    dependency lists), not to the nearest bump in the same PR.
@@ -164,17 +169,17 @@ review when it merged is still true.
    propositions of the old text, and for each one dropped, say whether it was
    rationale or something the user needed. Keep modal words and quantifiers
    ("may", "some", "every") as they were unless you checked the new ones.
-7. **Check a rewrite as a new entry.** Every sentence of a replacement is a
-   new claim, and so is a detail learned only by reading code: in the 3.8
-   report, mark it as read from code, not observed. Shortening can drop a
-   qualifier the claim needed: "Trace replay never resends a generation
-   request" became "Trace replay does not resend", and replay's render and
-   tokenize requests do retry. A correction can be written more broadly than its evidence:
-   "releases have a `SHA256SUMS`" was true from v0.1.15 on and was written as
-   "every release has a `SHA256SUMS`". Check each sentence you wrote against
-   its source. Outside a release, have a fresh agent review the section
-   with `review`. At release, skip it here: `release` step 7 runs it on the
-   release commit, with every rewritten entry named in its brief.
+7. **Check a rewrite as a new entry.** Every sentence of a replacement is a new
+   claim, and so is a detail learned only by reading code: in the 3.8 report,
+   mark it as read from code, not observed. Shortening can drop a qualifier the
+   claim needed: "Trace replay never resends a generation request" became
+   "Trace replay does not resend", and replay's render and tokenize requests do
+   retry. A correction can be written more broadly than its evidence: "releases
+   have a `SHA256SUMS`" was true from v0.1.15 on and was written as "every
+   release has a `SHA256SUMS`". Check each sentence you wrote against its
+   source. Outside a release, have a fresh agent review the section with
+   `review`. At release, skip it here: `release` step 7 runs it on the release
+   commit, with every rewritten entry named in its brief.
 8. **Report the section with what changed.** Show the user the section, then
    one line per entry you changed: what was wrong, the evidence (a command and
    its output, a file and line), and what it says now. `release` waits for the

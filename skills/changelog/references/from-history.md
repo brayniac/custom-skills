@@ -27,7 +27,7 @@ line, or request — and so be a user-visible fix. `git show <sha>` and ask
 whether the removed path could have caused a symptom.
 
 When unsure whether a user would notice a commit, leave it out and list it
-under §4.
+in the report (section 4).
 
 ## 3. Write each entry
 
