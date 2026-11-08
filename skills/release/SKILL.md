@@ -116,7 +116,9 @@ is not. Report that as unknown rather than inferring it either way.
    present, traced to its PR, and filled from `git log "$LAST"..HEAD`
    (`changelog` step 3.1) where `Unreleased` is thin. If the audit finds a
    break for library callers that step 3 did not see, ask about the release
-   level before committing. **Show the user the section and the list of
+   level before committing. If the level changes, rename the branch
+   (`git branch -m release/v<new>`), redo step 5 with the explicit new
+   version, and retitle the section. **Show the user the section and the list of
    entries you changed, and ask before continuing** — this is the one part
    of the release that carries prose a reader will rely on.
 7. **Commit** with the message derived in step 1, question 4. Nothing before the
@@ -124,15 +126,16 @@ is not. Report that as unknown rather than inferring it either way.
    commit message, which is what the workflow matches against. Then run
    `review` on the release commit, naming in its brief every entry step 6
    rewrote, and answer its findings. If a fix changes an entry, show the user
-   the changed entry and ask; once they agree, amend the release commit
-   (`git add CHANGELOG.md && git commit --amend --no-edit`; nothing is pushed
-   yet), so the PR stays one commit with the step 1, question 4 message. A
-   changed entry is not a mechanical fix: run `review` again on the amended
-   commit (`review` step 7) before step 8, and record that review.
+   the changed entry and ask; once they agree, stage the fixed files by name
+   and amend the release commit (`git commit --amend --no-edit`; nothing is
+   pushed yet), so the PR stays one commit with the step 1, question 4
+   message. A changed entry is not a mechanical fix (`review` step 7): repeat
+   this step's review on the amended commit, with the same user check for
+   any entry it changes. Go to step 8 when a review changes no entry.
 8. **Push and open the PR** with `gh pr create --base <base>`, titled the same
    as the commit. The body states the version, the changelog section, and what
-   merging will trigger. Record the step 7 review against the PR head
-   (`review` step 8).
+   merging will trigger. Record the last step 7 review, the one that read
+   the commit you push (`review` step 8).
 9. **Report the PR URL.**
 
 ### Prereleases

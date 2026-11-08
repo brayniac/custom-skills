@@ -125,17 +125,17 @@ review when it merged is still true.
    release's lockfile and on `HEAD`'s, and list every advisory cleared
    between them, each under the crate it was on, including `unsound` and
    `unmaintained` warnings if earlier Security sections of CHANGELOG.md list
-   them. If the last release's or `HEAD`'s tree has no committed
-   `Cargo.lock`, or `cargo audit` is not installed, stop and tell the user;
-   do not write Security from memory. Without a committed lockfile,
-   `cargo audit` resolves and writes one, and audits today's resolution.
+   them. If the last release's tree has no `Cargo.lock`, the checkout does
+   not track one, or `cargo audit` is not installed, stop and tell the user;
+   do not write Security from memory. Without a lockfile, `cargo audit`
+   resolves and writes one, and audits today's resolution.
 
    ```sh
    LAST=<the tag 3.1 settled on>
    git rev-parse -q --verify "refs/tags/$LAST" >/dev/null || { echo "no tag '$LAST'; stop"; exit 1; }
+   git ls-files --error-unmatch Cargo.lock >/dev/null || { echo "Cargo.lock is not tracked; stop"; exit 1; }
    OLD=$(mktemp)
-   git show "$LAST":Cargo.lock > "$OLD" || { echo "no Cargo.lock at $LAST; stop"; exit 1; }
-   git ls-files --error-unmatch Cargo.lock >/dev/null || { echo "no committed Cargo.lock at HEAD; stop"; exit 1; }
+   git show "$LAST":Cargo.lock > "$OLD" || { echo "no Cargo.lock at $LAST; stop"; rm -f "$OLD"; exit 1; }
    cargo audit -f "$OLD"
    cargo audit --no-fetch
    rm -f "$OLD"
@@ -149,13 +149,15 @@ review when it merged is still true.
    misses recent advisories.
 
    In a per-crate workspace the root `Cargo.lock` covers every member: keep
-   only advisories on crates in this crate's tree (`cargo tree -p <crate> -i
-   <dep>@<version>`, at `HEAD` and in a worktree of `$LAST`). For a crate
-   others depend on as a library, its `Cargo.lock` does not reach them: an
-   advisory is cleared for them only when the dependency was removed or a
-   requirement on the path to it (this crate's `Cargo.toml` or a
-   dependency's) now excludes every affected version. Otherwise say the bump
-   covers this repository's builds and the binaries it ships.
+   only advisories on crates in this crate's tree (`cargo tree --target all
+   -p <crate> -i <dep>@<version>`, with the version each revision's lockfile
+   has, at `HEAD` and in a worktree of `$LAST`). For a crate others depend on
+   as a library, its `Cargo.lock` does not reach them: an advisory is cleared
+   for them only when the affected crate left this crate's tree (`cargo tree
+   --target all -i <dep>` reports that no package matched), or every
+   version the tree's requirements (this crate's `Cargo.toml` and its
+   dependencies') now allow is unaffected. Otherwise say the bump covers
+   this repository's builds and the binaries it ships.
 
    Attribute each bump to the dependency that moved it (`Cargo.lock`'s
    dependency lists), not to the nearest bump in the same PR.
