@@ -97,7 +97,9 @@ is not. Report that as unknown rather than inferring it either way.
    code first. If any fails, stop and report — do not release past a red check.
 3. **Compute the new version** from the level argument (`patch`/`minor`/`major`)
    or take the explicit version given. Dev suffixes like `-alpha.N` are dropped
-   by the bump, not carried.
+   by the bump, not carried. First read `Unreleased` for breaks to library
+   callers (`changelog` step 2.9): one in a `0.x` patch release may call for
+   a minor bump, so ask.
 4. **Branch** `release/v<version>`, unless the repo's `CLAUDE.md` names
    another (ringline: `prep/vX.Y.Z` for every release PR, since its ruleset
    blocks deleting `release/**`). A per-crate release names the crate in the
@@ -109,18 +111,35 @@ is not. Report that as unknown rather than inferring it either way.
    date, open a fresh empty `Unreleased`. In a per-crate workspace, do what the
    crate's last release did (`git show <crate>-v<last> --stat`, then its
    changelog diff): some keep the root file's blocks under `Unreleased` and
-   rename the crate's own `CHANGELOG.md` section instead. Keep a Changelog
-   format. If
-   `Unreleased` is thin, fill it from `git log <last-tag>..HEAD` using
-   `${CLAUDE_SKILL_DIR}/references/changelog.md`. **Show the user the section
-   and ask before continuing** — this is the one part of the release that
-   carries prose a reader will rely on.
+   rename the crate's own `CHANGELOG.md` section instead. Then audit the
+   section with `changelog` step 3: every entry re-checked against the
+   present, traced to its PR, and filled from `git log "$LAST"..HEAD`
+   (`changelog` step 3.1) where `Unreleased` is thin. If the audit finds a
+   break for library callers that step 3 did not see, ask about the release
+   level before committing. If the level changes, rename the branch to step
+   4's name for the new version (`git branch -m <new name>`), redo step 5
+   with the explicit new version, and retitle the section; in a per-crate
+   workspace, recheck which dependents' requirements now change and tell
+   the user which crates the release now covers (Never: unrelated crates).
+   **Show the user the section and the list of entries you changed, and ask
+   before continuing** — this is the one part of the release that carries
+   prose a reader will rely on.
 7. **Commit** with the message derived in step 1, question 4. Nothing before the
    prefix. On a squash merge the PR's single commit message becomes the merge
-   commit message, which is what the workflow matches against.
+   commit message, which is what the workflow matches against. Then run
+   `review` on the release commit, naming in its brief every entry step 6
+   rewrote, and answer its findings (`review` step 7). Amend each fix into
+   the release commit: stage the fixed files by name and run `git commit
+   --amend --no-edit` (nothing is pushed yet), so the PR stays one commit
+   with the step 1, question 4 message. Before amending a changed entry,
+   show the user the entry and ask. Unless every fix is mechanical under
+   `review` step 7, repeat this step's review on the amended commit; here a
+   changed entry is never mechanical. Go to step 8 when a review leads to
+   no amend, or to mechanical fixes only.
 8. **Push and open the PR** with `gh pr create --base <base>`, titled the same
    as the commit. The body states the version, the changelog section, and what
-   merging will trigger.
+   merging will trigger. Record the last step 7 review against the head you
+   push (`review` step 8).
 9. **Report the PR URL.**
 
 ### Prereleases
