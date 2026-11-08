@@ -119,22 +119,23 @@ is not. Report that as unknown rather than inferring it either way.
    level before committing. If the level changes, rename the branch to step
    4's name for the new version (`git branch -m <new name>`), redo step 5
    with the explicit new version, and retitle the section; in a per-crate
-   workspace, recheck which dependents' requirements now change (Never:
-   unrelated crates). **Show the user the section and the list of entries you
-   changed, and ask before continuing** — this is the one part of the
-   release that carries prose a reader will rely on.
+   workspace, recheck which dependents' requirements now change and tell
+   the user which crates the release now covers (Never: unrelated crates).
+   **Show the user the section and the list of entries you changed, and ask
+   before continuing** — this is the one part of the release that carries
+   prose a reader will rely on.
 7. **Commit** with the message derived in step 1, question 4. Nothing before the
    prefix. On a squash merge the PR's single commit message becomes the merge
    commit message, which is what the workflow matches against. Then run
    `review` on the release commit, naming in its brief every entry step 6
-   rewrote, and answer its findings. Fix each finding, stage the fixed files
-   by name and amend the release commit (`git commit --amend --no-edit`;
-   nothing is pushed yet), so the PR stays one commit with the step 1,
-   question 4 message. Before amending a changed entry, show the user the
-   entry and ask. Unless every fix is mechanical under `review` step 7,
-   repeat this step's review on the amended commit; here a changed entry is
-   never mechanical. Go to step 8 when a review leads to no amend, or to
-   mechanical fixes only.
+   rewrote, and answer its findings (`review` step 7). Amend each fix into
+   the release commit: stage the fixed files by name and run `git commit
+   --amend --no-edit` (nothing is pushed yet), so the PR stays one commit
+   with the step 1, question 4 message. Before amending a changed entry,
+   show the user the entry and ask. Unless every fix is mechanical under
+   `review` step 7, repeat this step's review on the amended commit; here a
+   changed entry is never mechanical. Go to step 8 when a review leads to
+   no amend, or to mechanical fixes only.
 8. **Push and open the PR** with `gh pr create --base <base>`, titled the same
    as the commit. The body states the version, the changelog section, and what
    merging will trigger. Record the last step 7 review against the head you

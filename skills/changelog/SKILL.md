@@ -136,6 +136,7 @@ review when it merged is still true.
    git ls-files --error-unmatch Cargo.lock >/dev/null || { echo "Cargo.lock is not tracked; stop"; exit 1; }
    OLD=$(mktemp)
    git show "$LAST":Cargo.lock > "$OLD" || { echo "no Cargo.lock at $LAST; stop"; rm -f "$OLD"; exit 1; }
+   [ -s "$OLD" ] || { echo "empty Cargo.lock at $LAST; stop"; rm -f "$OLD"; exit 1; }
    cargo audit -f "$OLD"
    cargo audit --no-fetch
    rm -f "$OLD"
@@ -143,21 +144,22 @@ review when it merged is still true.
 
    Set `LAST` in the same call: a shell variable does not survive between
    tool calls. The guards stop the cases where nothing would read as
-   cleared: no tag, and an empty old lockfile, which audits as 0
-   dependencies with exit 0. The first audit fetches the advisory database;
-   an old local copy misses recent advisories.
+   cleared: no tag, and no lockfile or an empty one at the tag, which audits
+   as 0 dependencies with exit 0. The first audit fetches the advisory
+   database; an old local copy misses recent advisories.
 
    In a per-crate workspace the root `Cargo.lock` covers every member: keep
    only advisories on crates in this crate's tree (`cargo tree --target all
    -p <crate> -i <dep>@<version>`, with the version each revision's lockfile
-   has, at `HEAD` and in a worktree of `$LAST`; an "ambiguous" error means
-   the lockfile holds more than one version). For a crate others depend on
-   as a library, its `Cargo.lock` does not reach them: write each entry as
-   covering this repository's builds and the binaries it ships. Say library
-   users are covered only when you have shown that no version their
-   resolution may pick is affected, since a downstream lockfile can hold
-   any older version of an intermediate crate that this crate's
-   `Cargo.toml` allows.
+   has, at `HEAD` and in a worktree of `$LAST`; "did not match any
+   packages" means the dependency is not in this crate's tree). For a crate
+   others depend on as a library, its `Cargo.lock` does not reach them:
+   write each entry as covering this repository's builds and the binaries
+   it ships. Say library users are covered only when you have shown that no
+   version their resolution may pick is affected, since a downstream
+   lockfile can hold any version of a crate in this crate's tree that the
+   requirements on the path to it allow, including versions older than
+   this repository's lockfile has.
 
    Attribute each bump to the dependency that moved it (`Cargo.lock`'s
    dependency lists), not to the nearest bump in the same PR.
