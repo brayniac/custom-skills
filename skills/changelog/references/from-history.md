@@ -26,7 +26,8 @@ dead or redundant code can remove a side effect — an extra process, file, log
 line, or request — and so be a user-visible fix. `git show <sha>` and ask
 whether the removed path could have caused a symptom.
 
-When unsure, leave it out; a short changelog gets read.
+When unsure whether a user would notice a commit, leave it out and list it
+under §4.
 
 ## 3. Write each entry
 

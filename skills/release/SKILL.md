@@ -97,7 +97,9 @@ is not. Report that as unknown rather than inferring it either way.
    code first. If any fails, stop and report — do not release past a red check.
 3. **Compute the new version** from the level argument (`patch`/`minor`/`major`)
    or take the explicit version given. Dev suffixes like `-alpha.N` are dropped
-   by the bump, not carried.
+   by the bump, not carried. First read `Unreleased` for breaks to library
+   callers (`changelog` step 2.9): one in a `0.x` patch release may call for
+   a minor bump, so ask.
 4. **Branch** `release/v<version>`, unless the repo's `CLAUDE.md` names
    another (ringline: `prep/vX.Y.Z` for every release PR, since its ruleset
    blocks deleting `release/**`). A per-crate release names the crate in the
@@ -110,9 +112,9 @@ is not. Report that as unknown rather than inferring it either way.
    crate's last release did (`git show <crate>-v<last> --stat`, then its
    changelog diff): some keep the root file's blocks under `Unreleased` and
    rename the crate's own `CHANGELOG.md` section instead. Then audit the
-   section with `changelog` step 3:
-   every entry re-checked against the present, traced to its PR, and filled
-   from `git log <last-tag>..HEAD` where `Unreleased` is thin. **Show the user
+   section with `changelog` step 3: every entry re-checked against the
+   present, traced to its PR, and filled from `git log "$LAST"..HEAD`
+   (`changelog` step 3.1) where `Unreleased` is thin. **Show the user
    the section and the list of entries you changed, and ask before
    continuing** — this is the one part of the release that carries prose a
    reader will rely on.
@@ -121,7 +123,9 @@ is not. Report that as unknown rather than inferring it either way.
    commit message, which is what the workflow matches against. Then run
    `review` on the release commit, naming in its brief every entry step 6
    rewrote, and answer its findings. If a fix changes an entry, show the user
-   the changed entry and ask before step 8.
+   the changed entry and ask; once they agree, amend the release commit
+   (`git commit --amend --no-edit`; nothing is pushed yet), so the PR stays
+   one commit with the step 1 message.
 8. **Push and open the PR** with `gh pr create --base <base>`, titled the same
    as the commit. The body states the version, the changelog section, and what
    merging will trigger. Record the step 7 review against the PR head

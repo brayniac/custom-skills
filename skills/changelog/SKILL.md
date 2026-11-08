@@ -32,7 +32,7 @@ Before writing anything, read the two most recent released sections:
    (2.4), so a user looking for the fix finds it. A change to existing
    behaviour is a change. A removal or deprecation goes under the file's
    removal or deprecation heading, or first under its changes heading. A fix is
-   a fix when nothing new is added for the user to set.
+   a fix when nothing new is added for the user to call or set.
 2. **Lead with what changes or breaks for an existing user.** Removals, breaking
    changes and data loss go first in their section. If a new key's default
    changes what an existing config does, say so in the entry's second sentence,
@@ -61,8 +61,7 @@ Before writing anything, read the two most recent released sections:
 6. **Check every claim about old behaviour and other products.** "Before, a
    Prometheus line with a label name containing `.` was kept under the labels
    that parsed" was false: prometheus-parse 0.2.5 recorded the line with the
-   label name as written. Read or run the
-   old code before describing it. For another product's versions, look up its
+   label name as written. Read or run the old code before describing it. For another product's versions, look up its
    latest release (`git tag`, the registry, its releases page) before writing
    a range: "rezolus 5.21 to 5.28 read dendro schema 4" was written after 5.29
    had shipped. Write the range up to the latest release you checked, not
@@ -84,9 +83,12 @@ Before writing anything, read the two most recent released sections:
 9. **Flag a break for library callers** in a sub-bullet: what stops
    compiling and the replacement. Name every public type that changed, not
    only the one the PR is about. In a `0.x` crate a field added to a struct
-   built with a literal breaks callers in a patch release; tell the user when
-   the release level is chosen, since it may call for a minor bump.
+   built with a literal breaks callers in a patch release; say so in the PR
+   body and in the sub-bullet, since it may call for a minor bump (`release`
+   step 3 reads it).
 10. **Put a new entry under `Unreleased`**, never under a released heading.
+    If the file has none, add `## [Unreleased]` above the newest release, in
+    the file's heading style.
     A correction to a released entry edits that entry in place; say so in the
     commit. Add the PR reference in the file's style when the PR has a
     number, or leave it for the release audit (3.1). Present tense for current
@@ -103,7 +105,8 @@ review when it merged is still true.
 
    ```sh
    LAST=$(git tag --sort=-creatordate | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
-   git merge-base --is-ancestor "$LAST" HEAD || echo "not an ancestor"
+   { [ -n "$LAST" ] && git merge-base --is-ancestor "$LAST" HEAD; } ||
+     { echo "LAST='$LAST' is empty or not an ancestor of HEAD; stop"; exit 1; }
    git log "$LAST"..HEAD --format='%h %s'
    git log --format='%h %s' -S'<a phrase from the entry>' "$LAST"..HEAD -- CHANGELOG.md
    ```
@@ -120,13 +123,17 @@ review when it merged is still true.
    today, and every version range against the other product's releases today.
 3. **Build Security from the lockfiles.** Run the audit on the last
    release's lockfile and on `HEAD`'s, and list every advisory cleared
-   between them, vulnerabilities and other warnings alike if the file lists
-   both, each under the crate it was on:
+   between them, each under the crate it was on, including `unsound` and
+   `unmaintained` warnings if earlier Security sections of CHANGELOG.md list
+   them. If the repository has no `Cargo.lock` at either revision, or
+   `cargo audit` is not installed, stop and tell the user; do not write
+   Security from memory.
 
    ```sh
    LAST=<the tag 3.1 settled on>
    git rev-parse -q --verify "refs/tags/$LAST" >/dev/null || { echo "no tag '$LAST'; stop"; exit 1; }
-   OLD=$(mktemp); git show "$LAST":Cargo.lock > "$OLD"
+   OLD=$(mktemp)
+   git show "$LAST":Cargo.lock > "$OLD" || { echo "no Cargo.lock at $LAST; stop"; exit 1; }
    cargo audit -f "$OLD"
    cargo audit --no-fetch
    rm -f "$OLD"
@@ -135,8 +142,15 @@ review when it merged is still true.
    Set `LAST` in the same call: a shell variable does not survive between
    tool calls, and with `LAST` empty `git show :Cargo.lock` prints the
    current lockfile, so the two audits match and nothing reads as cleared.
-   The first audit fetches the advisory database; an old local copy misses
-   recent advisories.
+   An empty old lockfile audits as 0 dependencies with exit 0, with the same
+   result. The first audit fetches the advisory database; an old local copy
+   misses recent advisories.
+
+   In a per-crate workspace the root `Cargo.lock` covers every member: keep
+   only advisories on crates in this crate's tree (`cargo tree -p <crate> -i
+   <dep>` at both revisions). For a library, an advisory is cleared for its
+   users only when the manifest requirement now excludes the affected
+   version; otherwise say the bump covers this repository's own builds.
 
    Attribute each bump to the dependency that moved it (`Cargo.lock`'s
    dependency lists), not to the nearest bump in the same PR.
@@ -151,16 +165,16 @@ review when it merged is still true.
    rationale or something the user needed. Keep modal words and quantifiers
    ("may", "some", "every") as they were unless you checked the new ones.
 7. **Check a rewrite as a new entry.** Every sentence of a replacement is a
-   new claim, and so is a detail learned only by reading code: state that it
-   was not observed, or leave it out. Shortening can drop a qualifier the
-   claim needed: "Trace replay never resends a generation request" became
-   "Trace replay does not resend", and replay's render and tokenize requests
-   do retry. A correction can be written more broadly than its evidence:
+   new claim, and so is a detail learned only by reading code: in the 3.8
+   report, mark it as read from code, not observed. Shortening can drop a
+   qualifier the claim needed: "Trace replay never resends a generation
+   request" became "Trace replay does not resend", and replay's render and
+   tokenize requests do retry. A correction can be written more broadly than its evidence:
    "releases have a `SHA256SUMS`" was true from v0.1.15 on and was written as
    "every release has a `SHA256SUMS`". Check each sentence you wrote against
-   its source, then have a fresh agent review the section with `review`. At
-   release, `release` step 7 runs that review on the release commit: name
-   every rewritten entry in its brief.
+   its source. Outside a release, have a fresh agent review the section
+   with `review`. At release, skip it here: `release` step 7 runs it on the
+   release commit, with every rewritten entry named in its brief.
 8. **Report the section with what changed.** Show the user the section, then
    one line per entry you changed: what was wrong, the evidence (a command and
    its output, a file and line), and what it says now. `release` waits for the
