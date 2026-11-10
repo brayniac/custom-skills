@@ -126,8 +126,10 @@ one side's startup.
 
 **Bracket one recording per measurement cell.** A recording cannot be sliced by
 time afterward — `recording filter` trims columns, and `query` has no window
-arguments — so an arm that loops over several message sizes or configurations
-inside one recording can never attribute CPU or syscalls to any one of them.
+arguments — so an arm that loops over several message sizes (a ladder inside
+one arm) inside one recording can never attribute CPU or syscalls to any one
+of them. Configurations a study compares are separate experiments (`lab`'s
+`specs.md`, "A study with more than one arm").
 Each `start-metrics`/`stop-metrics` pair is its own recording; a long-lived
 detached server that is never re-bracketed gets one recording for its whole
 life, idle included.
@@ -185,7 +187,12 @@ quiet zero.
 
 - **Interleave, same session, at least four runs per side.** Not A-then-B in
   separate sessions: thermal state and cache warmth drift between them, and on
-  the Pis thermal drift is the dominant term.
+  the Pis thermal drift is the dominant term. On SystemsLab each repeat of an
+  arm is one experiment, on the same pinned hosts. One `sweep` call does not fix
+  the order its experiments run in, so submit them one variant per `submit
+  --context` call (one `-p` per axis), in order, record each experiment's start
+  time, and treat another job that ran between two arms as a confound (`lab`'s
+  `specs.md`, "A study with more than one arm").
 - **Interleaving does not rescue a credit-based resource.** Where the platform
   meters with a token bucket — "up to X Gbps" network, burst CPU credits, burst
   IOPS — every run after the first draws on a bucket the earlier runs drained.

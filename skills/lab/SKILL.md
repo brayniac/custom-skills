@@ -35,7 +35,7 @@ what exists before planning, then read the reference for the task.
 | Task | Read |
 | --- | --- |
 | Run work in a VM, pick an image and shape, two guests that must meet, cancel or recover an orphan | `${CLAUDE_SKILL_DIR}/references/vm.md` |
-| Write or fix a SystemsLab spec (interpolator, reserved keys, `set -ex`, distro differences, staging a local file) | `${CLAUDE_SKILL_DIR}/references/specs.md` |
+| Write or fix a SystemsLab spec (interpolator, reserved keys, `set -ex`, distro differences, staging a local file, a study of several arms) | `${CLAUDE_SKILL_DIR}/references/specs.md` |
 | Put a repository on rack-ci, read a `rack-ci/*` status, release through rack-ci | `${CLAUDE_SKILL_DIR}/references/rack-ci.md` |
 | Put a machine's cargo on the shared compiler cache, or find why it is not used | `${CLAUDE_SKILL_DIR}/references/sccache.md` |
 | A job on a Mac, shipping a new version of a rack service, editing a host's live config | `${CLAUDE_SKILL_DIR}/references/operations.md` |

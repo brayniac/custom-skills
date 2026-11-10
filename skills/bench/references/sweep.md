@@ -39,8 +39,10 @@ Record all of this beside the sweep file before submitting anything.
 
 - **One spec takes every axis as a parameter.** A study is a JSON file listing
   its cells, kept beside the spec, so rerunning a study is one command.
-  `systemslab sweep <spec>.toml <study>.json --name <study>` applies the
-  file's parameters to a TOML spec.
+  `systemslab sweep <spec>.toml <study>.json --context "$CTX"` applies the
+  file's parameters to a TOML spec, into a context created first so the
+  sources can be uploaded to it (`lab`'s `specs.md`, "A study with more than
+  one arm"). `--name` instead creates a context and seals it.
 - **One experiment per cell, each starting its own server processes.** Two
   cells that share a server share keys, allocator and in-process state, so the
   second cell measures what the first left behind.

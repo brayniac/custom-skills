@@ -194,10 +194,12 @@ the experiment stays `pending` until the host is reactivated or the queue
 timeout (7 days by default) ends it. Read `state` in `systemslab host list`
 before submitting.
 
-Sequential arms belong in **one** job; the arms get the machine to themselves
-instead of racing each other. Two guests cannot share a hypervisor inside one
-job: anvil-vm destroys every anvil guest already on the host before it launches
-one. Two roles that must run at once on one host belong in one guest.
+Each arm of a study is its own experiment, in one context, with each job pinned
+to the same host for every arm when the arms are compared by value (`specs.md`,
+"A study with more than one arm", beside this file); on a pinned host the arms
+run one at a time. Two guests cannot share a hypervisor inside one job: anvil-vm
+destroys every anvil guest already on the host before it launches one. Two roles
+that must run at once on one host belong in one guest.
 
 Whole host by default. `slots` (one slot = one CCX, 4 cores / 8
 threads, 4 GiB per thread, on hv01 and hv02; hv01 has 7 usable, hv02 3;
