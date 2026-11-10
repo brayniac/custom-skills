@@ -42,7 +42,11 @@ Record all of this beside the sweep file before submitting anything.
   `systemslab sweep <spec>.toml <study>.json --context "$CTX"` applies the
   file's parameters to a TOML spec, into a context created first so the
   sources can be uploaded to it (`lab`'s `specs.md`, "A study with more than
-  one arm"). `--name` instead creates a context and seals it.
+  one arm"). `--name` instead creates a context and seals it. One `sweep`
+  call does not fix the order its experiments run in; where order matters (an
+  interleave), submit one cell per call in order, `systemslab submit
+  <spec>.toml -p <axis>=<value> --context "$CTX"` with one `-p` per axis
+  (`rack.md` step 5, beside this file).
 - **One experiment per cell, each starting its own server processes.** Two
   cells that share a server share keys, allocator and in-process state, so the
   second cell measures what the first left behind.
