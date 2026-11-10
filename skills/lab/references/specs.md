@@ -136,6 +136,57 @@ Note also that `submit --context` auto-uploads the spec file itself as a `user`
 artifact, so a context always holds at least one artifact you did not stage —
 and a spec sharing a name with a staged file is an exactly-one collision.
 
+## A study with more than one arm
+
+An arm is one configuration, build or model load that a study compares with
+another. Each arm is its own experiment, and a study is one context:
+
+1. Write one spec whose job runs exactly one arm, every axis a `[params]`
+   entry.
+2. When the arms' numbers are compared by value, pin each job to one host with a
+   `host:<name>` tag (`vm.md` section 1, beside this file): a different host per
+   job, the same hosts for every arm. A tag that matches one host needs no pin;
+   `macbook`, `macstudio`, `pi5`, `z1.baremetal` and `z2.baremetal` did when
+   this was written, so check with `systemslab host list`. The scheduler places
+   each experiment on its own, so under a tag that matches several hosts the
+   arms run at the same time on different machines. A failure-rate sweep may
+   spread across a pool.
+3. List the arms in a JSON file beside it, one object of parameters per arm.
+4. Create the context, upload each source to it once, then submit every arm
+   into it:
+
+   ```sh
+   CTX=$(systemslab context new --name <study> --output-format short)
+   systemslab artifact upload src.tgz --name src.tgz --context "$CTX"
+   systemslab sweep spec.toml arms.json --context "$CTX"
+   ```
+
+   The spec fetches `src.tgz` with `systemslab/download-artifact` (above).
+   `sweep --context` adds the experiments to the context and leaves it open,
+   unlike a matrix submit or a `sweep --name`, so a later arm or rerun can
+   join it. One `sweep` call does not fix the order its experiments run in;
+   where order matters (an interleave), submit one variant per call, in
+   order: `systemslab submit spec.toml -p <axis>=<value> --context "$CTX"`,
+   with one `-p` per axis. A `[matrix]` spec closes the context unless `-p`
+   gives every matrix axis, because more than one variant goes through the
+   batch submit, which marks the context complete. Read each experiment's
+   start time.
+5. Compare the arms after downloading their artifacts, on your machine. No
+   job reads another arm's output. When no further arm or rerun will join
+   the context, `systemslab context complete "$CTX"` moves it to `pending`;
+   the server marks it complete, and builds its reports, once every
+   experiment in it has finished. No experiment can be added once it is
+   `pending`.
+
+Never run several arms as steps, or a loop, inside one job. One arm's failure
+then hides the arms after it, its leftover state (a wired allocation, a server
+still holding its port, a guest's page cache) enters the next arm's numbers,
+and no single arm can be rerun alone. A ladder inside one arm, such as the
+offered rates of an SLO search, is one job. A job with no `anvil-vm` step runs
+on the host itself (the Macs and every `bare`-tagged host: the Pis, hv03,
+delta) and keeps that host's page cache between experiments; drop it at the
+start of each arm when it matters.
+
 ## Three things the CLI will not tell you
 
 **`submit --wait` exits 0 whether the work succeeded or failed.** It reports

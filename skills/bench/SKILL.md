@@ -66,6 +66,13 @@ environment, VM fidelity, recording as you go, reading the recording rather
 than the console, and the A/B decision rule for this lab. `lab` covers
 getting the job onto the rack.
 
+Any study of more than one arm (two builds, a knob's settings, serial
+against batched) is one parameterised spec and one file of arms, one
+experiment per arm in one context, compared after download:
+`${CLAUDE_SKILL_DIR}/references/sweep.md` §2, and
+`${CLAUDE_SKILL_DIR}/../lab/references/specs.md` ("A study with more than one
+arm") for submitting it. Never several arms as steps of one job.
+
 Mapping a server across a configuration space (processes, threads, CPU and
 IRQ placement, connections, payload size) in tiers from a wide grid to long
 runs of the leaders, gating every cell before ranking it, follows

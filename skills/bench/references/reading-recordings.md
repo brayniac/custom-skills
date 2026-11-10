@@ -86,11 +86,13 @@ downstream narrows it. Two consequences:
   against what the protocol requires: one below the floor the work demands
   means the window is wrong, not that the runtime is clever.
 - **One recording per measurement cell.** An arm looping over several message
-  sizes or configurations inside one recording cannot attribute CPU or syscalls
-  to any single one of them — only client-side output stays per-cell. Each
-  `start-metrics`/`stop-metrics` pair is its own recording and its own artifact,
-  so bracket each cell separately. The case that bites is a long-lived detached
-  server, which otherwise gets one recording for its entire life.
+  sizes (a ladder inside one arm) inside one recording cannot attribute CPU or
+  syscalls to any single one of them — only client-side output stays per-cell.
+  Each `start-metrics`/`stop-metrics` pair is its own recording and its own
+  artifact, so bracket each cell separately. The case that bites is a long-lived
+  detached server, which otherwise gets one recording for its entire life.
+  Configurations a study compares are separate experiments (`lab`'s
+  `specs.md`, "A study with more than one arm").
 
 ## CPU: read it from the recording, never hand-roll a sampler
 

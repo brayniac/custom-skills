@@ -226,11 +226,13 @@ trims samplers and metric columns, and the MCP `query` tool has no window
 arguments. The window is decided by where the recording starts and stops, which
 for `metrics = true` means the payload's own extent. So:
 
-- **One measured cell per step.** A payload looping over message sizes or
-  configurations gets one recording covering all of them, and nothing
+- **One measured cell per step.** A payload looping over message sizes (a
+  ladder inside one arm) gets one recording covering all of them, and nothing
   downstream can attribute CPU or syscalls to any single one; only what the
   client writes per-cell survives. Give each cell its own `anvil-vm` step with
-  its own `metrics = true`. Because the window is the payload's extent by
+  its own `metrics = true`. Configurations a study compares are separate
+  experiments, not steps (`specs.md`, "A study with more than one arm", beside
+  this file). Because the window is the payload's extent by
   construction, this needs no coordination at all — there is no start/stop to
   get wrong and no clock to align.
 - **A detached unit records the unit's whole life.** `mode = "exec"` with
