@@ -17,10 +17,13 @@ re-register; a fresh `registeredAt` does not mean a fresh machine.
 ## Host classes are comparability classes
 
 At last observation: `hv01` (`z2.baremetal`, `hypervisor`), `hv02`
-(`z1.baremetal`, `hypervisor`), `hv03` (`zen4`, `hypervisor`, `bare`),
+(`z1.baremetal`, `hypervisor`), `hv03` (`zen4`, `hypervisor`),
 `pi00`–`pi19` (`pi4b`, except `pi01` and `pi06` which are `pi4b-thermal`),
 `pi20` (`pi5`), `delta` (`z4.baremetal`, `validation`), `macbook`
-and `macstudio`. Re-verify rather than trusting that roster.
+and `macstudio`. Every one but `hv01` and `hv02` also carries `bare`, and
+every Pi but `pi01` and `pi06` also carries `hypervisor`, so a job selecting on
+`hypervisor` alone can land on a Pi. Re-verify rather than trusting that
+roster.
 
 **`list_hosts` answers for the deployment you are pointed at, and there is more
 than one.** A finding from another SystemsLab instance — a different roster,
@@ -206,11 +209,15 @@ a suspected virtualization overhead, or something in the host kernel. "To avoid
 verifying fidelity" is not such a question. When you do it, say in the report
 that it was bare metal and which devices were therefore unavailable.
 
-## The non-hypervisor hosts are a different story
+## Hosts that run work directly
 
-`pi4b`, `pi4b-thermal`, and the Mac hosts (`macbook` and `macstudio`) run work
-directly. There is no VM layer, so the fidelity section below is irrelevant to
-them — and different concerns replace it:
+The Mac hosts (`macbook` and `macstudio`) have no VM layer. The Pis can run
+guests (`pi01` and `pi06` carry `thermal-vm` for that, the others `hypervisor`;
+see `lab`'s `vm.md`), but a job with no `anvil-vm` step runs on the Pi itself.
+The fidelity section below does not apply to work run directly. For a Pi guest
+only two of its checks apply: emulator and iothread pinning, and the
+`host-passthrough` CPU mode, verified with `virsh dumpxml` on the Pi. Beyond
+those, different concerns replace it:
 
 - **Pis are thermally limited.** That is what the separate `pi4b-thermal` tag is
   about, and it makes run order matter: back-to-back runs on one Pi are not
@@ -226,6 +233,8 @@ them — and different concerns replace it:
 - **Metric coverage differs by platform.** rezolus's samplers are Linux-centric,
   so confirm with `describe_metrics` what a given host's recording actually
   contains rather than assuming parity with a Debian guest.
+
+The first two also apply to a guest on a Pi: throttling slows the guest too.
 
 ## VM fidelity: what to verify, and where
 

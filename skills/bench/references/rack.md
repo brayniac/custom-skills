@@ -75,8 +75,11 @@ network or GPU at all. Reach for bare metal only when a named performance questi
 requires it — a suspected virtualization overhead, something in the host kernel —
 and never to avoid verifying fidelity.
 
-The `pi4b` and Mac hosts run work directly and none of this applies to them; see
-`environment.md` (beside this file) for what replaces it.
+Work run directly on a Pi or a Mac is outside this step; see `environment.md`
+(beside this file), "Hosts that run work directly". On a Pi guest only part
+of this step applies: anvil pins its emulator and iothread and gives it a
+`host-passthrough` CPU, but its domain has no `numatune`, topology,
+`migratable` or cache element, and an aarch64 guest has no `tsc` clocksource.
 
 ### Verify fidelity
 
