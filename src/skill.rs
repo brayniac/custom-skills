@@ -31,8 +31,9 @@ use std::{
 use anyhow::{bail, Context, Result};
 use serde::Deserialize;
 
-/// Claude Code's cap on one skill's `description` in the skill listing.
-pub const MAX_DESCRIPTION_CHARS: usize = 1536;
+/// The Agent Skills limit on one skill's `description`, on which pi warns.
+/// Claude Code truncates at 1,536, so this is the tighter of the two.
+pub const MAX_DESCRIPTION_CHARS: usize = 1024;
 
 /// The variable Claude Code substitutes with a skill's own directory when it
 /// loads the skill's body.
@@ -338,8 +339,8 @@ fn parse_skill(raw: &str, dir: &Path) -> Result<Skill> {
     let chars = description.chars().count();
     if chars > MAX_DESCRIPTION_CHARS {
         bail!(
-            "skill {:?} has a {chars}-character description; Claude Code truncates \
-             past {MAX_DESCRIPTION_CHARS}",
+            "skill {:?} has a {chars}-character description, past the Agent Skills \
+             limit of {MAX_DESCRIPTION_CHARS}",
             meta.name
         );
     }
@@ -968,14 +969,28 @@ mod tests {
     #[test]
     fn a_description_over_the_cap_is_an_error() {
         let tmp = TempDir::new().unwrap();
-        let long = "x".repeat(MAX_DESCRIPTION_CHARS + 1);
+        // The Agent Skills limit, written out so a change to the constant fails.
+        let long = "x".repeat(1025);
         write_skill(
             tmp.path(),
             "long",
             &format!("name: long\ndescription: {long}"),
             "b",
         );
-        assert!(load_err(tmp.path()).contains("1537-character"));
+        assert!(load_err(tmp.path()).contains("1025-character"));
+    }
+
+    #[test]
+    fn a_description_at_the_cap_passes() {
+        let tmp = TempDir::new().unwrap();
+        let long = "x".repeat(1024);
+        write_skill(
+            tmp.path(),
+            "long",
+            &format!("name: long\ndescription: {long}"),
+            "b",
+        );
+        assert!(load(tmp.path(), &[]).is_ok());
     }
 
     #[test]

@@ -119,9 +119,6 @@ Claude Code does for these skills and pi does not:
   `FAILED` with pi's error. An agent started this way does not get the
   tool.
 
-Pi warns at startup on each description longer than the Agent Skills limit of
-1,024 characters, and loads it in full.
-
 ## The review gate
 
 The plugin installs one hook. It refuses a PR merge from a Bash command unless
@@ -175,10 +172,11 @@ description: What it does. Use when <the situation that should trigger it>.
 
 `name` must match `[a-z0-9-]{1,64}`, with no leading, trailing or doubled
 hyphen, and equal the directory name. `description` is the only text an agent
-sees when choosing a skill, so it carries the trigger; Claude Code truncates it
-past 1,536 characters. Files beside `SKILL.md` are
-named through `${CLAUDE_SKILL_DIR}`, which Claude Code replaces with the skill's
-absolute directory, so a bundled script runs in place.
+sees when choosing a skill, so it carries the trigger. It is at most 1,024
+characters, the Agent Skills limit; Claude Code truncates at 1,536 and pi warns
+past 1,024. Files beside `SKILL.md` are named through `${CLAUDE_SKILL_DIR}`,
+which Claude Code replaces with the skill's absolute directory, so a bundled
+script runs in place.
 
 `cs:skill` says the same thing to an agent, with the rest of the conventions.
 
