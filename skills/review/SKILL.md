@@ -25,8 +25,9 @@ A change whose gates are still red is not ready for review; fix those first
 ## 1. Dispatch a fresh agent, not a fork
 
 A fork inherits the context that produced the change and argues for it. Start
-a new agent (`subagent_type` general-purpose) and give it everything in the
-brief. For several PRs, one agent per PR, in parallel. The reviewer is
+a new agent (`subagent_type` general-purpose; in pi, the `fresh_agent` tool)
+and give it everything in the brief. For several PRs, one agent per PR, in
+parallel. The reviewer is
 read-only: no push, comment, approve, merge, submitted job or host change; a
 worktree under the scratch directory if it needs a checkout.
 

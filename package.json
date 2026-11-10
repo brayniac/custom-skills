@@ -1,0 +1,14 @@
+{
+  "name": "custom-skills",
+  "private": true,
+  "description": "The custom-skills library as a pi package: the skills, and an extension that supplies what Claude Code does for them",
+  "keywords": ["pi-package"],
+  "pi": {
+    "skills": ["./skills"],
+    "extensions": ["./pi/extension.ts"]
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "typebox": "*"
+  }
+}

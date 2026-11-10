@@ -94,8 +94,9 @@ relaying it to the user as fact:
 When there are more findings than you will check yourself, or the text is going
 somewhere it will be quoted (a skill, reference docs, a report), give steps 1 to
 3 to a fresh agent: `subagent_type` general-purpose on the default model, not a
-fork, read-only (no edits, push or comment). Give it the findings verbatim, the
-head to check against, and this instruction: "For each finding, mark each
+fork (in pi, the `fresh_agent` tool), read-only (no edits, push or comment).
+Give it the findings verbatim, the head to check against, and this
+instruction: "For each finding, mark each
 factual statement and each sentence of its proposed replacement confirmed (with
 the command or file:line that shows it), refuted (with the evidence), or
 uncheckable (why). Do not judge whether the finding matters." Act only on

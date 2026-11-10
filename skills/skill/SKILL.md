@@ -15,9 +15,10 @@ frontmatter when the skill is invoked.
 1. **Name it.** Use the word a person would type after `/cs:` (`review`,
    `merge`, `journal`), and a hyphenated phrase only when one word would be
    ambiguous. The description, not the name, says when to use it. The name
-   must match `[a-z0-9_-]{1,64}` and equal the directory name. Do not rename
-   an existing skill while revising it; a rename is its own change, with every
-   reference updated.
+   must match `[a-z0-9-]{1,64}`, with no leading, trailing or doubled
+   hyphen, and equal the directory name. Do not rename an existing skill
+   while revising it; a rename is its own change, with every reference
+   updated.
 
 2. **Create `skills/<name>/SKILL.md`** with the frontmatter contract in
    `${CLAUDE_SKILL_DIR}/references/frontmatter.md`.

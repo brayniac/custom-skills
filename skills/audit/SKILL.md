@@ -39,8 +39,9 @@ every reviewer's brief.
 ## 3. Fan out, one reviewer per concern
 
 Start fresh agents (`subagent_type` general-purpose, default model, not
-forks), one per concern the question needs, in parallel: for example
-invariants and correctness; concurrency and ordering; error paths, partial
+forks; in pi, one `fresh_agent` call with a task per concern), one per
+concern the question needs, in parallel: for example invariants and
+correctness; concurrency and ordering; error paths, partial
 failure and restart; resource bounds and growth; docs and comments against
 the code. Write each brief per `review` step 2: the scope, invariants and map
 as item 1, the reviewer's concern as its mandate, and items 3 to 7 as
