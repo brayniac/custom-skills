@@ -83,7 +83,8 @@ error. That is why `skillcheck` exists; keep it failing on those cases.
 - **Frontmatter holds exactly `name` and `description`.** `name` matches
   `[a-z0-9-]{1,64}` with no leading, trailing or doubled hyphen (the Agent
   Skills rule; pi warns on a name that breaks it) and equals the directory
-  name; `description` is at most 1,536 characters. `skillcheck` rejects any
+  name; `description` is at most 1,024 characters (the Agent Skills limit; pi
+  warns past it, Claude Code truncates at 1,536). `skillcheck` rejects any
   other key so a misspelled one fails instead of being ignored; add a key to
   `Frontmatter` in `src/skill.rs` when a skill needs one Claude Code supports.
 - **The description listing has a budget.** In Claude Code 2.1.308 it is the
@@ -97,7 +98,7 @@ error. That is why `skillcheck` exists; keep it failing on those cases.
   keeps its name; bundled skills keep their descriptions, and the others keep
   theirs in order of recent use (use count decayed with a 7-day half-life)
   until the budget is spent. `skillcheck` prints the description total
-  (24,922 characters for 30 skills on 2026-10-22; 25,360 with prefixes and
+  (23,816 characters for 31 skills on 2026-11-10; 24,272 with prefixes and
   newlines), which fits a 1M window and not a 200,000 one.
 
 ## Adding or changing a skill

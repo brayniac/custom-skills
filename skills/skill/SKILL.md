@@ -44,11 +44,12 @@ frontmatter when the skill is invoked.
 
 6. **Run the check.** `cargo run --quiet` (the `skillcheck` crate at the
    repository root) refuses what Claude Code would load wrongly without an
-   error: frontmatter that is not YAML with exactly `name` and `description`,
-   a name that differs from its directory, a description over 1,536
-   characters, a directory holding no skill, and a `${CLAUDE_SKILL_DIR}` path
-   that names no file. `claude plugin validate .` checks the manifests only; it
-   passed a skill with broken YAML.
+   error: frontmatter that is not YAML with exactly `name` and
+   `description`, a name that differs from its directory, a directory
+   holding no skill, and a `${CLAUDE_SKILL_DIR}` path that names no file. It
+   also refuses a description over 1,024 characters, the Agent Skills limit,
+   on which pi warns at startup. `claude plugin validate .` checks the
+   manifests only; it passed a skill with broken YAML.
 
 7. **Check that the skill changes what an agent does.** Loading proves the
    file parses, not that it helps. Compare an agent with the skill against
