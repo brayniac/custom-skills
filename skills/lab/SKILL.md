@@ -18,7 +18,9 @@ what exists before planning, then read the reference for the task.
   and barry's reviews run on it bare), `delta` (x86, tag `validation`; it also
   serves the shared compiler cache at `delta:8081`), `pi00`–`pi19` (Raspberry Pi
   4B; `pi01` and `pi06` tagged `pi4b-thermal`), `pi20` (Raspberry Pi 5, tag
-  `pi5`), and `macbook` and `macstudio` (jobs run directly on macOS).
+  `pi5`), and `macbook` and `macstudio` (jobs run directly on macOS). `bare`,
+  for a job that runs on the host itself rather than in a guest, is on hv03,
+  delta, every Pi and both Macs; hv01 and hv02 do not carry it.
   `fleet/hosts/<host>.toml` in `brayniac/infra` declares each host's role,
   services, tags and guest images.
   `${CLAUDE_SKILL_DIR}/../bench/references/environment.md` has
