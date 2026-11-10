@@ -61,7 +61,7 @@ pub struct Skill {
 /// and whose parent is neither `root` nor in `listed`, on a listed path outside
 /// `root`, on a directory that is neither a skill nor a group, on frontmatter
 /// that is not valid YAML with exactly `name` and `description`, on a `name` that
-/// differs from its directory or uses characters outside `[a-z0-9_-]`, on an
+/// differs from its directory or breaks the Agent Skills name rule, on an
 /// empty or over-long description, on two skills with one name, on a
 /// `${CLAUDE_SKILL_DIR}` path that names no file inside `root`, on one that
 /// names no file when `..` is resolved through symlinks, on a skill directory
@@ -366,11 +366,17 @@ fn validate_name(name: &str) -> Result<()> {
     if name.is_empty() || name.len() > 64 {
         bail!("skill name must be 1-64 characters, got {}", name.len());
     }
-    if !name
+    // Claude Code also accepts `_`. The Agent Skills specification, which pi
+    // follows, does not, and pi warns on `_` and on a leading, trailing or
+    // doubled hyphen.
+    let charset = name
         .chars()
-        .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-' || c == '_')
-    {
-        bail!("skill name {name:?} must use only [a-z0-9_-]");
+        .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-');
+    if !charset || name.starts_with('-') || name.ends_with('-') || name.contains("--") {
+        bail!(
+            "skill name {name:?} must use only [a-z0-9-], with no leading, trailing \
+             or doubled hyphen"
+        );
     }
     Ok(())
 }
@@ -928,7 +934,21 @@ mod tests {
     fn a_bad_name_is_an_error() {
         let tmp = TempDir::new().unwrap();
         write_skill(tmp.path(), "bad", "name: Not Valid\ndescription: x", "b");
-        assert!(load_err(tmp.path()).contains("[a-z0-9_-]"));
+        assert!(load_err(tmp.path()).contains("[a-z0-9-]"));
+    }
+
+    #[test]
+    fn a_name_outside_the_agent_skills_spec_is_an_error() {
+        for name in ["under_score", "-lead", "trail-", "double--hyphen"] {
+            let tmp = TempDir::new().unwrap();
+            write_skill(
+                tmp.path(),
+                name,
+                &format!("name: {name}\ndescription: x"),
+                "b",
+            );
+            assert!(load_err(tmp.path()).contains("[a-z0-9-]"), "{name} passed");
+        }
     }
 
     #[test]

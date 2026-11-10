@@ -84,6 +84,44 @@ claude mcp remove custom-skills --scope user
 rm -f ~/.cargo/bin/custom-skills-mcp
 ```
 
+### Pi
+
+The repository is also a [pi](https://pi.dev) package (`package.json`). Install
+it from GitHub, or from a checkout to load it in place:
+
+```sh
+pi install git:github.com/brayniac/custom-skills
+pi install /path/to/custom-skills
+```
+
+`pi update --extensions` updates a GitHub install; a checkout install picks up
+an edit after `/reload`. Pi lists each skill by its bare name and runs one as
+`/skill:<name>` (`/skill:review`, not `/cs:review`).
+
+The package carries one extension, `pi/extension.ts`, which supplies what
+Claude Code does for these skills and pi does not:
+
+- `${CLAUDE_SKILL_DIR}`. A `/skill:<name>` expansion has it replaced with the
+  skill's directory. A `SKILL.md` opened with the read tool gets a note naming
+  the directory, and the file text is left as it is so an edit still matches. A
+  read or bash call that still names the variable gets the directory of the
+  skill loaded last, which is wrong after a second skill's `SKILL.md` was read
+  or when the skill was loaded with `cat`.
+- The review gate. The extension runs `hooks/review_gate.py` on every bash
+  call; a merge it refuses comes back to the model as a blocked call. It lets
+  the command through when `python3` is missing, when the gate takes over 10
+  seconds, and, with a warning at startup, when `extension.ts` is loaded
+  without `hooks/` beside it.
+- `fresh_agent`. Skills such as `review` and `audit` start an agent that has
+  not seen the session. This tool runs each task in a new `pi -p` process on
+  the session's model and thinking level, up to four at once, and returns
+  each agent's final message. An agent that ends in an error is reported as
+  `FAILED` with pi's error. An agent started this way does not get the
+  tool.
+
+Pi warns at startup on each description longer than the Agent Skills limit of
+1,024 characters, and loads it in full.
+
 ## The review gate
 
 The plugin installs one hook. It refuses a PR merge from a Bash command unless
@@ -135,9 +173,10 @@ description: What it does. Use when <the situation that should trigger it>.
 2. Read `${CLAUDE_SKILL_DIR}/references/table.md` for the details.
 ```
 
-`name` must match `[a-z0-9_-]{1,64}` and equal the directory name. `description`
-is the only text an agent sees when choosing a skill, so it carries the trigger;
-Claude Code truncates it past 1,536 characters. Files beside `SKILL.md` are
+`name` must match `[a-z0-9-]{1,64}`, with no leading, trailing or doubled
+hyphen, and equal the directory name. `description` is the only text an agent
+sees when choosing a skill, so it carries the trigger; Claude Code truncates it
+past 1,536 characters. Files beside `SKILL.md` are
 named through `${CLAUDE_SKILL_DIR}`, which Claude Code replaces with the skill's
 absolute directory, so a bundled script runs in place.
 
@@ -156,10 +195,11 @@ cargo fmt --all -- --check
 cargo clippy --all-targets --locked -- -D warnings
 cargo test --locked
 python3 hooks/test_review_gate.py  # the review gate, offline
+python3 pi/test_extension.py      # the pi extension; needs pi
 claude plugin validate .          # manifests; a missing-version warning is expected
 ```
 
-rack-ci runs all but the last (`.rack-ci.toml`).
+rack-ci runs all but the last two (`.rack-ci.toml`).
 
 ## Layout
 
@@ -169,6 +209,8 @@ rack-ci runs all but the last (`.rack-ci.toml`).
 | `.claude-plugin/marketplace.json` | The `custom-skills` marketplace, listing this repository as its one plugin |
 | `skills/` | The skills |
 | `hooks/` | `hooks.json` and the review gate (`review_gate.py`, its test) |
+| `package.json` | The pi package manifest |
+| `pi/` | The pi extension (`extension.ts`) and its test |
 | `src/skill.rs` | The rules `skillcheck` enforces, and their tests |
 | `src/main.rs` | The `skillcheck` command |
 

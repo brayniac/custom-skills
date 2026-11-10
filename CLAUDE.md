@@ -8,7 +8,9 @@ marketplace (`.claude-plugin/marketplace.json`, named `custom-skills`). Each
 marketplace and its entry stay `custom-skills`, so installs are
 `custom-skills@custom-skills`. The Rust crate at
 the root is not part of the plugin: it is `skillcheck`, which refuses a skills
-tree Claude Code would load wrongly.
+tree Claude Code would load wrongly. The root is also a pi package
+(`package.json`): pi loads the same `skills/` and `pi/extension.ts`, which
+supplies what Claude Code does for the skills and pi does not.
 
 Most work here is **writing skills**. README.md covers install, updating, and
 moving from the old MCP server. This file covers what is not obvious from the
@@ -26,12 +28,16 @@ cargo test --locked
 claude plugin validate .                           # manifests only
 ```
 
-Changing `hooks/`, also run `python3 hooks/test_review_gate.py`.
+Changing `hooks/`, also run `python3 hooks/test_review_gate.py`. Changing
+`pi/`, `package.json`, `hooks/review_gate.py` or `skills/review/` (the test
+reads that skill), also run `python3 pi/test_extension.py`, which needs pi
+installed.
 
 rack-ci runs the first four and the hook test (`.rack-ci.toml`); the repository
 is on its allowlist and every PR gets `rack-ci/check`, `rack-ci/lint` and
-`rack-ci/test` statuses. `claude plugin validate` needs Claude Code, which the
-CI guests do not have, so run it locally when a manifest changes. Its "No
+`rack-ci/test` statuses. `claude plugin validate` needs Claude Code and
+`pi/test_extension.py` needs pi; the CI guests have neither, so run them
+locally when a manifest or the pi extension changes. The validator's "No
 version specified" warning is expected: see Invariants.
 
 `claude plugin validate` does not look inside skills. It passed a copy of this
@@ -65,16 +71,21 @@ error. That is why `skillcheck` exists; keep it failing on those cases.
   `merge`, which run `review`; it is not the review, and it does
   not see a gh alias or gh run from another language.
   `python3 hooks/test_review_gate.py` tests it offline (rack-ci's `test` check
-  runs it).
+  runs it). The pi package (`package.json`) has one extension,
+  `pi/extension.ts`, which runs the same gate on pi's bash calls, resolves
+  `${CLAUDE_SKILL_DIR}` for pi, and adds a `fresh_agent` tool. It acts on
+  every bash call and every provider request, and was added as a deliberate
+  exception to this rule, like the hook.
 - **No `version` in `plugin.json`.** Without it, an install's version is the
   commit SHA, so `claude plugin update` and auto-update pick up every merge. A
   pinned version would hold every host on the old copy until someone changed
   the string.
 - **Frontmatter holds exactly `name` and `description`.** `name` matches
-  `[a-z0-9_-]{1,64}` and equals the directory name; `description` is at most
-  1,536 characters. `skillcheck` rejects any other key so a misspelled one
-  fails instead of being ignored; add a key to `Frontmatter` in `src/skill.rs`
-  when a skill needs one Claude Code supports.
+  `[a-z0-9-]{1,64}` with no leading, trailing or doubled hyphen (the Agent
+  Skills rule; pi warns on a name that breaks it) and equals the directory
+  name; `description` is at most 1,536 characters. `skillcheck` rejects any
+  other key so a misspelled one fails instead of being ignored; add a key to
+  `Frontmatter` in `src/skill.rs` when a skill needs one Claude Code supports.
 - **The description listing has a budget.** In Claude Code 2.1.308 it is the
   context window in tokens (200,000 when unknown) times characters per token
   times 0.01. Characters per token is 4 for Claude 3 and 4.x models and 3 for
@@ -139,6 +150,8 @@ a one-off session, `claude --plugin-dir .`.
 | `.claude-plugin/marketplace.json` | The `custom-skills` marketplace, with this repository as its one plugin (`"source": "./"`) |
 | `skills/` | The skills |
 | `hooks/` | `hooks.json` and the review gate (`review_gate.py`, its test) |
+| `package.json` | The pi package manifest: the skills and `pi/extension.ts` |
+| `pi/` | The pi extension and its end-to-end test |
 | `src/skill.rs` | The rules `skillcheck` enforces, and their tests |
 | `src/main.rs` | The `skillcheck` command |
 
