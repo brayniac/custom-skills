@@ -74,12 +74,13 @@ Before writing anything, read the two most recent released sections:
    2026-10-30 20:51 UTC may be corrupt; their assets were replaced between 20:33
    and 20:51 UTC that day." A date alone would have told a user who downloaded
    at 10:00 UTC that day that their package was good.
-8. **Leave out rationale and test numbers.** Why the design is right, the test
-   configurations measured and the runs it took belong in the PR. A number
-   stays only if it states the conditions a user needs to compare it with
-   their own setup (server version, hardware, load); without them, leave it
-   out. An upstream issue number stays when it is what a user watches for a
-   fix ("llama-server (llama.cpp issue #29680) closes …").
+8. **Leave out rationale and test numbers.** Why the design is right belongs
+   in the commit message or the journal; the test configurations and runs
+   belong in the PR body's evidence. A number stays only if it states the
+   conditions a user needs to compare it with their own setup (server
+   version, hardware, load); without them, leave it out. An upstream issue
+   number stays when it is what a user watches for a fix ("llama-server
+   (llama.cpp issue #29680) closes …").
 9. **Flag a break for library callers** in a sub-bullet: what stops
    compiling and the replacement. Name every public type that changed, not
    only the one the PR is about. In a `0.x` crate a field added to a struct
