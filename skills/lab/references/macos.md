@@ -134,7 +134,7 @@ ferallm-<version>-macos-arm64.tar.gz   ->  dist/
 
 Published to `/srv/dist/macos/` on delta, which Caddy already serves, so
 `http://delta/dist/macos/<name>` is the pin and
-`/Volumes/Training/systemslab-stage/bin/` becomes a `curl`.
+`/Volumes/Work/systemslab-stage/bin/` becomes a `curl`.
 
 #### Signing: less than you would expect, and the reason matters
 
