@@ -88,7 +88,7 @@ vCPU and is not slower.
 
 Sizes: `z2.c` with `slots = 4` is 32 vCPU / 128 GiB allocated (the guest's
 `free` shows 125); hv01 whole host 56 vCPU / ~224 GiB; hv02 whole host 24
-vCPU / ~96 GiB. Guest kernels: `debian-13-6.12` 6.12.63 (Debian),
+vCPU / ~96 GiB. Guest kernels: `debian-13-6.12` 6.12.116 (Debian),
 `rocky-10-6.12` 6.12.0-211 (el10). `debian-13-6.12` has
 `kernel.io_uring_disabled=0`; `rocky-10-6.12` has `2`, so anything that needs
 io_uring fails there by design and a mio/epoll fallback is what to test.

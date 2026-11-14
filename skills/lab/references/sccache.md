@@ -8,10 +8,10 @@ everywhere else with the same key. On the rack, that means:
   rack-ci's included. They carry sccache 0.18.0, `incremental = false` and
   `rustc-wrapper = "/usr/local/bin/sccache-or-rustc"`, which goes through
   sccache and `http://delta:8081` when the store answers and straight to rustc
-  when it does not. A `.rack-ci.toml` or a vm job payload needs nothing. Only
-  `debian-13-6.12` and `debian-13-7.1` also have the C build libraries (`vm.md`,
-  beside this file, "Choosing between them"). Alpine, the stock images and
-  `debian-13-gpu` have no toolchain. A vm job on a stock image runs the
+  when it does not. A `.rack-ci.toml` or a vm job payload needs nothing. Every
+  Debian 13 and 14 family also has the C build libraries (`vm.md`, beside this
+  file, "Choosing between them"). Alpine and the stock images have no
+  toolchain. A vm job on a stock image runs the
   installer in its payload; `recipes.md` (beside this file) says how.
 - **C and C++ in build scripts.** `brayniac/infra` #124 (`d48a201`) sends
   cc-rs and CMake compiles through the cache on platform images built from
