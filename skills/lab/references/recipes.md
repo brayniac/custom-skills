@@ -88,15 +88,15 @@ vCPU and is not slower.
 
 Sizes: `z2.c` with `slots = 4` is 32 vCPU / 128 GiB allocated (the guest's
 `free` shows 125); hv01 whole host 56 vCPU / ~224 GiB; hv02 whole host 24
-vCPU / ~96 GiB. Guest kernels: `debian-13-6.12` 6.12.63 (Debian),
+vCPU / ~96 GiB. Guest kernels: `debian-13-6.12` 6.12.116 (Debian),
 `rocky-10-6.12` 6.12.0-211 (el10). `debian-13-6.12` has
 `kernel.io_uring_disabled=0`; `rocky-10-6.12` has `2`, so anything that needs
 io_uring fails there by design and a mio/epoll fallback is what to test.
 
 ## Install a package on a guest: attempt, do not probe
 
-Do not gate an install behind a probe. Measured on `debian-13-gpu` (withdrawn;
-see `vm.md`, beside this file), same moment, same package: `apt-cache policy
+Do not gate an install behind a probe. Measured on `debian-13-gpu`, an image
+since removed from every host, same moment, same package: `apt-cache policy
 slipway 2>&1` prints `Candidate: 0.2.7-1`, the identical command with stderr
 discarded matches nothing, and `apt-get install -y slipway` then succeeds. A
 probe written as `apt-cache policy X 2>/dev/null | grep -q` had therefore been
