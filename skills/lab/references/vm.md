@@ -40,19 +40,19 @@ Every family is named for its distribution and kernel series. A spec that names
 one of these old names fails with `no image or image family named`. Use:
 `debian-13-ci` and `debian-13-base` -> `debian-13-6.12`; `debian-13-ci-bpo` ->
 `debian-13-7.1`; `debian-13-mainline` -> `debian-13-7.3-mainline` (or
-`debian-13-7.4-rc`); `debian-12-base` ->
-`debian-12-6.1`; `debian-14-base` -> `debian-14-7.2`; `ubuntu-24.04-base` ->
-`ubuntu-24.04-6.8`; `ubuntu-26.04-base` -> `ubuntu-26.04-7.0`; `rocky-10-base`
--> `rocky-10-6.12`; `al2023-i40e` -> `al2023-6.12-i40e`; `debian-13-gpu-cu12` ->
-`debian-13-6.12-gpu-cu12`; `debian-13-gpu-cu13` -> `debian-13-6.12-gpu-cu13`;
-`debian-12-gpu-cu1x` -> `debian-12-6.1-gpu-cu1x`; `debian-14-gpu-cu13` ->
-`debian-14-7.2-gpu-cu13`. `debian-13-7.3-rc` (7.3.0-rc6) is not rebuilt: its
-last build still resolves on the x86 hosts until it is destroyed and fails on
-the Pis, so use `debian-13-7.3-mainline` or `debian-13-7.4-rc`. A pinned build
-does not carry over:
-`debian-13-6.12-<id>` is not the `debian-13-base-<id>` image, and a
-`debian-13-7.1-<id>` pin older than the rename can name a different image with
-no error.
+`debian-13-7.4-rc`); `debian-12-base` -> `debian-12-6.1`; `debian-14-base` ->
+`debian-14-7.2`; `ubuntu-24.04-base` -> `ubuntu-24.04-6.8`; `ubuntu-26.04-base`
+-> `ubuntu-26.04-7.0`; `rocky-10-base` -> `rocky-10-6.12`; `al2023-i40e` ->
+`al2023-6.12-i40e`; `debian-13-gpu-cu12` -> `debian-13-6.12-gpu-cu12`;
+`debian-13-gpu-cu13` -> `debian-13-6.12-gpu-cu13`; `debian-12-gpu-cu1x` ->
+`debian-12-6.1-gpu-cu1x`; `debian-14-gpu-cu13` -> `debian-14-7.2-gpu-cu13`.
+`debian-13-7.3-rc` and `debian-13-7.3-rc-gpu-cu13` (7.3.0-rc6) are not rebuilt:
+their last builds still resolve on the x86 hosts that carried them until they
+are destroyed, and `debian-13-7.3-rc` fails on the Pis, so use
+`debian-13-7.3-mainline`, `debian-13-7.3-mainline-gpu-cu13` or
+`debian-13-7.4-rc`. A pinned build does not carry over: `debian-13-6.12-<id>` is
+not the `debian-13-base-<id>` image, and a `debian-13-7.1-<id>` pin older than
+the rename can name a different image with no error.
 
 **Choosing between them.**
 

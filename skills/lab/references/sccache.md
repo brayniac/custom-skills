@@ -10,8 +10,9 @@ everywhere else with the same key. On the rack, that means:
   sccache and `http://delta:8081` when the store answers and straight to rustc
   when it does not. A `.rack-ci.toml` or a vm job payload needs nothing. Every
   Debian 13 and 14 family also has the C build libraries (`vm.md`, beside this
-  file, "Choosing between them"). Alpine and the stock images have no
-  toolchain. A vm job on a stock image runs the installer in its payload; `recipes.md` (beside this file) says how.
+  file, "Choosing between them"). Alpine and the stock images have no toolchain.
+  A vm job on a stock image runs the installer in its payload; `recipes.md`
+  (beside this file) says how.
 - **C and C++ in build scripts.** `brayniac/infra` #124 (`d48a201`) sends
   cc-rs and CMake compiles through the cache on platform images built from
   it; images built before it cache only rustc, because cc-rs wraps the C
