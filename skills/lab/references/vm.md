@@ -16,7 +16,7 @@ about three minutes. Treat "run it on distro X" as routine, not an expedition.
 | build / test Rust, measure | `debian-13-6.12` | x86, Pis | stock Debian 13 plus rezolus, slipway's remote, bubblewrap, stressapptest, the Rust toolchain with the shared compiler cache, what build scripts commonly need (libssl-dev, libelf-dev, zlib1g-dev, clang, cmake) and a warm crates index; kernel 6.12 |
 | newer kernel, io_uring after 6.14 | `debian-13-7.1` | x86, Pis | `debian-13-6.12` on trixie-backports 7.1.13 |
 | a specific kernel series | `debian-12-5.10`, `debian-12-6.1`, `debian-12-{6.6,6.9,6.11}`, `debian-13-{6.17,6.18,7.1,7.2}`, `debian-14-7.2` (7.2.12) | hv01, hv02, hv03, Pis; `debian-13-7.1` also on delta; `debian-13-7.2` not on the Pis | rezolus, the Rust toolchain and compiler cache on a Debian kernel; the Debian 13 and 14 ones also have the C build libraries and crates index, Debian 12 does not (see Toolchain below); bookworm userspace for Debian 12, trixie for 13, forky for 14 |
-| a kernel.org release or release candidate | `debian-13-7.3-mainline` (7.3.4), `debian-13-7.4-rc` (7.4.0-rc2) | x86, Pis | `debian-13-6.12` on a kernel.org build; infra's `jobs/build-kernel-mainline` builds the kernel, and a point release or rc moves the family. |
+| a kernel.org release or release candidate | `debian-13-7.3-mainline` (7.3.4), `debian-13-7.4-rc` (7.4.0-rc2) | x86, Pis | `debian-13-6.12` on a kernel.org build; infra's `jobs/build-kernel-mainline` builds the kernel, and a point release or rc moves the family |
 | Ubuntu | `ubuntu-24.04-6.8`, `ubuntu-26.04-7.0` | x86 | rezolus, bubblewrap, stressapptest; no internal apt repo or slipway (its packages are built on trixie) |
 | RHEL-family behaviour (io_uring refused, SELinux, dnf) | `rocky-10-6.12` | x86, Pis | rezolus, the Rust toolchain; `io_uring_disabled=2` |
 | Amazon Linux | `al2023-6.12-i40e` | x86 | kernel 6.12, can drive the passthrough ports. Stock `al2023` needs `ports = 0` |
@@ -39,16 +39,17 @@ bring its data NIC up as `enp2s0` instead of `data`.
 Every family is named for its distribution and kernel series. A spec that names
 one of these old names fails with `no image or image family named`. Use:
 `debian-13-ci` and `debian-13-base` -> `debian-13-6.12`; `debian-13-ci-bpo` ->
-`debian-13-7.1`; `debian-13-mainline` and `debian-13-7.3-rc` ->
-`debian-13-7.3-mainline` (or `debian-13-7.4-rc`); `debian-12-base` ->
+`debian-13-7.1`; `debian-13-mainline` -> `debian-13-7.3-mainline` (or
+`debian-13-7.4-rc`); `debian-12-base` ->
 `debian-12-6.1`; `debian-14-base` -> `debian-14-7.2`; `ubuntu-24.04-base` ->
 `ubuntu-24.04-6.8`; `ubuntu-26.04-base` -> `ubuntu-26.04-7.0`; `rocky-10-base`
 -> `rocky-10-6.12`; `al2023-i40e` -> `al2023-6.12-i40e`; `debian-13-gpu-cu12` ->
 `debian-13-6.12-gpu-cu12`; `debian-13-gpu-cu13` -> `debian-13-6.12-gpu-cu13`;
 `debian-12-gpu-cu1x` -> `debian-12-6.1-gpu-cu1x`; `debian-14-gpu-cu13` ->
-`debian-14-7.2-gpu-cu13`. `debian-13-7.3-rc`'s last build (7.3.0-rc6) still
-resolves on the x86 hosts until it is destroyed, and is gone from the Pis. A
-pinned build does not carry over:
+`debian-14-7.2-gpu-cu13`. `debian-13-7.3-rc` (7.3.0-rc6) is not rebuilt: its
+last build still resolves on the x86 hosts until it is destroyed and fails on
+the Pis, so use `debian-13-7.3-mainline` or `debian-13-7.4-rc`. A pinned build
+does not carry over:
 `debian-13-6.12-<id>` is not the `debian-13-base-<id>` image, and a
 `debian-13-7.1-<id>` pin older than the rename can name a different image with
 no error.

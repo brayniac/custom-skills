@@ -27,9 +27,9 @@ what exists before planning, then read the reference for the task.
   each class's hardware and what a number from it means.
 - **Guest images:** the table in step 1 of
   `${CLAUDE_SKILL_DIR}/references/vm.md` lists every family (Debian 12 to 14
-  on a range of kernels, kernel.org 7.3 and a 7.4 release candidate, Ubuntu 24.04 and 26.04,
-  Rocky 10, Amazon Linux 2023 and 2, Alpine, and the GPU images) and which
-  hosts carry each. Name a family, not a build, unless the build is part of
+  on a range of kernels, kernel.org 7.3 and a 7.4 release candidate, Ubuntu
+  24.04 and 26.04, Rocky 10, Amazon Linux 2023 and 2, Alpine, and the GPU
+  images) and which hosts carry each. Name a family, not a build, unless the build is part of
   the result.
 
 ## What to read

@@ -95,8 +95,8 @@ io_uring fails there by design and a mio/epoll fallback is what to test.
 
 ## Install a package on a guest: attempt, do not probe
 
-Do not gate an install behind a probe. Measured on `debian-13-gpu` (withdrawn;
-see `vm.md`, beside this file), same moment, same package: `apt-cache policy
+Do not gate an install behind a probe. Measured on `debian-13-gpu`, an image
+since removed from every host, same moment, same package: `apt-cache policy
 slipway 2>&1` prints `Candidate: 0.2.7-1`, the identical command with stderr
 discarded matches nothing, and `apt-get install -y slipway` then succeeds. A
 probe written as `apt-cache policy X 2>/dev/null | grep -q` had therefore been
