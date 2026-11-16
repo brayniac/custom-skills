@@ -170,12 +170,14 @@ boot_timeout = 600
   `/sys/class/nvme/nvme0/hwmon*/temp1_input`) per arm, and treat A/B
   differences under about 12% as noise unless the arms are interleaved and
   the temperature is controlled.
-- Its SMART OCP and vendor log pages return Invalid Log Page.
-- Seen in the guest (SystemsLab 01a1e109-4726-715e-de70-536a4567f949, `debian-13-6.12`): `/dev/nvme0n1`
-  and `/dev/ng0n1`, a 512-byte logical block, `write_cache` "write back",
-  `fua` 1. The 64-write `O_DSYNC` probe of section 1 gave the same counts as
-  `null_blk`'s write-back FUA row: 64 `WFS` from io_uring with no flush, 64
-  `WFS` and 64 `FF` from `pwrite(2)`.
+- The standard SMART log works (it reports host writes only); the OCP log
+  page `0xC0` and the vendor pages `0xC1`, `0xC2`, `0xCA`, `0xD0` and `0xDD`
+  return Invalid Log Page.
+- Seen in the guest (SystemsLab 01a1e109-4726-715e-de70-536a4567f949,
+  `debian-13-6.12`): `/dev/nvme0n1` and `/dev/ng0n1`, a 512-byte logical block,
+  `write_cache` "write back", `fua` 1. The 64-write `O_DSYNC` probe of section 1
+  gave the same counts as `null_blk`'s write-back FUA row: 64 `WFS` from
+  io_uring with no flush, 64 `WFS` and 64 `FF` from `pwrite(2)`.
 - The block trace of a whole device also shows a few `R` and `RA` reads per
   arm that the workload did not issue, most likely udev probing the device
   after a process that had it open for writing closes it (inferred, not
