@@ -7,15 +7,16 @@ the only one that shows a real drive's behaviour.
 
 | Device | Where | What it shows | What it does not |
 | --- | --- | --- | --- |
-| `null_blk` | any guest | the block layer's handling of FUA, flushes and write caches, set per device | a controller, latency, data a real drive would lose |
-| NVMe target over loop (`nvmet` + `nvme-loop`), file-backed | any guest | the kernel's NVMe driver, `/dev/ngXnY` and `IORING_OP_URING_CMD` passthrough end to end | a PCI controller, a drive's timing |
+| `null_blk` | a Debian guest | the block layer's handling of FUA, flushes and write caches, set per device | a controller, latency, data a real drive would lose |
+| NVMe target over loop (`nvmet` + `nvme-loop`), file-backed | a Debian guest | the kernel's NVMe driver, `/dev/ngXnY` and `IORING_OP_URING_CMD` passthrough end to end | a PCI controller, a drive's timing |
 | hv02's spare NVMe, passed through | hv02 | a physical controller: cache, FUA, latency, heat | another drive model |
 | NVMeVirt | hv01 (whole host), hv02, delta, by reservation size | a PCI NVMe controller emulated in reserved guest memory, with a programmable timing model | a real drive, unless the model is calibrated against one |
 
-A guest's root disk is virtio, so in sections 2 to 4 the device under test is
-the guest's only NVMe, and its names are `nvme0`, `/dev/nvme0n1` and
-`/dev/ng0n1` unless something else created one first. Find it rather than
-assuming: list `/dev/ng*` before and after creating it.
+Sections 1 and 2 ran on `debian-13-6.12` and `debian-13-7.1`; other images
+were not tried. A guest's root disk is virtio, so in sections 2 to 4 the
+device under test is the guest's only NVMe, and its names are `nvme0`,
+`/dev/nvme0n1` and `/dev/ng0n1` unless something else created one first.
+Find it rather than assuming: list `/dev/ng*` before and after creating it.
 
 Writing to a block device needs root: the anvil user has passwordless `sudo`
 in the Debian images; check with `sudo -n true` first.
@@ -75,9 +76,11 @@ writes (ringline's direct I/O probe; SystemsLab 01a1e100-79d6 and
 | write-through | 64 `WS` | 64 `WS` |
 | no `O_DSYNC` | 64 `WS` | 64 `WS` |
 
-At `block_bio_queue` every `O_DSYNC` write is `WFS` whatever the device, and
-`pwrite(2)` adds 64 `FWS`: the block layer turns FUA into a flush, or strips
-both, between the two tracepoints.
+On a write-back device every `O_DSYNC` write is `WFS` at `block_bio_queue`,
+and `pwrite(2)` adds 64 `FWS`; without FUA the block layer turns each into a
+write and a flush before `block_rq_issue`. On a write-through device FUA and
+the preflush are removed before `block_bio_queue`, so both tracepoints show
+64 `WS`.
 
 ## 2. NVMe over loop: passthrough without hardware
 
@@ -150,7 +153,8 @@ boot_timeout = 600
   (`/sys/class/nvme/nvme0/model`, padded with spaces), nothing mounted from
   it, and the root filesystem not on it. Do not trust the kernel's partition
   list for that: after a fill it has shown phantom partitions parsed from the
-  fill data. Use `blkid -p` and `wipefs -n` to look for real signatures.
+  fill data. Use `sudo blkid -p` and `sudo wipefs -n` to look for real
+  signatures; both are in `/usr/sbin`, which the ssh user's PATH lacks.
 - A discarded NVMe reads zeros at DRAM speed. Write the range before
   measuring reads from it.
 - `write_cache` is a per-job setting in sysfs, not part of the image. Setting
@@ -161,12 +165,13 @@ boot_timeout = 600
   matters.
 - The drive heats by about 3 °C per minute under load and does not cool
   between arms; throughput correlated with starting temperature at -0.92 in
-  one study. Read the temperature (`nvme smart-log`, or
+  one study. Read the temperature (`sudo nvme smart-log`, with
+  `packages = ["nvme-cli"]` on the step, or
   `/sys/class/nvme/nvme0/hwmon*/temp1_input`) per arm, and treat A/B
   differences under about 12% as noise unless the arms are interleaved and
   the temperature is controlled.
 - Its SMART OCP and vendor log pages return Invalid Log Page.
-- Seen in the guest (SystemsLab 01a1e109-4726, `debian-13-6.12`): `/dev/nvme0n1`
+- Seen in the guest (SystemsLab 01a1e109-4726-715e-de70-536a4567f949, `debian-13-6.12`): `/dev/nvme0n1`
   and `/dev/ng0n1`, a 512-byte logical block, `write_cache` "write back",
   `fua` 1. The 64-write `O_DSYNC` probe of section 1 gave the same counts as
   `null_blk`'s write-back FUA row: 64 `WFS` from io_uring with no flush, 64
@@ -202,6 +207,9 @@ boot_timeout = 900
 kernel_args = ["memmap=128G$16G", "isolcpus=48-55"]
 ```
 
+That step only starts the guest. Follow it with `mode = "exec"` steps that
+build, load and run, and a `mode = "stop"` step.
+
 - `kernel_args` (anvil >= 0.10.9) writes a grub drop-in, reboots once and fails
   unless `/proc/cmdline` carries each argument. An argument with `$` needs
   `update-grub`, so a Debian or Ubuntu image.
@@ -215,9 +223,9 @@ kernel_args = ["memmap=128G$16G", "isolcpus=48-55"]
   (a dispatcher and I/O workers on isolated cores). Capacity depends on the
   profile's spare area: 128 GiB reserved gave 98.5 GiB logical with a patched
   profile at 30% spare, and 109.4 GiB with another.
-- A 2 GiB reservation gives 24 erase units of logical space, below the 32 the
-  patched model needs for greedy garbage collection to have a choice of
-  victim. 128 GiB gives about 1,500. Reserve tens of GiB for any GC result.
+- A 2 GiB reservation gives 24 erase units of logical space, which leaves
+  greedy garbage collection little choice of victim. The GC comparisons used
+  128 GiB, about 1,500 erase units.
 - One run on hv01 oopsed in the patched module's submission-queue path
   (`nvmev_proc_io_sq`) during a fill: one in 41 arms at 3200 MT/s, and 39
   clean at 2666 MT/s, to which hv01's memory was lowered on 2026-11-05. The
