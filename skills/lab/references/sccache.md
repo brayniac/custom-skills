@@ -62,10 +62,11 @@ bash $S --local             # disk cache, off-LAN machine
 It installs sccache (Homebrew on macOS; on Linux the pinned 0.18.0 musl
 build, checksum-verified, into `~/.local/bin`), writes the sccache config in
 the place that OS reads it, adds `rustc-wrapper = "sccache"` to
-`$CARGO_HOME/config.toml` without overwriting other keys, restarts the sccache
-server, and builds a probe crate. **It exits 0 only when the probe made
-sccache requests and sccache reported the expected backend.** Read the exit
-status; a non-zero exit names the problem.
+`$CARGO_HOME/config.toml` without overwriting other keys, sets
+`SCCACHE_MAX_FRAME_LENGTH = "134217728"` under `[env]` there (step 4),
+restarts the sccache server, and builds a probe crate. **It exits 0 only
+when the probe made sccache requests and sccache reported the expected
+backend.** Read the exit status; a non-zero exit names the problem.
 
 If `delta` does not resolve (it resolves through the LAN's `localdomain`
 search domain, which a container or a new VM may not have), it falls back to
@@ -85,7 +86,31 @@ sccache --show-stats | grep -E 'Cache location|Compile requests|Cache hits'
 - `Cache location` reads `webdav` for the store, `Local disk` for `--local`.
 - Compile requests rise with each build; hits rise on the second build of
   anything already compiled anywhere with the same key.
-- `sccache --zero-stats` before a build isolates that build's numbers.
+- To see what one build did, take the counts before and after it and print
+  the difference. Do not `sccache --zero-stats`: the server is shared by
+  every build on the machine, so zeroing erases another build's numbers and
+  a concurrent build's requests land in yours either way.
+
+```bash
+sccache_counts() {  # requests hits misses errors; fails with no stats
+  sccache --show-stats | awk '
+    /^Compile requests +[0-9]+$/ {r=$NF} /^Cache hits +[0-9]+$/ {h=$NF}
+    /^Cache misses +[0-9]+$/ {m=$NF} /^Cache errors +[0-9]+$/ {e=$NF}
+    END {if (r == "") exit 1; print r+0, h+0, m+0, e+0}'
+}
+c0=$(sccache_counts) || echo "sccache: no stats before the build" >&2
+cargo build --release
+c1=$(sccache_counts) || echo "sccache: no stats after the build" >&2
+read r0 h0 m0 e0 <<< "${c0:-0 0 0 0}"
+read r1 h1 m1 e1 <<< "${c1:-0 0 0 0}"
+echo "sccache: requests=$((r1-r0)) hits=$((h1-h0)) misses=$((m1-m0)) errors=$((e1-e0))"
+```
+
+- The difference is meaningless if the server exited or restarted during
+  the build: a new server's counts start at zero.
+- On a rack image, a build that went uncached because the store was down
+  leaves `${TMPDIR:-/tmp}/sccache-down-$(id -u)` holding sccache's error; its
+  stats show no requests. Print the marker beside the counts.
 
 ## 4. When it is not working
 
@@ -95,7 +120,8 @@ sccache --show-stats | grep -E 'Cache location|Compile requests|Cache hits'
 | `Local disk` after starting a build off the LAN | sccache picks its backend when its server starts and keeps it for the server's life; off the LAN it falls back to disk | on the LAN again: `sccache --stop-server`; the next build starts a new server |
 | every compile slow after leaving the LAN | a server started on the LAN waits on a network timeout per compile | `sccache --stop-server`; use `--local` on a machine where this is routine |
 | zero compile requests | `RUSTC_WRAPPER` in the environment, or another `rustc-wrapper` in a project's `.cargo/config.toml`, overrides the user config | find it: `env | grep -i wrapper`, then `.cargo/config.toml` in the project and each parent directory |
-| a build fails with `sccache ... (exit status: 254)` while compiling a crate with many source files | the sccache server ran out of file descriptors (`Too many open files`); seen once on a Mac, compiling `aws-sdk-ec2` | `sccache --stop-server; ulimit -n 65536 && sccache --start-server` in the shell that builds |
+| a build fails with `sccache ... (exit status: 254)` while compiling a crate with many source files | the sccache server ran out of file descriptors (`Too many open files`); seen once on a Mac, compiling `aws-sdk-ec2` | `sccache --stop-server; ulimit -n 65536 && SCCACHE_MAX_FRAME_LENGTH=134217728 sccache --start-server` in the shell that builds. A server started from a shell does not get cargo's `[env]` |
+| a build stops with no CPU in use, cargo waiting on one crate, and finishes ten minutes after the machine's last other build (or never, while other builds keep the server busy) | the crate's compile output is over 8 MiB. sccache 0.18 frames responses with tokio-util's 8 MiB default, the encode fails, and the server drops the response without logging; the client waits until the server exits 600 s after its last request. Seen building Hermit's kernel `core` for `aarch64-unknown-none-softfloat` with `-Zbuild-std` (26.6 MB of stderr) | `SCCACHE_MAX_FRAME_LENGTH=134217728` where the server starts, then `sccache --stop-server`. The installer sets it in cargo's `[env]`; rerun it on a machine set up before it did. Rack images built after `brayniac/infra` #239 set it in `/usr/local/bin/sccache-or-rustc`; on any rack image, `export SCCACHE_MAX_FRAME_LENGTH=134217728` in the payload before the first cargo command is safe |
 | two machines never hit each other's entries | different sccache versions or rustc versions change the key. One Mac had a cargo-installed 0.14.0 shadowing brew's 0.18.0 | same sccache (0.18.0) and same toolchain on both; the installer removes a shadowing `~/.cargo/bin/sccache` on macOS |
 
 With `rustc-wrapper = "sccache"`, which the installer writes, a store that

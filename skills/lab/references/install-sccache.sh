@@ -127,6 +127,29 @@ set_build_key() {  # key value
     fi
 }
 set_build_key rustc-wrapper '"sccache"'
+# sccache 0.18 frames each server response with an 8 MiB limit; a compile
+# whose output is larger fails to encode, the response is dropped without a
+# message, and the build waits until the server idles out (600 s after the
+# last request from any client). cargo's [env] reaches the wrapper, which
+# starts the server, so the server inherits it. The environment wins over
+# [env] when it sets the variable itself.
+if grep -qE '^[^#]*SCCACHE_MAX_FRAME_LENGTH\s*=' "$CARGO_CONF"; then
+    say "$CARGO_CONF already sets $(grep -E '^[^#]*SCCACHE_MAX_FRAME_LENGTH\s*=' "$CARGO_CONF" | head -1)"
+elif grep -qE '^\s*env\s*([.]|=\s*\{)' "$CARGO_CONF"; then
+    echo "error: $CARGO_CONF sets env as a dotted or inline key; add" \
+        "env.SCCACHE_MAX_FRAME_LENGTH = \"134217728\" (or the key in the inline table) by hand" >&2
+    exit 1
+elif grep -qE '^\s*\[\s*"?env"?\s*\]\s*(#.*)?$' "$CARGO_CONF"; then
+    awk -v line='SCCACHE_MAX_FRAME_LENGTH = "134217728"' '
+        !done && /^[[:space:]]*\[[[:space:]]*"?env"?[[:space:]]*\][[:space:]]*(#.*)?$/ { print; print line; done = 1; next }
+        { print }' \
+        "$CARGO_CONF" > "$CARGO_CONF.tmp" && cat "$CARGO_CONF.tmp" > "$CARGO_CONF"
+    rm -f "$CARGO_CONF.tmp"
+    say "added SCCACHE_MAX_FRAME_LENGTH to [env] in $CARGO_CONF"
+else
+    printf '\n[env]\nSCCACHE_MAX_FRAME_LENGTH = "134217728"\n' >> "$CARGO_CONF"
+    say "added [env] SCCACHE_MAX_FRAME_LENGTH to $CARGO_CONF"
+fi
 [[ $NO_INCREMENTAL -eq 1 ]] && set_build_key incremental false
 grep -qE '^\s*rustc-wrapper\s*=\s*"sccache"' "$CARGO_CONF" \
     || { echo "error: $CARGO_CONF sets a different rustc-wrapper; not changing it" >&2; exit 1; }
