@@ -92,25 +92,38 @@ sccache --show-stats | grep -E 'Cache location|Compile requests|Cache hits'
   a concurrent build's requests land in yours either way.
 
 ```bash
-sccache_counts() {  # requests hits misses errors; fails with no stats
+# requests hits misses errors. Fails when sccache is missing or no server
+# listens on its port: --show-stats prints zeros and exits 0 without one.
+# bash only: zsh has no /dev/tcp and would report no server.
+sccache_counts() {
+  command -v sccache >/dev/null || return 1
+  (exec 3<>"/dev/tcp/127.0.0.1/${SCCACHE_SERVER_PORT:-4226}") 2>/dev/null \
+    || return 1
   sccache --show-stats | awk '
     /^Compile requests +[0-9]+$/ {r=$NF} /^Cache hits +[0-9]+$/ {h=$NF}
     /^Cache misses +[0-9]+$/ {m=$NF} /^Cache errors +[0-9]+$/ {e=$NF}
     END {if (r == "") exit 1; print r+0, h+0, m+0, e+0}'
 }
-c0=$(sccache_counts) || echo "sccache: no stats before the build" >&2
+c0=$(sccache_counts) || c0="0 0 0 0"   # no server yet: the build starts one
 cargo build --release
-c1=$(sccache_counts) || echo "sccache: no stats after the build" >&2
-read r0 h0 m0 e0 <<< "${c0:-0 0 0 0}"
-read r1 h1 m1 e1 <<< "${c1:-0 0 0 0}"
-echo "sccache: requests=$((r1-r0)) hits=$((h1-h0)) misses=$((m1-m0)) errors=$((e1-e0))"
+if c1=$(sccache_counts); then
+  read r0 h0 m0 e0 <<< "$c0"
+  read r1 h1 m1 e1 <<< "$c1"
+  echo "sccache: requests=$((r1-r0)) hits=$((h1-h0)) misses=$((m1-m0)) errors=$((e1-e0))"
+elif ! command -v sccache >/dev/null; then
+  echo "sccache: not on PATH, so no counts" >&2
+else
+  echo "sccache: no server after the build, so no counts" >&2
+fi
 ```
 
 - The difference is meaningless if the server exited or restarted during
-  the build: a new server's counts start at zero.
+  the build: a new server's counts start at zero, and only its compiles are
+  counted.
 - On a rack image, a build that went uncached because the store was down
-  leaves `${TMPDIR:-/tmp}/sccache-down-$(id -u)` holding sccache's error; its
-  stats show no requests. Print the marker beside the counts.
+  leaves `${TMPDIR:-/tmp}/sccache-down-$(id -u)` holding sccache's error,
+  and no server runs after it, so the snippet prints no counts. Print the
+  marker beside its output.
 
 ## 4. When it is not working
 
