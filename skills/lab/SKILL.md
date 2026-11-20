@@ -1,6 +1,6 @@
 ---
 name: lab
-description: Work on the local rack (hv01, hv02, delta, the Raspberry Pis and the Macs, scheduled through SystemsLab) — hosts and guest images, ephemeral VMs (anvil-vm), SystemsLab specs that survive the interpolator and `set -e`, rack-ci, the shared compiler cache, and host operations (Mac jobs, services, live config). Use when something must run on a whole machine, a specific kernel, distro or sched_ext, a GPU, guest hardware counters, an NVMe device, or on Linux from a Mac; when asked to work "in a VM", "on the rack", "on hv01" or "on a Pi"; when a SystemsLab spec fails at submit-evaluation or a step behaves differently than locally; when a GitHub check fails in seconds with no steps, a `rack-ci/*` status is missing, pending or `error`, or a `.rack-ci.toml` changes; when setting up a build host, builds are slow across target directories, or `sccache --show-stats` shows no hits; before treating a red mark here as a code failure; before quoting a build or test duration; and before touching a hypervisor any other way.
+description: Work on the local rack (hv01-hv03, delta, the Pis and the Macs, through SystemsLab) — hosts and guest images, ephemeral VMs (anvil-vm, anvil-boot), SystemsLab specs that survive the interpolator and `set -e`, rack-ci, the shared compiler cache, and host operations (Mac jobs, services, live config). Use when something must run on a whole machine, a specific kernel, distro or sched_ext, a unikernel, a GPU, guest hardware counters, an NVMe device, or on Linux from a Mac; when asked to work "in a VM", "on the rack" or "on a Pi"; when a SystemsLab spec fails at submit-evaluation or a step behaves differently than locally; when a GitHub check fails in seconds with no steps, a `rack-ci/*` status is missing, pending or `error`, or a `.rack-ci.toml` changes; when setting up a build host, builds are slow across target directories, or a build hangs or gets no hits under sccache; before treating a red mark here as a code failure; before quoting a build or test duration; and before touching a hypervisor any other way.
 ---
 
 # Lab
@@ -37,6 +37,7 @@ what exists before planning, then read the reference for the task.
 | Task | Read |
 | --- | --- |
 | Run work in a VM, pick an image and shape, two guests that must meet, cancel or recover an orphan | `${CLAUDE_SKILL_DIR}/references/vm.md` |
+| Boot a unikernel or a bare kernel and initrd, or anything that would need nested KVM in a guest | `${CLAUDE_SKILL_DIR}/references/vm.md` step 9 |
 | Write or fix a SystemsLab spec (interpolator, reserved keys, `set -ex`, distro differences, staging a local file, a study of several arms) | `${CLAUDE_SKILL_DIR}/references/specs.md` |
 | Put a repository on rack-ci, read a `rack-ci/*` status, release through rack-ci | `${CLAUDE_SKILL_DIR}/references/rack-ci.md` |
 | Put a machine's cargo on the shared compiler cache, or find why it is not used | `${CLAUDE_SKILL_DIR}/references/sccache.md` |

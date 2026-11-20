@@ -432,6 +432,57 @@ To check a host against its declared state afterwards, the infra repo's
 means drift). An unreachable host produces no findings, so a clean diff means
 nothing checked has drifted, not that the rack is correct.
 
+## 9. A kernel booted directly: `anvil-boot`
+
+A unikernel, or a kernel tested without a userland image, boots with
+`uses = "anvil-boot"` (anvil >= 0.15.0, x86 hosts only: tag the job
+`["hypervisor", "x86_64"]`; a Pi refuses the step with exit 2). An `anvil-vm`
+guest on hv01 or hv02 has no `svm` flag and no `/dev/kvm`: both hosts load
+`kvm_amd` with `nested=0`, because nested conflicted with AVIC on their
+kernel, and AVIC cut UDP request/response p99 by 13%. QEMU in such a guest
+runs only under TCG, which measures the emulator. hv03 loads `nested=1`;
+whether its anvil guests see `svm` has not been checked. `anvil-boot`
+places, pins and networks the guest as `anvil-vm` does, through the same
+launcher, so a unikernel and a Linux guest can be compared on the same host
+and slots.
+
+```toml
+[[jobs.steps]]
+uses = "anvil-boot"
+[jobs.steps.with]
+shape = "auto.c"
+slots = 1
+memory_gib = 4
+ports = 0
+kernel = "loader"          # in the job workdir, e.g. from download-artifact
+initrd = "app"
+cmdline = ""               # the guest's address goes here: there is no cloud-init
+timeout = 120              # default 600
+expect = "exit status 0"   # substring some console line must contain
+upload = true              # attach console.log to the run
+```
+
+- No disk, cloud-init, control NIC, passed-through GPU or ssh. `slots`,
+  `memory_gib`, `ports`, `vpmu` and `tags` are read as `anvil-vm` reads them;
+  `data_address` is refused; every other `anvil-vm` parameter is an unknown
+  field.
+- Without `ports` the guest gets every passthrough port the host has. A
+  kernel with no driver for them needs `ports = 0`: one virtio NIC on the
+  data network.
+- The step ends when the guest powers off or reboots, or at `timeout`, when
+  the guest is destroyed. `console.log` in the workdir holds the serial
+  console either way.
+- Exit status: 0 powered off or rebooted (and `expect` found, if set); 1
+  `expect` not found; 124 timeout; 2 setup error; 75 cancelled.
+- Hermit: the loader (`hermit-loader-x86_64-multiboot`) is `kernel` and the
+  application is `initrd`; the application needs the `hermit/smp` feature to
+  use more than one CPU, and takes its address from `ip=` on `cmdline`.
+  Verified on hv01: one `auto.c` slot gave the guest 8 CPUs and one
+  virtio-net device, and Hermit's hello_world exited 0
+  (`01a1f699-a690-71a0-0e5b-ac6880e7b289`).
+- The guest gets every CPU of its slots. Ask for fewer by asking for fewer
+  slots, not by a guest parameter.
+
 ## Never
 
 - Never work on hv01/hv02 outside a job, "just to check".
