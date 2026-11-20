@@ -259,8 +259,9 @@ Rules:
   bind and anything reading :4241 reads the packaged agent:
   `sudo systemctl disable --now rezolus`, then
   `sudo ss -ltnp | grep ':4241 '` should print nothing. Do not
-  `pkill -x rezolus`: under `metrics = true` the payload is a child of
-  `rezolus record`, which that also matches. With `metrics = true` the
+  `pkill -x rezolus`: under `metrics = true` the payload runs under
+  `rezolus record`, which the pattern also matches, and a SIGTERM to the
+  recorder terminates the payload. With `metrics = true` the
   recorder reads this agent; what the recording holds after the payload
   replaces it is not checked.
 - **A payload that compiles Rust uses the rack's shared compiler cache.**
