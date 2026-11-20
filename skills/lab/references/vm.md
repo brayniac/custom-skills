@@ -252,6 +252,18 @@ Rules:
   profile sourced; cargo, rustc and sccache are in `/usr/local/bin` on every
   platform image).
 - Uncommitted work: do not push a scratch branch. Ship a patch (recipes).
+- **Images that carry rezolus run its agent as the systemd unit `rezolus` on
+  port 4241** (checked on `debian-13-6.12`; not checked on the other families
+  the table lists with rezolus; `alpine-3.24` has none). A payload that starts
+  its own rezolus agent stops the packaged agent first, or its agent fails to
+  bind and anything reading :4241 reads the packaged agent:
+  `sudo systemctl disable --now rezolus`, then
+  `sudo ss -ltnp | grep ':4241 '` should print nothing. Do not
+  `pkill -x rezolus`: under `metrics = true` the payload runs under
+  `rezolus record`, which the pattern also matches, and a SIGTERM to the
+  recorder terminates the payload. With `metrics = true` the
+  recorder reads this agent; what the recording holds after the payload
+  replaces it is not checked.
 - **A payload that compiles Rust uses the rack's shared compiler cache.**
   Every platform image routes cargo's rustc calls through it
   (`/usr/local/bin/sccache-or-rustc`), and a store that is down makes the
