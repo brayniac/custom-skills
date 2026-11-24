@@ -151,11 +151,16 @@ An arm is one configuration, build or model load that a study compares with
 another. Each arm is its own experiment, and a study is one context:
 
 1. Write one spec whose job runs exactly one arm, every axis a `[params]`
-   entry.
+   entry. Independent checks, such as a test suite and its mutation runs, are
+   arms too: an experiment never places two of its jobs on one host, so two
+   jobs under a single-host tag (`validation`, `z1.baremetal`, `host:<name>`)
+   never start (`vm.md` section 1, "Two jobs in one experiment need two
+   distinct hosts").
 2. When the arms' numbers are compared by value, pin each job to one host with a
    `host:<name>` tag (`vm.md` section 1, beside this file): a different host per
    job, the same hosts for every arm. A tag that matches one host needs no pin;
-   `macbook`, `macstudio`, `pi5`, `z1.baremetal` and `z2.baremetal` did when
+   `macbook`, `macstudio`, `pi5`, `validation`, `z1.baremetal`, `z2.baremetal`
+   and `z4.baremetal` did when
    this was written, so check with `systemslab host list`. The scheduler places
    each experiment on its own, so under a tag that matches several hosts the
    arms run at the same time on different machines. A failure-rate sweep may

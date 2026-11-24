@@ -169,10 +169,10 @@ but carry `thermal-vm` instead of `hypervisor`), where an x86 image, a 16 GiB
 guest or a GPU does not exist. `["hypervisor", "aarch64"]` is a Pi guest (shape
 `a72.c` or `auto.c`, an image the table marks "Pis"; see infra's
 docs/guides/vm-jobs.md, "Guests on a Pi"). delta (`["validation"]`) runs guests
-too, from a pool of 40 1G hugepages of which its resident systemslab and plex
-VMs hold 32: a guest there gets at most 8 GiB, so say `memory_gib = 8` (and
-`slots = 1`); a whole-host `auto.c` asks for 64 GiB and fails at creation. Pin a
-generation — `z2.c` with `["z2.baremetal"]` (hv01, Zen2, 56 vCPU / ~224 GiB) or
+too, from a pool of 48 1G hugepages of which its resident systemslab and plex
+VMs hold 32: a guest there gets at most 16 GiB, and delta.toml asks jobs for
+`memory_gib <= 8` (and `slots = 1`); a whole-host `auto.c` asks for 64 GiB and
+fails at creation. Pin a generation — `z2.c` with `["z2.baremetal"]` (hv01, Zen2, 56 vCPU / ~224 GiB) or
 `z1.c` with `["z1.baremetal"]` (hv02, Zen1, 24 vCPU / ~96 GiB) — only when the
 silicon is part of the question. **A pinned shape whose generation disagrees
 with the tags fails at instance creation**, and pinning by habit is what held
@@ -180,18 +180,24 @@ every CI check on one hypervisor for five days. Class `c` compute, `g` gpu, `n`
 network.
 
 **Tags are ANDed** (a job runs where its tags are a subset of the host's):
-`["z2.baremetal","z1.baremetal"]` matches nothing, stays `pending`, and ends in
-`timeout` after the server's unschedulable timeout (6 h by default). An image
+`["z2.baremetal","z1.baremetal"]` matches nothing and stays `pending`. The
+server's unschedulable timeout defaults to 6 h, but no experiment here has been
+seen to end in `timeout` from it (see the next paragraph). An image
 that exists on one host with tags allowing the other fails at instance
 creation.
 
 **Two jobs in one experiment need two distinct hosts.** The scheduler matches
 jobs to hosts 1-to-1 (maximal bipartite matching) and schedules only when
 *every* job is covered, so an experiment with two jobs tagged for a
-single-host class — `macbook`, `z2.baremetal`, or `host:hv01` — is
-unsatisfiable. It does not fail at submit: it stays `pending`, indistinguishable
-from an ordinary queue, and ends in `timeout` after the server's unschedulable
-timeout (6 h by default).
+single-host class — `validation` (delta), `macbook`, `z2.baremetal`, or
+`host:hv01` — is unsatisfiable, even when the jobs' `slots` and `memory_gib`
+would fit on the host together. It does not fail at submit: it stays `pending`,
+indistinguishable from an ordinary queue. Neither observed case ended in
+`timeout`: an experiment with three `validation` jobs (2026-11-23) was
+cancelled still `pending` after 14 h 44 min, and one with two `z1.baremetal`
+jobs at `slots = 1`, `memory_gib = 8` (2026-11-21), which hv02 has room for,
+after 6 h 37 min. Cancel such an experiment and resubmit each job as its own
+experiment.
 
 The unschedulable timeout counts a host that is `locked`, `draining` or
 `drained` as available. When a class has two hosts and one of them is out,
@@ -498,8 +504,9 @@ upload = true              # attach console.log to the run
 ## Never
 
 - Never work on hv01/hv02 outside a job, "just to check".
-- Never put two jobs on a single-host tag; the experiment stays `pending` and
-  ends in `timeout` hours later instead of failing at submit.
+- Never put two jobs on a single-host tag (`validation` is one: only delta
+  carries it); the experiment stays `pending` until cancelled instead of
+  failing at submit.
 - Never read an experiment's `success` as the work's verdict when the payload
   ends `exit 0` — read the artifact it wrote.
 - Never a payload that ends non-zero when you want the artifacts.

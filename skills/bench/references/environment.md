@@ -49,9 +49,9 @@ since 2026-09-11 the validation host, where image builds and rack-ci-style
 checks run without queueing behind a measurement on hv01/hv02. It is
 deliberately *not* tagged `hypervisor`, `z1.baremetal` or `z2.baremetal`,
 because those are what measurement jobs ask for. A guest there shares delta's
-isolated CCX with the resident systemslab, forge and plex VMs and draws on
-about 4 GB of 1G pages, so validation jobs say `slots = 1` and
-`memory_gib <= 4`. Probes and builds belong there; numbers do not. See
+isolated CCX with the resident systemslab and plex VMs and draws on the 16 GiB
+of 1G pages they leave free; delta.toml asks validation jobs for `slots = 1`
+and `memory_gib <= 8`. Probes and builds belong there; numbers do not. See
 `infra/fleet/hosts/delta.toml`.
 
 **Zen 1 and Zen 2 are different microarchitectures, and hv02 is a Threadripper

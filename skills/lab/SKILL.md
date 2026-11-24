@@ -15,8 +15,9 @@ what exists before planning, then read the reference for the task.
   Never plan from a remembered roster. At last observation: `hv01` and `hv02`
   (x86 hypervisors, one RTX 4090 each, tags `rtx4090` and `gpu-passthrough`),
   `hv03` (x86, `hypervisor` and `bare`: one 16-thread guest slot, no NVIDIA GPU,
-  and barry's reviews run on it bare), `delta` (x86, tag `validation`; it also
-  serves the shared compiler cache at `delta:8081`), `pi00`–`pi19` (Raspberry Pi
+  and barry's reviews run on it bare), `delta` (x86, tag `validation`, the only
+  host with it, so one `validation` job per experiment; it also serves the
+  shared compiler cache at `delta:8081`), `pi00`–`pi19` (Raspberry Pi
   4B; `pi01` and `pi06` tagged `pi4b-thermal`), `pi20` (Raspberry Pi 5, tag
   `pi5`), and `macbook` and `macstudio` (jobs run directly on macOS). `bare`,
   for a job that runs on the host itself rather than in a guest, is on hv03,
