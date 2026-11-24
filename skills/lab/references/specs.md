@@ -82,6 +82,11 @@ absent on the other; JVMs at `/usr/lib/jvm/java-N-openjdk` on EL and
 grep -q " $MNT " /proc/mounts               # instead of mountpoint -q
 ```
 
+A job on a SystemsLab EC2 host (a tag such as `ec2-i4g-4xlarge`) runs
+as root with no `HOME` in its environment, so a
+script under `set -u` that reads it fails. Set it first:
+`export HOME=${HOME:-/root}`.
+
 Detect rather than hard-code, and write the resolved value to a file — each step
 is its own shell, so nothing survives between them except the filesystem:
 
@@ -114,6 +119,10 @@ uses = "systemslab/download-artifact"
 name = "myapp.jar"
 path = "myapp.jar"
 ```
+
+The action does not create the directory in `path`: `path = "in/myapp.jar"`
+fails with "No such file or directory" unless an earlier shell step ran
+`mkdir -p in`.
 
 Upload before submitting. `submit` has no `--hold`, so uploading to the
 experiment id after submitting races the scheduler — the job may already be
@@ -226,6 +235,12 @@ mismatch rather than failing. Correctness is then independent of scheduling.
 - **Never copy a `name =` out of an existing step** without checking what that
   action does with it.
 - **Never let a step compute a verdict without `set +e`.**
+- **Never leave a long-running command's output only in a file** that is
+  read after it exits; the job log has none of it until then. Pipe it
+  through `tee` into its own file (`cmd 2>&1 | tee /tmp/job/work.log`) and
+  keep the summary lines after it. `spec-template.toml`, beside this file,
+  sends `cargo test` to a file and greps it, which suits a command that
+  finishes in minutes.
 - **Never upload an input after `submit`.**
 - **Never read a job's exit status as the work's verdict** when the payload ends
   `exit 0` — see `vm.md`.
